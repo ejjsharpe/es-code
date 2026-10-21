@@ -11,8 +11,6 @@ import './api/browser/extensionHost.contribution.js';
 import './browser/workbench.contribution.js';
 import './browser/workbench.zenMode.contribution.js';
 
-import './common/agentsColors.js';
-import './common/agentsSizes.js';
 
 //#endregion
 
@@ -173,6 +171,13 @@ import { AllowedMcpServersService } from '../platform/mcp/common/allowedMcpServe
 import { IWebWorkerService } from '../platform/webWorker/browser/webWorkerService.js';
 import { WebWorkerService } from '../platform/webWorker/browser/webWorkerServiceImpl.js';
 import { AgentHostMcpOAuthMetadataService, IAgentHostMcpOAuthMetadataService } from '../platform/agentHost/common/agentHostMcpOAuthMetadataService.js';
+import { IInlineChatSessionService } from './contrib/inlineChat/browser/inlineChatSessionService.js';
+import { InlineChatSessionServiceImpl } from './contrib/inlineChat/browser/inlineChatSessionServiceImpl.js';
+import { IInlineChatSessionResolver, InlineChatSessionResolver } from './contrib/inlineChat/browser/inlineChatSessionResolver.js';
+import { IInteractiveDocumentService, InteractiveDocumentService } from './contrib/interactive/browser/interactiveDocumentService.js';
+import { IInteractiveHistoryService, InteractiveHistoryService } from './contrib/interactive/browser/interactiveHistoryService.js';
+import { IOnboardingService } from './contrib/welcomeOnboarding/common/onboardingService.js';
+import { Event } from '../base/common/event.js';
 
 registerSingleton(IUserDataSyncLogService, UserDataSyncLogService, InstantiationType.Delayed);
 registerSingleton(IAllowedExtensionsService, AllowedExtensionsService, InstantiationType.Delayed);
@@ -191,6 +196,16 @@ registerSingleton(IWebWorkerService, WebWorkerService, InstantiationType.Delayed
 registerSingleton(IMcpGalleryService, McpGalleryService, InstantiationType.Delayed);
 registerSingleton(IAllowedMcpServersService, AllowedMcpServersService, InstantiationType.Delayed);
 registerSingleton(IAgentHostMcpOAuthMetadataService, AgentHostMcpOAuthMetadataService, InstantiationType.Delayed);
+registerSingleton(IInlineChatSessionService, InlineChatSessionServiceImpl, InstantiationType.Delayed);
+registerSingleton(IInlineChatSessionResolver, InlineChatSessionResolver, InstantiationType.Delayed);
+registerSingleton(IInteractiveDocumentService, InteractiveDocumentService, InstantiationType.Delayed);
+registerSingleton(IInteractiveHistoryService, InteractiveHistoryService, InstantiationType.Delayed);
+class EmptyOnboardingService implements IOnboardingService {
+	declare readonly _serviceBrand: undefined;
+	readonly onDidDismiss = Event.None;
+	show(): void { }
+}
+registerSingleton(IOnboardingService, EmptyOnboardingService, InstantiationType.Delayed);
 
 //#endregion
 
@@ -199,6 +214,7 @@ registerSingleton(IAgentHostMcpOAuthMetadataService, AgentHostMcpOAuthMetadataSe
 
 // Default Account
 import './services/accounts/browser/defaultAccount.js';
+import './contrib/esCode/browser/esCode.contribution.js';
 
 // Account Policy Gate
 import './services/policies/browser/accountPolicyGate.contribution.js';
@@ -224,24 +240,10 @@ import './contrib/notebook/browser/notebook.contribution.js';
 // Speech
 import './contrib/speech/browser/speech.contribution.js';
 
-// Chat
+// Shared service contracts are still required by tasks, extensions, and the browser view.
 import './contrib/chat/browser/chat.shared.contribution.js';
-import './contrib/chat/browser/chat.contribution.js';
-import './contrib/chat/browser/agentSessions/agentHost/agentHost.contribution.js';
-import './contrib/chat/browser/remoteAgentHost/remoteAgentHost.contribution.js';
-import './contrib/chat/browser/chat.view.contribution.js';
-import './contrib/inlineChat/browser/inlineChat.contribution.js';
-
-// Copilot Voice
-import './contrib/agentsVoice/browser/agentsVoice.contribution.js';
 import './contrib/mcp/browser/mcp.contribution.js';
-import './contrib/mcp/browser/mcp.view.contribution.js';
-import './contrib/chat/browser/chatSessions/chatSessions.contribution.js';
-import './contrib/chat/browser/contextContrib/chatContext.contribution.js';
-import './contrib/imageCarousel/browser/imageCarousel.contribution.js';
 
-// Interactive
-import './contrib/interactive/browser/interactive.contribution.js';
 
 // repl
 import './contrib/replNotebook/browser/repl.contribution.js';
@@ -393,19 +395,13 @@ import './contrib/surveys/browser/languageSurveys.contribution.js';
 
 // Welcome
 import './contrib/welcomeGettingStarted/browser/gettingStarted.contribution.js';
-import './contrib/welcomeAgentSessions/browser/agentSessionsWelcome.contribution.js';
 import './contrib/welcomeWalkthrough/browser/walkThrough.contribution.js';
 import './contrib/welcomeViews/common/viewsWelcome.contribution.js';
 import './contrib/welcomeViews/common/newFile.contribution.js';
 
 // Welcome Onboarding
-import './contrib/welcomeOnboarding/browser/welcomeOnboarding.contribution.js';
 
 // Onboarding (scenario engine)
-import './contrib/onboarding/browser/onboarding.contribution.js';
-import './contrib/chat/browser/onboarding/modelPickerTryout.contribution.js';
-import './contrib/chat/browser/onboarding/chatInputSpotlightTour.js';
-import './contrib/codeEditor/browser/diffEditorTryout.contribution.js';
 
 // Call Hierarchy
 import './contrib/callHierarchy/browser/callHierarchy.contribution.js';

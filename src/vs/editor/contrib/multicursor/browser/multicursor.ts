@@ -732,6 +732,7 @@ export class AddSelectionToNextFindMatchAction extends MultiCursorSelectionContr
 			kbOpts: {
 				kbExpr: EditorContextKeys.focus,
 				primary: KeyMod.CtrlCmd | KeyCode.KeyD,
+				mac: { primary: KeyMod.CtrlCmd | KeyMod.Alt | KeyCode.KeyN },
 				weight: KeybindingWeight.EditorContrib
 			},
 			menuOpts: {

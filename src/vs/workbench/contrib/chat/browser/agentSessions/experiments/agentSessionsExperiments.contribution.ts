@@ -282,7 +282,7 @@ MenuRegistry.appendMenuItem(MenuId.TitleBar, {
 	group: 'navigation',
 	icon: Codicon.chatSparkle,
 	when: ContextKeyExpr.and(
-		ChatContextKeys.supported,
+		ChatContextKeys.enabled,
 		ContextKeyExpr.and(
 			ChatContextKeys.Setup.hidden.negate(),
 		),

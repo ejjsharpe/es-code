@@ -806,7 +806,7 @@ export class TriggerSuggestAction extends EditorAction {
 				kbExpr: EditorContextKeys.textInputFocus,
 				primary: KeyMod.CtrlCmd | KeyCode.Space,
 				secondary: [KeyMod.CtrlCmd | KeyCode.KeyI],
-				mac: { primary: KeyMod.WinCtrl | KeyCode.Space, secondary: [KeyMod.Alt | KeyCode.Escape, KeyMod.CtrlCmd | KeyCode.KeyI] },
+				mac: { primary: KeyMod.CtrlCmd | KeyCode.KeyI, secondary: [KeyMod.WinCtrl | KeyCode.Space, KeyMod.Alt | KeyCode.Escape] },
 				weight: KeybindingWeight.EditorContrib
 			}
 		});

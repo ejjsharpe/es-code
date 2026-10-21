@@ -41,13 +41,6 @@ interface WatermarkEntry {
 	};
 }
 
-const showChatContextKey = ContextKeyExpr.and(ContextKeyExpr.equals('chatSetupHidden', false), ContextKeyExpr.equals('chatSetupDisabledInWorkspace', false));
-
-const openChat: WatermarkEntry = {
-	text: localize('watermark.openChat', "Open Chat"), id: 'workbench.action.chat.open',
-	icon: registerIcon('watermark-chat', Codicon.chatSparkle, localize('watermark.chatIcon', "Icon for opening chat in the editor watermark.")),
-	when: { native: showChatContextKey, web: showChatContextKey }
-};
 const showCommands: WatermarkEntry = {
 	text: localize('watermark.showCommands', "Show All Commands"), id: 'workbench.action.showCommands',
 	icon: registerIcon('watermark-commands', Codicon.listSelection, localize('watermark.commandsIcon', "Icon for showing all commands in the editor watermark."))
@@ -96,8 +89,8 @@ const openSettings: WatermarkEntry = {
 };
 
 const baseEntries: WatermarkEntry[] = [
-	openChat,
 	showCommands,
+	{ text: localize('watermark.openPi', "Open Pi Terminal"), id: 'esCode.openPi', icon: Codicon.terminal },
 ];
 
 const emptyWindowEntries: WatermarkEntry[] = coalesce([

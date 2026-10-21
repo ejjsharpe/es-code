@@ -2753,26 +2753,6 @@
       ],
       "editor/title": [
         {
-          "command": "git.openFile",
-          "group": "navigation",
-          "when": "config.git.enabled && !git.missing && gitOpenRepositoryCount != 0 && isInDiffEditor && resourceScheme =~ /^git$|^file$/"
-        },
-        {
-          "command": "git.openFile",
-          "group": "navigation",
-          "when": "config.git.enabled && !git.missing && gitOpenRepositoryCount != 0 && isInNotebookTextDiffEditor && resourceScheme =~ /^git$|^file$/"
-        },
-        {
-          "command": "git.openFile",
-          "group": "navigation",
-          "when": "config.git.enabled && !git.missing && gitOpenRepositoryCount != 0 && !isInDiffEditor && !isInNotebookTextDiffEditor && resourceScheme == git"
-        },
-        {
-          "command": "git.openChange",
-          "group": "navigation@2",
-          "when": "config.git.enabled && !git.missing && gitOpenRepositoryCount != 0 && !isInDiffEditor && !isMergeEditor && resourceScheme == file && scmActiveResourceHasChanges && !isSessionsWindow"
-        },
-        {
           "command": "git.stashApplyEditor",
           "alt": "git.stashPopEditor",
           "group": "navigation@1",

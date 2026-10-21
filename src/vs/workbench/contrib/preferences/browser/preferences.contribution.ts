@@ -1176,7 +1176,7 @@ class PreferencesActionsContribution extends Disposable implements IWorkbenchCon
 			weight: KeybindingWeight.WorkbenchContrib,
 			when: ContextKeyExpr.and(CONTEXT_KEYBINDINGS_EDITOR),
 			primary: KeyMod.Alt | KeyCode.KeyP,
-			mac: { primary: KeyMod.CtrlCmd | KeyMod.Alt | KeyCode.KeyP },
+			mac: { primary: KeyMod.CtrlCmd | KeyMod.Alt | KeyCode.KeyB },
 			handler: (accessor, args: unknown) => {
 				const editorPane = accessor.get(IEditorService).activeEditorPane;
 				if (editorPane instanceof KeybindingsEditor) {

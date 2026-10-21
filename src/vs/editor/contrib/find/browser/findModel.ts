@@ -54,7 +54,7 @@ export const ToggleSearchScopeKeybinding: IKeybindings = {
 };
 export const TogglePreserveCaseKeybinding: IKeybindings = {
 	primary: KeyMod.Alt | KeyCode.KeyP,
-	mac: { primary: KeyMod.CtrlCmd | KeyMod.Alt | KeyCode.KeyP }
+	mac: { primary: KeyMod.CtrlCmd | KeyMod.Alt | KeyCode.KeyK }
 };
 
 export const FIND_IDS = {
