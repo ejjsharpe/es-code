@@ -9,13 +9,12 @@ import { isElectron, isMacintosh, isWindows } from '../common/platform.js';
 
 /**
  * The best font-family to be used in CSS based on the platform:
- * - Windows: Segoe preferred, fallback to sans-serif
- * - macOS: standard system font, fallback to sans-serif
- * - Linux: standard system font preferred, fallback to Ubuntu fonts
+ * - BlexMono Nerd Font preferred on all platforms
+ * - Platform fonts remain as fallbacks when BlexMono Nerd Font is unavailable
  *
  * Note: this currently does not adjust for different locales.
  */
-export const DEFAULT_FONT_FAMILY = isWindows ? '"Segoe WPC", "Segoe UI", sans-serif' : isMacintosh ? '-apple-system, BlinkMacSystemFont, sans-serif' : 'system-ui, "Ubuntu", "Droid Sans", sans-serif';
+export const DEFAULT_FONT_FAMILY = isWindows ? '"BlexMono Nerd Font", "Segoe WPC", "Segoe UI", sans-serif' : isMacintosh ? '"BlexMono Nerd Font", -apple-system, BlinkMacSystemFont, sans-serif' : '"BlexMono Nerd Font", system-ui, "Ubuntu", "Droid Sans", sans-serif';
 
 interface FontData {
 	readonly family: string;

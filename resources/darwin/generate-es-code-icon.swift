@@ -19,7 +19,7 @@ image.lockFocus()
 
 // Crop the outer black canvas and keep transparent corners around the supplied tile.
 NSGraphicsContext.saveGraphicsState()
-let tile = NSBezierPath(roundedRect: NSRect(x: 36, y: 36, width: 952, height: 952), xRadius: 194, yRadius: 194)
+let tile = NSBezierPath(roundedRect: NSRect(x: 26, y: 26, width: 972, height: 972), xRadius: 210, yRadius: 210)
 tile.addClip()
 artwork.draw(
     in: NSRect(x: 0, y: 0, width: size, height: size),

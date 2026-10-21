@@ -148,7 +148,6 @@ export class EditorGroupWatermark extends Disposable {
 			h('.editor-group-watermark-toolbar-container@toolbarContainer'),
 			h('.editor-group-watermark', [
 				h('.watermark-container', [
-					h('.letterpress'),
 					h('.shortcuts@shortcuts'),
 				])
 			])

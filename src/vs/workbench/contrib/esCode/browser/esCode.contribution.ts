@@ -39,9 +39,15 @@ registerSingleton(ITerminalChatService, TerminalChatService, InstantiationType.D
 registerSingleton(ITerminalChatSessionResolver, TerminalChatSessionResolver, InstantiationType.Delayed);
 
 Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Configuration).registerDefaultConfigurations([{ overrides: {
+	'workbench.colorTheme': 'ES Code Dark',
+	'workbench.preferredDarkColorTheme': 'ES Code Dark',
+	'workbench.iconTheme': 'vscode-modern-icons',
 	'workbench.startupEditor': 'none',
 	'workbench.secondarySideBar.defaultVisibility': 'hidden',
+	'workbench.sideBar.location': 'right',
 	'workbench.activityBar.location': 'top',
+	'workbench.statusBar.visible': false,
+	'workbench.layoutControl.enabled': false,
 	'editor.minimap.enabled': false,
 	'breadcrumbs.enabled': false,
 	'window.commandCenter': false,
