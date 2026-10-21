@@ -28,7 +28,6 @@ import { compileNonNativeExtensionsBuildTask, compileNativeExtensionsBuildTask, 
 import { checkApiProposalNamesTask, copyCodiconsTask } from './lib/compilation.ts';
 import { getRipgrepExcludeFilter } from './lib/copilot.ts';
 import { ensureOSProxyResolverPlatformPackage, getOSProxyResolverExcludeFilter, getOSProxyResolverPlatformFiles } from './lib/osProxyResolver.ts';
-import { readAgentSdkResults } from './agent-sdk/common.ts';
 import { readDictationRuntimeResults } from './dictation-runtime/common.ts';
 import { promisify } from 'util';
 import globCallback from 'glob';
@@ -124,11 +123,7 @@ function packageTask(platform: string, arch: string, sourceFolderName: string, d
 			'vs/workbench/workbench.desktop.main.css',
 			'vs/workbench/api/node/extensionHostProcess.js',
 			'vs/code/electron-browser/workbench/workbench.html',
-			'vs/code/electron-browser/workbench/workbench.js',
-			'vs/sessions/sessions.desktop.main.js',
-			'vs/sessions/sessions.desktop.main.css',
-			'vs/sessions/electron-browser/sessions.html',
-			'vs/sessions/electron-browser/sessions.js'
+			'vs/code/electron-browser/workbench/workbench.js'
 		]);
 
 		const src = gulp.src(out + '/**', { base: '.' })
@@ -182,13 +177,6 @@ function packageTask(platform: string, arch: string, sourceFolderName: string, d
 				json.date = readISODate(out);
 				json.checksums = checksums;
 				json.version = version;
-				// Stamp agentSdks from the per-platform results file produced
-				// by `build/agent-sdk/produce.ts` (an earlier pipeline step).
-				// Local dev: file absent → empty → not stamped.
-				const agentSdks = readAgentSdkResults();
-				if (Object.keys(agentSdks).length > 0) {
-					json.agentSdks = agentSdks;
-				}
 				// Stamp dictationRuntime from the per-platform results file
 				// produced by `build/dictation-runtime/produce.ts`. Local dev /
 				// unsupported target: file absent → undefined → not stamped.

@@ -30,6 +30,26 @@ import { Dto } from '../../services/extensions/common/proxyIdentifier.js';
 import { IHostService } from '../../services/host/browser/host.js';
 import { ITimerService } from '../../services/timer/browser/timerService.js';
 
+const disabledMainThreadActors = new Set<keyof typeof MainContext>([
+	'MainThreadAgentEditorComments',
+	'MainThreadLanguageModels',
+	'MainThreadChatAgents2',
+	'MainThreadCodeMapper',
+	'MainThreadLanguageModelTools',
+	'MainThreadEmbeddings',
+	'MainThreadAiRelatedInformation',
+	'MainThreadAiEmbeddingVector',
+	'MainThreadAiSettingsSearch',
+	'MainThreadMcp',
+	'MainThreadChatContext',
+	'MainThreadChatDebug',
+	'MainThreadChatStatus',
+	'MainThreadChatQuota',
+	'MainThreadChatInputNotification',
+	'MainThreadChatOutputRenderer',
+	'MainThreadChatSessions',
+]);
+
 @extHostNamedCustomer(MainContext.MainThreadExtensionService)
 export class MainThreadExtensionService implements MainThreadExtensionServiceShape {
 
@@ -54,8 +74,9 @@ export class MainThreadExtensionService implements MainThreadExtensionServiceSha
 		internalExtHostContext._setExtensionHostProxy(
 			new ExtensionHostProxy(extHostContext.getProxy(ExtHostContext.ExtHostExtensionService))
 		);
-		// eslint-disable-next-line local/code-no-any-casts, @typescript-eslint/no-explicit-any
-		internalExtHostContext._setAllMainProxyIdentifiers(Object.keys(MainContext).map((key) => (<any>MainContext)[key]));
+		internalExtHostContext._setAllMainProxyIdentifiers(Object.entries(MainContext)
+			.filter(([key]) => !disabledMainThreadActors.has(key as keyof typeof MainContext))
+			.map(([, identifier]) => identifier));
 	}
 
 	public dispose(): void {

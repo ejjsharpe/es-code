@@ -88,11 +88,6 @@ export class ExtHostLanguageModelTools implements ExtHostLanguageModelToolsShape
 	) {
 		this._proxy = mainContext.getProxy(MainContext.MainThreadLanguageModelTools);
 
-		this._proxy.$getTools().then(tools => {
-			for (const tool of tools) {
-				this._allTools.set(tool.id, new Tool(revive(tool)));
-			}
-		});
 	}
 
 	async $countTokensForInvocation(callId: string, input: string, token: CancellationToken): Promise<number> {

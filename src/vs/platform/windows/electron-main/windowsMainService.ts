@@ -58,8 +58,6 @@ import { IAuxiliaryWindowsMainService } from '../../auxiliaryWindow/electron-mai
 import { IAuxiliaryWindow } from '../../auxiliaryWindow/electron-main/auxiliaryWindow.js';
 import { ICSSDevelopmentService } from '../../cssDev/node/cssDevService.js';
 import { ResourceSet } from '../../../base/common/map.js';
-import { VSBuffer } from '../../../base/common/buffer.js';
-import { resolveAgentsWindowFolder, sendAgentsWindowOpenIntent } from './agentsWindow.js';
 
 //#region Helper Interfaces
 
@@ -293,45 +291,8 @@ export class WindowsMainService extends Disposable implements IWindowsMainServic
 		this.handleChatRequest(openConfig, [window]);
 	}
 
-	async openAgentsWindow(openConfig: IOpenConfiguration, folderUri?: URI, reveal?: URI | 'new', source?: AgentsWindowOpenSource, folderUriIsDefault = false, draft?: IAgentsWindowDraft, onboardingSessionResource?: URI): Promise<ICodeWindow[]> {
-		this.logService.trace('windowsManager#openAgentsWindow');
-
-		const existingWindows = this.getWindows();
-		folderUri = await resolveAgentsWindowFolder(openConfig, folderUri, reveal === 'new' ? undefined : reveal, source, cli => this.doExtractPathsFromCLI(cli));
-
-		// Open in a new browser window with the agent sessions workspace
-		const windows = await this.open(await this.ensureAgentsWindow(openConfig));
-
-		if (windows.length > 0) {
-			sendAgentsWindowOpenIntent(windows[0], existingWindows.includes(windows[0]), openConfig, { folderUri, reveal, source, folderUriIsDefault, draft, onboardingSessionResource });
-		}
-
-		return windows;
-	}
-
-	private async ensureAgentsWindow(openConfig: IOpenConfiguration): Promise<IOpenConfiguration> {
-		const agentSessionsWorkspaceUri = this.environmentMainService.agentSessionsWorkspace;
-		if (!agentSessionsWorkspaceUri) {
-			throw new Error('Agents workspace is not configured');
-		}
-
-		// Ensure the workspace file exists
-		const workspaceExists = await this.fileService.exists(agentSessionsWorkspaceUri);
-		if (!workspaceExists) {
-			const emptyWorkspaceContent = JSON.stringify({ folders: [] }, null, '\t');
-			await this.fileService.writeFile(agentSessionsWorkspaceUri, VSBuffer.fromString(emptyWorkspaceContent));
-		}
-
-		return {
-			urisToOpen: [{ workspaceUri: agentSessionsWorkspaceUri }],
-			userEnv: openConfig.userEnv,
-			cli: openConfig.cli,
-			noRecentEntry: true,
-			context: openConfig.context,
-			contextWindowId: openConfig.contextWindowId,
-			initialStartup: openConfig.initialStartup,
-			forceNewWindow: true,
-		};
+	async openAgentsWindow(_openConfig: IOpenConfiguration, _folderUri?: URI, _reveal?: URI | 'new', _source?: AgentsWindowOpenSource, _folderUriIsDefault = false, _draft?: IAgentsWindowDraft, _onboardingSessionResource?: URI): Promise<ICodeWindow[]> {
+		return [];
 	}
 
 	async open(openConfig: IOpenConfiguration): Promise<ICodeWindow[]> {
