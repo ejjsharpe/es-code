@@ -60,7 +60,7 @@ export const terminalConfiguration: IStringDictionary<IConfigurationPropertySche
 		scope: ConfigurationScope.RESOURCE
 	},
 	[TerminalSettingId.TabsEnabled]: {
-		description: localize('terminal.integrated.tabs.enabled', 'Controls whether terminal tabs display as a list to the side of the terminal. When this is disabled a dropdown will display instead.'),
+		description: localize('terminal.integrated.tabs.enabled', 'Controls whether terminal tabs display. When this is disabled a dropdown will display instead.'),
 		type: 'boolean',
 		default: true,
 	},
@@ -70,7 +70,7 @@ export const terminalConfiguration: IStringDictionary<IConfigurationPropertySche
 		default: true,
 	},
 	[TerminalSettingId.TabsHideCondition]: {
-		description: localize('terminal.integrated.tabs.hideCondition', 'Controls whether the terminal tabs view will hide under certain conditions.'),
+		description: localize('terminal.integrated.tabs.hideCondition', 'Controls whether terminal tabs positioned beside the terminal hide under certain conditions.'),
 		type: 'string',
 		enum: ['never', 'singleTerminal', 'singleGroup'],
 		enumDescriptions: [
@@ -106,13 +106,14 @@ export const terminalConfiguration: IStringDictionary<IConfigurationPropertySche
 	},
 	[TerminalSettingId.TabsLocation]: {
 		type: 'string',
-		enum: ['left', 'right'],
+		enum: ['left', 'right', 'top'],
 		enumDescriptions: [
 			localize('terminal.integrated.tabs.location.left', "Show the terminal tabs view to the left of the terminal"),
-			localize('terminal.integrated.tabs.location.right', "Show the terminal tabs view to the right of the terminal")
+			localize('terminal.integrated.tabs.location.right', "Show the terminal tabs view to the right of the terminal"),
+			localize('terminal.integrated.tabs.location.top', "Show terminal tabs above the terminal")
 		],
 		default: 'right',
-		description: localize('terminal.integrated.tabs.location', "Controls the location of the terminal tabs, either to the left or right of the actual terminal(s).")
+		description: localize('terminal.integrated.tabs.location', "Controls the location of terminal tabs.")
 	},
 	[TerminalSettingId.DefaultLocation]: {
 		type: 'string',

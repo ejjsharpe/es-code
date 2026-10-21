@@ -85,7 +85,7 @@ export class PanelPart extends AbstractPaneCompositePart {
 	) {
 		super(
 			Parts.PANEL_PART,
-			{ hasTitle: true, trailingSeparator: true },
+			{ hasTitle: false, trailingSeparator: true },
 			PanelPart.activePanelSettingsKey,
 			ActivePanelContext.bindTo(contextKeyService),
 			PanelFocusContext.bindTo(contextKeyService),
@@ -211,7 +211,7 @@ export class PanelPart extends AbstractPaneCompositePart {
 	}
 
 	protected override shouldShowCompositeBar(): boolean {
-		return true;
+		return false;
 	}
 
 	protected getCompositeBarPosition(): CompositeBarPosition {

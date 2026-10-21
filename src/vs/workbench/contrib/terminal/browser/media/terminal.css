@@ -16,6 +16,105 @@
 	z-index: 0;
 }
 
+.monaco-workbench .pane-body.integrated-terminal .terminal-top-tabs {
+	display: flex;
+	align-items: stretch;
+	flex: none;
+	width: 100%;
+	height: 32px;
+	box-sizing: border-box;
+	border-bottom: 1px solid var(--vscode-terminal-border, var(--vscode-panel-border));
+	overflow: hidden;
+}
+
+.monaco-workbench .pane-body.integrated-terminal .terminal-top-tabs[hidden] {
+	display: none;
+}
+
+.monaco-workbench .pane-body.integrated-terminal .terminal-top-tabs-list {
+	display: flex;
+	align-items: stretch;
+	min-width: 0;
+	overflow-x: auto;
+	scrollbar-width: thin;
+}
+
+.monaco-workbench .pane-body.integrated-terminal .terminal-top-tab-entry {
+	display: flex;
+	align-items: center;
+	flex: none;
+	max-width: 180px;
+	border-right: 1px solid var(--vscode-terminal-border, var(--vscode-panel-border));
+	color: var(--vscode-panelTitle-inactiveForeground);
+}
+
+.monaco-workbench .pane-body.integrated-terminal .terminal-top-tab-entry.active {
+	color: var(--vscode-panelTitle-activeForeground);
+	box-shadow: inset 0 -2px var(--vscode-terminal-tab-activeBorder, var(--vscode-panelTitle-activeBorder));
+}
+
+.monaco-workbench .pane-body.integrated-terminal .terminal-top-tab,
+.monaco-workbench .pane-body.integrated-terminal .terminal-top-tab-close,
+.monaco-workbench .pane-body.integrated-terminal .terminal-top-tab-new {
+	border: 0;
+	background: transparent;
+	color: inherit;
+	cursor: pointer;
+}
+
+.monaco-workbench .pane-body.integrated-terminal .terminal-top-tab {
+	min-width: 0;
+	padding: 0 8px 0 12px;
+	font: inherit;
+}
+
+.monaco-workbench .pane-body.integrated-terminal .terminal-top-tab-label {
+	display: block;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.monaco-workbench .pane-body.integrated-terminal .terminal-top-tab-close {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex: none;
+	width: 24px;
+	height: 24px;
+	margin-right: 4px;
+	border-radius: 4px;
+}
+
+.monaco-workbench .pane-body.integrated-terminal .terminal-top-tab-new {
+	flex: none;
+	align-self: center;
+	width: 24px;
+	height: 24px;
+	margin-left: 4px;
+	border-radius: 4px;
+}
+
+.monaco-workbench .pane-body.integrated-terminal .terminal-top-tab:focus-visible,
+.monaco-workbench .pane-body.integrated-terminal .terminal-top-tab-close:focus-visible,
+.monaco-workbench .pane-body.integrated-terminal .terminal-top-tab-new:focus-visible {
+	outline: 1px solid var(--vscode-focusBorder);
+	outline-offset: -2px;
+}
+
+.monaco-workbench .pane-body.integrated-terminal .terminal-top-tab-entry:hover,
+.monaco-workbench .pane-body.integrated-terminal .terminal-top-tab-close:hover,
+.monaco-workbench .pane-body.integrated-terminal .terminal-top-tab-new:hover {
+	background: var(--vscode-toolbar-hoverBackground);
+}
+
+.monaco-workbench .pane-body.integrated-terminal .terminal-tabbed-layout {
+	flex: 1;
+	min-height: 0;
+	width: 100%;
+	position: relative;
+}
+
 .terminal-command-decoration.hide {
 	visibility: hidden;
 }

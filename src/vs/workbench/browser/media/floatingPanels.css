@@ -14,8 +14,8 @@
  * must match `FLOATING_PANEL_MARGIN`, `FLOATING_PANEL_INNER_MARGIN` and the border
  * inset used there. The outermost
  * card on a cluster edge gets the density-specific outer gutter (`.floating-part-outer-*`).
- * Colors come from the generic `surface.*` tokens, with dedicated border
- * tokens for parts that need independent theming.
+ * Borders and foregrounds come from the generic `surface.*` tokens. The sidebars
+ * use `sideBar.background` so their frames match their view contents.
  *
  * The default and compact gutter variables below must stay in sync with
  * `FLOATING_PANEL_MARGIN` and `COMPACT_FLOATING_PANEL_MARGIN` in code.
@@ -47,7 +47,7 @@
 	border-left-color: var(--modern-ui-floating-card-seam-left-color, var(--modern-ui-floating-card-edge-color)) !important;
 	border-right-color: var(--modern-ui-floating-card-seam-right-color, var(--modern-ui-floating-card-edge-color)) !important;
 	border-radius: var(--vscode-cornerRadius-large);
-	background-color: var(--vscode-surface-background) !important;
+	background-color: var(--vscode-sideBar-background) !important;
 	color: var(--vscode-surface-foreground);
 }
 
@@ -124,11 +124,6 @@
 .monaco-workbench.floating-panels.modern-ui-compact .part.editor > .content,
 .monaco-workbench.floating-panels.modern-ui-compact .webview-overlay-content:not(.webview-overlay-modal) {
 	border-radius: 0;
-}
-
-/* Keep the auxiliary bar background aligned with the primary sidebar in light theme. */
-.monaco-workbench.floating-panels .part.auxiliarybar {
-	background-color: var(--vscode-sideBar-background) !important;
 }
 
 /* With no title bar and no banner above them (`.top-window-edge`, e.g. native fullscreen

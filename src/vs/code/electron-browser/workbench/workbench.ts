@@ -72,13 +72,18 @@ import { getPartsSplashColors, getPartsSplashLayoutMetrics } from './partsSplash
 		} else if (configuration.autoDetectColorScheme) {
 			if (configuration.colorScheme.dark) {
 				baseTheme = 'vs-dark';
-				shellBackground = '#1E1E1E';
-				shellForeground = '#CCCCCC';
+				shellBackground = '#171A22';
+				shellForeground = '#D8DBE3';
 			} else {
 				baseTheme = 'vs';
 				shellBackground = '#FFFFFF';
 				shellForeground = '#000000';
 			}
+		} else {
+			// The first window has no saved splash yet. Match the default ES Code Dark theme.
+			baseTheme = 'vs-dark';
+			shellBackground = '#171A22';
+			shellForeground = '#D8DBE3';
 		}
 
 		const style = document.createElement('style');
@@ -356,7 +361,7 @@ import { getPartsSplashColors, getPartsSplashLayoutMetrics } from './partsSplash
 					});
 				}
 				if (modernUI) {
-					applyFloatingCardStyles(sideDiv, colorInfo.surfaceBackground ?? colorInfo.agentsPanelBackground ?? colorInfo.sideBarBackground, layoutInfo.partBounds?.sideBar, sideBarFallbackOuterEdges);
+					applyFloatingCardStyles(sideDiv, colorInfo.sideBarBackground, layoutInfo.partBounds?.sideBar, sideBarFallbackOuterEdges);
 				} else {
 					sideDiv.style.backgroundColor = `${colorInfo.sideBarBackground}`;
 				}

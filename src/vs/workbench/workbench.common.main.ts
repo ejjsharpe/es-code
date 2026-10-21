@@ -193,6 +193,9 @@ registerSingleton(IOnboardingService, EmptyOnboardingService, InstantiationType.
 import './services/accounts/browser/defaultAccount.js';
 import './contrib/esCode/browser/esCode.contribution.js';
 
+// Chat services used by quick access in the editor workbench
+import './contrib/chat/browser/chat.noop.contribution.js';
+
 // Account Policy Gate
 import './services/policies/browser/accountPolicyGate.contribution.js';
 import './services/policies/browser/managedSettingsUpdate.contribution.js';
