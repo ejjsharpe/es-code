@@ -5,13 +5,11 @@
 
 import * as assert from 'assert';
 import * as cp from 'child_process';
-import { randomUUID } from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
 import { Application, ApplicationOptions, Logger, Quality } from '../../../../automation';
-import { createApp, dumpFailureDiagnostics, getCopilotSmokeTestEnv, getMockLlmServerPath, getMockLlmServerUrl, installAppAfterHandler, installDiagnosticsHandler, latestUserInputCarriesTag, MockLlmServer, suiteCrashPath, suiteLogsPath } from '../../utils';
-import { shellEchoResponseMatcher, shellEchoScenario } from '../chat/shellScenarios';
-import { createRemoteDevContainerFixture, getDevContainerCliInstallCommand, getTunnelSmokeTestAvailability, IRemoteDevContainerFixture, RemoteDevContainerTransport } from './remoteDevContainerFixtures';
+import { createApp, dumpFailureDiagnostics, getMockLlmServerPath, getMockLlmServerUrl, installAppAfterHandler, installDiagnosticsHandler, MockLlmServer, suiteCrashPath, suiteLogsPath } from '../../utils';
+import { createRemoteDevContainerFixture, IRemoteDevContainerFixture, RemoteDevContainerTransport } from './remoteDevContainerFixtures';
 
 // Selector for the send button in the Agents Window new-session homepage.
 // Kept in sync with `SEND_BUTTON_ENABLED` in `test/automation/src/agentsWindow.ts`
@@ -48,459 +46,7 @@ const CODEX_REPLY = 'MOCKED_CODEX_RESPONSE';
 const CODEX_WARMUP_SCENARIO_ID = 'smoke-hello-codex-warmup';
 const CODEX_WARMUP_REPLY = 'MOCKED_CODEX_WARMUP_RESPONSE';
 
-const AGENT_HOST_SCENARIO_ID = 'smoke-hello-agent-host';
-const AGENT_HOST_REPLY = 'MOCKED_AGENT_HOST_RESPONSE';
-const AGENT_HOST_MODEL = 'gpt-5.3-codex';
-const AGENT_HOST_REPLACEMENT_SCENARIO_ID = 'smoke-agent-host-session-replacement';
-const AGENT_HOST_REPLACEMENT_REPLY = 'MOCKED_AGENT_HOST_REPLACEMENT_RESPONSE';
-const DEV_CONTAINER_SCENARIO_ID = 'smoke-dev-container-agent-host';
-
-function prepareDevContainerWorkspace(workspacePath: string, port: number, options: ApplicationOptions): void {
-	const configDirectory = path.join(workspacePath, '.devcontainer');
-	const mockServerUrl = `http://vscode-smoke.test:${port}`;
-	fs.mkdirSync(configDirectory, { recursive: true });
-	fs.writeFileSync(path.join(configDirectory, 'devcontainer.json'), JSON.stringify({
-		name: 'Agents Window Smoke',
-		image: 'mcr.microsoft.com/devcontainers/base:ubuntu-24.04',
-		remoteUser: 'vscode',
-		runArgs: ['--add-host=vscode-smoke.test:host-gateway'],
-		containerEnv: {
-			COPILOT_API_URL: mockServerUrl,
-			COPILOT_DEBUG_GITHUB_API_URL: mockServerUrl,
-			GITHUB_COPILOT_API_TOKEN: 'smoketest-fake-agent-host-token',
-			VSCODE_AGENT_HOST_CAPI_URL_OVERRIDE: mockServerUrl,
-			VSCODE_SMOKE_TEST_PROXY_HEADER: process.env.VSCODE_SMOKE_TEST_PROXY_HEADER ?? 'dev-container',
-		},
-		postCreateCommand: getDevContainerCliInstallCommand(options.codePath),
-	}, null, 2));
-}
-
-function cleanupDevContainerWorkspace(workspacePath: string): void {
-	fs.rmSync(path.join(workspacePath, '.devcontainer'), { recursive: true, force: true });
-	removeDevContainer(workspacePath);
-}
-
-function removeDevContainer(workspacePath: string): number {
-	// URI.fsPath normalizes the Windows drive letter in the container label.
-	const labeledPath = process.platform === 'win32' ? workspacePath.replace(/^[A-Z]:/, drive => drive.toLowerCase()) : workspacePath;
-	const containerIds = cp.execFileSync('docker', ['ps', '-aq', '--filter', `label=devcontainer.local_folder=${labeledPath}`], { encoding: 'utf8' }).trim().split(/\s+/).filter(Boolean);
-	if (containerIds.length > 0) {
-		cp.execFileSync('docker', ['rm', '--force', ...containerIds], { stdio: 'pipe' });
-	}
-	return containerIds.length;
-}
-
-const AGENT_HOST_SDK_SANDBOX_SCENARIO_ID = 'smoke-hello-agent-host-sdk-sandbox';
-const AGENT_HOST_SDK_SANDBOX_REPLY = 'MOCKED_AGENT_HOST_SDK_SANDBOX_RESPONSE';
-
-// Lightweight throwaway scenario used by {@link warmUpAgentHostModel} to
-// prime the CLI model list before the real assertion. Registered in every
-// AgentHost suite by {@link setupAgentHostSuite}.
-const AGENT_HOST_WARMUP_SCENARIO_ID = 'smoke-hello-agent-host-warmup';
-const AGENT_HOST_WARMUP_REPLY = 'MOCKED_AGENT_HOST_WARMUP_RESPONSE';
-
-const DOCKER_PROBE_TIMEOUT_MS = 60_000;
-
-function probeLinuxDocker(): Promise<{ readonly available: boolean; readonly reason?: string }> {
-	return new Promise(resolve => {
-		cp.execFile('docker', ['info', '--format', '{{.OSType}}'], {
-			encoding: 'utf8',
-			timeout: DOCKER_PROBE_TIMEOUT_MS,
-			windowsHide: true,
-		}, (error, stdout, stderr) => {
-			const operatingSystem = stdout.trim().toLowerCase();
-			resolve(!error && operatingSystem === 'linux'
-				? { available: true }
-				: {
-					available: false,
-					reason: error?.message
-						?? (stderr.trim() || undefined)
-						?? `Docker daemon reports '${operatingSystem || 'unknown'}' containers`,
-				});
-		});
-	});
-}
-
-function installDockerPrerequisite(logger: Logger, required: boolean): void {
-	before('check Linux Docker availability', async function () {
-		this.timeout(DOCKER_PROBE_TIMEOUT_MS + 15_000);
-		const label = this.test?.parent?.title ?? 'Dev Container';
-		const start = Date.now();
-		logger.log(`${label}: checking Linux Docker availability (timeout ${DOCKER_PROBE_TIMEOUT_MS}ms)`);
-		const docker = await probeLinuxDocker();
-		logger.log(`${label}: Docker probe completed in ${Date.now() - start}ms: ${docker.available ? 'available' : docker.reason}`);
-		if (!docker.available && !required) {
-			logger.log(`Skipping ${label}: ${docker.reason}`);
-			this.skip();
-		}
-		assert.ok(docker.available, `Expected a reachable Linux Docker daemon: ${docker.reason}`);
-	});
-}
-
 export function setup(logger: Logger, quality: Quality) {
-
-	// These suites select the removed Copilot provider. Keep the fixtures until
-	// equivalent Claude/Codex coverage can exercise the same remote paths.
-	describe.skip('Agents Window (local AgentHost)', () => {
-
-		const agentHost = setupAgentHostSuite(logger, {
-			serverLabel: 'AgentHost',
-			registerScenarios: ({ ScenarioBuilder, registerScenario }) => {
-				registerScenario(AGENT_HOST_SCENARIO_ID, new ScenarioBuilder().emit(AGENT_HOST_REPLY).build());
-				registerScenario(AGENT_HOST_REPLACEMENT_SCENARIO_ID, new ScenarioBuilder().emit(AGENT_HOST_REPLACEMENT_REPLY).build());
-			},
-			settings: {},
-		});
-
-		it('Replaces the new session UI with the in-progress AgentHost session', async function () {
-			this.timeout(5 * 60 * 1000);
-
-			const app = this.app as Application;
-
-			try {
-				const requestsBefore = agentHost.mockServer.getRequests().length;
-				const requestTag = `[proxy-request:${randomUUID()}]`;
-				const worktreesBefore = process.env.VSCODE_SMOKE_TEST_PROXY_HEADER
-					? cp.execFileSync('git', ['worktree', 'list', '--porcelain'], { cwd: app.workspacePathOrFolder, encoding: 'utf8' })
-					: undefined;
-				await app.workbench.agentsWindow.waitForNewSessionView();
-				await app.workbench.agentsWindow.selectSessionType('Copilot');
-				await app.workbench.agentsWindow.submitNewSessionPrompt(`replace the new session UI [scenario:${AGENT_HOST_REPLACEMENT_SCENARIO_ID}] ${requestTag}`);
-				await app.workbench.agentsWindow.waitForActiveSessionView();
-				await app.workbench.agentsWindow.waitForAssistantText(AGENT_HOST_REPLACEMENT_REPLY);
-				if (process.env.VSCODE_SMOKE_TEST_PROXY_HEADER) {
-					await waitForPromptRequest(agentHost.mockServer, requestsBefore, requestTag);
-					assert.strictEqual(
-						cp.execFileSync('git', ['worktree', 'list', '--porcelain'], { cwd: app.workspacePathOrFolder, encoding: 'utf8' }),
-						worktreesBefore,
-						'Expected authenticated prompt validation without creating a worktree'
-					);
-				}
-				await app.workbench.agentsWindow.startNewSession();
-			} catch (error) {
-				logger.log(`Agents Window (AgentHost replacement) FAILURE: ${error instanceof Error ? error.stack ?? error.message : String(error)}`);
-				await dumpFailureDiagnostics(app, logger, 'Agents Window (AgentHost replacement)', { sendButtonSelector: AGENTS_SEND_BUTTON_SELECTOR });
-				throw error;
-			}
-		});
-
-		it('Test Copilot CLI session via AgentHost', async function () {
-			this.timeout(5 * 60 * 1000);
-
-			const app = this.app as Application;
-
-			try {
-				await warmUpAgentHostModel(app, logger, 'Agents Window (AgentHost)');
-
-				const requestsBefore = agentHost.mockServer.requestCount();
-				await app.workbench.agentsWindow.submitNewSessionPrompt(`hello world [scenario:${AGENT_HOST_SCENARIO_ID}]`);
-
-				const text = await app.workbench.agentsWindow.waitForAssistantText(AGENT_HOST_REPLY);
-				logger.log(`Agents Window (AgentHost) response: ${text}`);
-
-				assert.ok(
-					agentHost.mockServer.requestCount() > requestsBefore,
-					'expected the mock LLM server to have received a new request from the AgentHost session'
-				);
-
-				// Confirm the request flowed through the AgentHost process (not
-				// the renderer-side Copilot Chat extension fallback) by checking
-				// for a `chat/turnStarted` frame in the AHP JSONL transcript.
-				// In the multi-chat protocol turns are dispatched as chat
-				// actions on the session's default chat channel. The transcript
-				// is written through an async queue (see AhpJsonlLogger), so the
-				// frame may not be on disk yet even after the assistant reply has
-				// rendered — poll briefly.
-				const ahpLogDir = path.join(agentHost.logsPath, 'ahp');
-				const ahpFrames = await waitForLogContent(() => readAhpFrames(ahpLogDir), '"type":"chat/turnStarted"');
-				assert.ok(
-					ahpFrames.includes('"type":"chat/turnStarted"'),
-					`expected the AgentHost process to have received a chat/turnStarted dispatchAction (checked ${ahpJsonlFiles(ahpLogDir).length} jsonl files under ${ahpLogDir}); if missing, the renderer-side extension likely served the reply instead`
-				);
-			} catch (error) {
-				logger.log(`Agents Window (AgentHost) FAILURE: ${error instanceof Error ? error.stack ?? error.message : String(error)}`);
-				await dumpFailureDiagnostics(app, logger, 'Agents Window (AgentHost)', { sendButtonSelector: AGENTS_SEND_BUTTON_SELECTOR });
-				throw error;
-			}
-		});
-
-	});
-
-	const runDevContainerSuite = quality !== Quality.Exploration;
-	if (!runDevContainerSuite) {
-		logger.log('Skipping Agents Window (Dev Container AgentHost) on Exploration builds');
-	}
-	describe.skip('Agents Window (Dev Container AgentHost)', () => {
-		installDockerPrerequisite(logger, process.platform === 'linux');
-
-		const devContainer = setupAgentHostSuite(logger, {
-			serverLabel: 'Dev Container AgentHost',
-			mockServerHost: '0.0.0.0',
-			registerScenarios: ({ ScenarioBuilder, registerScenario }) => {
-				registerScenario(DEV_CONTAINER_SCENARIO_ID, new ScenarioBuilder().emit('OK').build());
-			},
-			settings: {
-				'chat.agentHost.devContainer.enabled': true,
-				'chat.agentHost.devContainer.worktree.enabled': false,
-				'chat.remoteAgentHostsEnabled': true,
-			},
-			prepareWorkspace: (workspacePath, options) => prepareDevContainerWorkspace(workspacePath, devContainer.mockServer.port, options),
-			cleanupWorkspace: cleanupDevContainerWorkspace,
-		});
-
-		it('Starts a session in a Dev Container', async function () {
-			this.timeout(10 * 60 * 1000);
-			const app = this.app as Application;
-
-			try {
-				const requestsBefore = devContainer.mockServer.requestCount();
-				await app.workbench.agentsWindow.waitForNewSessionView();
-				await app.workbench.agentsWindow.selectSessionType('Copilot');
-				await app.workbench.agentsWindow.selectDevContainer();
-				const prompt = `start Dev Container [scenario:${DEV_CONTAINER_SCENARIO_ID}]`;
-				await app.workbench.agentsWindow.submitNewSessionPrompt(prompt, 1_800);
-				await app.workbench.agentsWindow.waitForSessionPreparation(prompt);
-				await app.workbench.agentsWindow.showSessionPreparationLog();
-				await app.workbench.agentsWindow.cancelSessionPreparation(prompt);
-				await app.workbench.agentsWindow.retrySessionPreparation();
-				await app.workbench.agentsWindow.waitForSessionPreparation(prompt);
-				await app.workbench.agentsWindow.waitForActiveSessionView(5 * 60 * 1000);
-				const text = await app.workbench.agentsWindow.waitForAssistantText('OK', 2 * 60 * 1000);
-				await app.workbench.agentsWindow.verifyInputEnabledAfterPreparation();
-				logger.log(`Agents Window (Dev Container AgentHost) response: ${text}`);
-				assert.ok(
-					devContainer.mockServer.requestCount() > requestsBefore,
-					'expected the mock LLM server to receive the Dev Container Agent Host request'
-				);
-
-				const ahpFrames = await waitForLogContent(
-					() => readAhpFrames(path.join(devContainer.logsPath, 'ahp')),
-					/"transport":"devcontainer"/,
-					30_000,
-				);
-				assert.match(ahpFrames, /"vscode\.clientConnectionKind":"dev_container"/);
-				assert.match(ahpFrames, /"transport":"devcontainer"/);
-
-				const rendererLogs = await waitForLogContent(
-					() => readRendererLogs(devContainer.logsPath),
-					/\[AgentHost\] _invokeAgent called for resource: remote-devcontainer__/,
-					30_000,
-				);
-				assert.match(rendererLogs, /\[AgentHost\] _invokeAgent called for resource: remote-devcontainer__/);
-
-				await app.workbench.agentsWindow.startNewSession();
-				await app.workbench.agentsWindow.selectDevContainer();
-				await app.workbench.agentsWindow.selectSessionType('Copilot');
-				assert.strictEqual(removeDevContainer(app.workspacePathOrFolder), 1, 'Expected to remove the fixture container');
-				await waitForLogContent(
-					() => readRendererLogs(devContainer.logsPath),
-					/\[RemoteAgentHostProtocol\] Reconnecting to devcontainer:/,
-					30_000,
-				);
-				const requestsBeforeReconnect = devContainer.mockServer.requestCount();
-				const reconnectPrompt = `join reconnecting Dev Container [scenario:${DEV_CONTAINER_SCENARIO_ID}]`;
-				await app.workbench.agentsWindow.submitNewSessionPrompt(reconnectPrompt, 1_800);
-				await app.workbench.agentsWindow.waitForSessionPreparation(reconnectPrompt);
-				await app.workbench.agentsWindow.waitForAssistantText('OK', 5 * 60 * 1000);
-				assert.ok(devContainer.mockServer.requestCount() > requestsBeforeReconnect, 'Expected a request after joining the automatic reconnect');
-			} catch (error) {
-				logger.log(`Agents Window (Dev Container AgentHost) FAILURE: ${error instanceof Error ? error.stack ?? error.message : String(error)}`);
-				await dumpFailureDiagnostics(app, logger, 'Agents Window (Dev Container AgentHost)', { sendButtonSelector: AGENTS_SEND_BUTTON_SELECTOR });
-				throw error;
-			}
-		});
-	});
-
-	for (const transport of ['ssh', 'tunnel', 'wsl'] as const) {
-		const label = transport === 'ssh' ? 'SSH' : transport === 'wsl' ? 'WSL' : 'Tunnel';
-		const isCI = !!process.env.CI || !!process.env.TF_BUILD;
-		const required = transport === 'wsl' && process.env.VSCODE_SMOKE_TEST_WSL_REQUIRED === '1';
-		const supportedPlatform = transport === 'wsl' ? process.platform === 'win32' : process.platform !== 'win32' && (!isCI || process.platform === 'linux');
-		const requested = transport === 'ssh' || (transport === 'wsl' ? !!process.env.VSCODE_SMOKE_TEST_WSL_DISTRO : !!process.env.VSCODE_SMOKE_TEST_TUNNEL_TOKEN);
-		const enabled = runDevContainerSuite && (required || (supportedPlatform && requested));
-		if (!enabled) {
-			logger.log(`Skipping Agents Window (${label} Dev Container AgentHost): ${!runDevContainerSuite ? 'not supported on Exploration builds' : !supportedPlatform ? 'unsupported platform' : transport === 'wsl' ? 'set VSCODE_SMOKE_TEST_WSL_DISTRO to enable the WSL fixture' : 'set VSCODE_SMOKE_TEST_TUNNEL_TOKEN to enable the real tunnel fixture'}`);
-		}
-		describe.skip(`Agents Window (${label} Dev Container AgentHost)`, () => {
-			if (transport !== 'wsl') {
-				installDockerPrerequisite(logger, process.platform === 'linux' || transport === 'tunnel');
-			}
-			before(() => {
-				if (required) {
-					assert.ok(supportedPlatform, 'Required WSL smoke tests need Windows.');
-					assert.ok(process.env.VSCODE_SMOKE_TEST_WSL_DISTRO, 'Required WSL smoke tests need VSCODE_SMOKE_TEST_WSL_DISTRO from successful provisioning.');
-					assert.ok(process.env.VSCODE_SMOKE_TEST_WSL_SERVER_PATH, 'Required WSL smoke tests need VSCODE_SMOKE_TEST_WSL_SERVER_PATH from successful provisioning.');
-				}
-				if (transport === 'tunnel') {
-					const availability = getTunnelSmokeTestAvailability();
-					assert.ok(availability.available, availability.reason);
-				}
-			});
-			const scenario = `${DEV_CONTAINER_SCENARIO_ID}-${transport}`;
-			const reply = `DEV_CONTAINER_${label.toUpperCase()}_RESPONSE`;
-			const context = setupAgentHostSuite(logger, {
-				serverLabel: `${label} Dev Container AgentHost`,
-				mockServerHost: '0.0.0.0',
-				remoteTransport: transport,
-				registerScenarios: ({ ScenarioBuilder, registerScenario }) => registerScenario(scenario, new ScenarioBuilder().emit(reply).build()),
-				settings: {
-					'chat.agentHost.devContainer.enabled': true,
-					'chat.agentHost.devContainer.worktree.enabled': false,
-					'chat.remoteAgentHostsEnabled': true,
-				},
-				prepareWorkspace: (workspacePath, options) => prepareDevContainerWorkspace(workspacePath, context.mockServer.port, options),
-				cleanupWorkspace: cleanupDevContainerWorkspace,
-			});
-
-			it(`Starts and reopens a Dev Container session over ${label}`, async function () {
-				this.timeout(10 * 60 * 1000);
-				const app = this.app as Application;
-				const fixture = context.remoteFixture;
-				assert.ok(fixture, 'Expected the remote connection fixture');
-				const workspacePath = fixture.workspacePath ?? app.workspacePathOrFolder;
-				const workspaceLabel = `${path.basename(workspacePath)} [${fixture.name}]`;
-				const prompt = `start ${label} Dev Container [scenario:${scenario}]`;
-				try {
-					await app.workbench.agentsWindow.waitForNewSessionView();
-					if (transport === 'ssh') {
-						assert.ok(fixture.ssh);
-						await app.workbench.agentsWindow.connectSSHHost({ ...fixture.ssh, name: fixture.name }, workspacePath);
-					} else if (transport === 'wsl') {
-						await app.workbench.agentsWindow.connectWSLHost(fixture.name, workspacePath);
-					} else {
-						await app.workbench.agentsWindow.connectTunnelHost(fixture.name, workspacePath);
-					}
-					await app.workbench.agentsWindow.selectSessionType('Copilot', { providerLabel: fixture.name });
-					await app.workbench.agentsWindow.selectDevContainer(workspaceLabel);
-					const requestsBefore = context.mockServer.requestCount();
-					await app.workbench.agentsWindow.submitNewSessionPrompt(prompt, 1_800);
-					await app.workbench.agentsWindow.waitForSessionPreparation(prompt);
-					await app.workbench.agentsWindow.waitForActiveSessionView(5 * 60 * 1000);
-					await app.workbench.agentsWindow.waitForAssistantText(reply, 2 * 60 * 1000);
-					assert.ok(context.mockServer.requestCount() > requestsBefore, 'Expected a new request at the mock LLM server');
-					await assertRemoteDevContainerRouting(context.logsPath, transport, workspacePath, reply);
-					await fixture.verifyMockServerRouting?.();
-					await app.workbench.agentsWindow.startNewSession();
-					await app.workbench.agentsWindow.activateSessionByLabel([prompt, reply], reply, 60_000);
-					await app.workbench.agentsWindow.waitForAssistantText(reply);
-				} catch (error) {
-					logger.log(`Agents Window (${label} Dev Container) FAILURE: ${error instanceof Error ? error.stack ?? error.message : String(error)}`);
-					if (fixture.dumpConnectionDiagnostics) {
-						let uiState: string;
-						try {
-							uiState = await app.workbench.agentsWindow.getRemoteConnectionDiagnostics();
-						} catch (diagnosticError) {
-							uiState = `UI state unavailable: ${diagnosticError instanceof Error ? diagnosticError.message : String(diagnosticError)}`;
-						}
-						try {
-							await fixture.dumpConnectionDiagnostics(uiState);
-						} catch (diagnosticError) {
-							const message = `Agents Window (${label} Dev Container) connection diagnostics failed: ${diagnosticError instanceof Error ? diagnosticError.message : String(diagnosticError)}`;
-							logger.log(message);
-							console.error(message);
-						}
-					}
-					await dumpFailureDiagnostics(app, logger, `Agents Window (${label} Dev Container)`, { sendButtonSelector: AGENTS_SEND_BUTTON_SELECTOR });
-					throw error;
-				}
-			});
-		});
-	}
-
-	describe.skip('Agents Window (local AgentHost, SDK sandbox)', () => {
-
-		// Variant of the AgentHost suite that leaves
-		// `chat.agentHost.customTerminalTool.enabled` at its default (false), so
-		// the SDK’s built-in shell tool runs commands. The AgentHost forwards
-		// `chat.agent.sandbox.*` into the SDK via `session.options.update`
-		// (mirroring how the Copilot extension configures the CLI sandbox), so
-		// shell commands still run mxc-wrapped.
-
-		const agentHost = setupAgentHostSuite(logger, {
-			serverLabel: 'AgentHost SDK sandbox',
-			registerScenarios: ({ registerScenario }) => {
-				registerScenario(AGENT_HOST_SDK_SANDBOX_SCENARIO_ID, shellEchoScenario(AGENT_HOST_SDK_SANDBOX_REPLY));
-			},
-			settings: {
-				// customTerminalTool intentionally OFF (default) — the SDK runs
-				// the shell tool, and the AgentHost is expected to forward
-				// `chat.agent.sandbox.*` into the SDK so commands still run
-				// sandboxed.
-				'chat.agent.sandbox.enabled': 'on',
-			},
-		});
-
-		it('Test Copilot CLI session via AgentHost (SDK sandbox)', async function () {
-			// See the Copilot CLI sandbox test above for the rationale on
-			// platform gating and where to find logs when debugging CI runs.
-			// The AgentHost-side log we assert on is `<logsPath>/agenthost.log`
-			// (the utility-process log), produced by CopilotAgentSession.
-			if (process.platform === 'win32') {
-				this.skip();
-			}
-
-			this.timeout(5 * 60 * 1000);
-
-			const app = this.app as Application;
-
-			try {
-				await warmUpAgentHostModel(app, logger, 'Agents Window (AgentHost SDK sandbox)');
-
-				const requestsBefore = agentHost.mockServer.requestCount();
-				await app.workbench.agentsWindow.submitNewSessionPrompt(`hello world [scenario:${AGENT_HOST_SDK_SANDBOX_SCENARIO_ID}]`);
-
-				// Match the JSON `output` field of the tool result in the final
-				// response, not the `echo <reply>` command preview — see
-				// shellEchoScenario / shellEchoResponseMatcher.
-				const text = await app.workbench.agentsWindow.waitForAssistantText(shellEchoResponseMatcher(AGENT_HOST_SDK_SANDBOX_REPLY), 120_000);
-				logger.log(`Agents Window (AgentHost SDK sandbox) response: ${text}`);
-
-				assert.ok(
-					agentHost.mockServer.requestCount() > requestsBefore,
-					'expected the mock LLM server to have received a new request from the AgentHost SDK sandbox session'
-				);
-
-				// Confirm the command ran through the SDK's built-in shell under the
-				// sandbox policy we pushed — NOT the AgentHost's own engine. Evidence
-				// in `agenthost.log`:
-				//   1. `Applied SDK sandboxConfig via session.options.update` — the
-				//      AgentHost pushed the mxc policy to the SDK.
-				//   2. `Tool started: bash` — the SDK's own shell tool ran the command.
-				//   3. NO `[ShellManager]` line — the AgentHost provided no shell tool
-				//      (customTerminalTool is off), so the SDK, not our engine, ran it.
-				// There is deliberately no `Auto-approving sandboxed shell command`
-				// entry on this path. The session enables the runtime's script-safety
-				// classifier, which reports this `echo` as read-only, and the runtime
-				// resolves a read-only command without ever raising a permission
-				// request. The host's auto-approve branch still governs non-read-only
-				// sandboxed commands and is asserted by the custom-terminal-tool test
-				// above. Poll for the tool run: it lands after 1, and by that point a
-				// competing `[ShellManager]` run would have been logged too.
-				const agentHostLogPath = path.join(agentHost.logsPath, 'agenthost.log');
-				const sdkShellRun = /\[Copilot:[^\]]+\] Tool started: bash/;
-				const agentHostLog = await waitForLogContent(() => readFileIfExists(agentHostLogPath), sdkShellRun);
-				assert.match(
-					agentHostLog,
-					/\[Copilot:[^\]]+\] Applied SDK sandboxConfig via session\.options\.update/,
-					`expected an "Applied SDK sandboxConfig" entry in ${agentHostLogPath}`
-				);
-				assert.match(
-					agentHostLog,
-					sdkShellRun,
-					`expected the SDK's own shell tool ("Tool started: bash") to have run the command in ${agentHostLogPath}`
-				);
-				assert.doesNotMatch(
-					agentHostLog,
-					/\[ShellManager\] Created \w+ shell /,
-					`did not expect the AgentHost's own shell engine ([ShellManager]) to run the command on the SDK sandbox path, in ${agentHostLogPath}`
-				);
-			} catch (error) {
-				logger.log(`Agents Window (AgentHost SDK sandbox) FAILURE: ${error instanceof Error ? error.stack ?? error.message : String(error)}`);
-				await dumpFailureDiagnostics(app, logger, 'Agents Window (AgentHost SDK sandbox)', { sendButtonSelector: AGENTS_SEND_BUTTON_SELECTOR });
-				throw error;
-			}
-		});
-	});
 
 	describe('Agents Window (Codex)', () => {
 
@@ -652,35 +198,6 @@ export function setup(logger: Logger, quality: Quality) {
 }
 
 /**
- * Primes a freshly-spawned AgentHost process's CLI model list to avoid the
- * cold-start "No model available" race (github/copilot-agent-runtime#9876):
- * the very first query in the process lifetime can reach the CLI before its
- * model list has resolved, surfacing as a `session/error`. A throwaway
- * session resolves it because the model list is cached by then.
- *
- * Assumes the Agents Window is showing a new-session view. Sends a throwaway
- * prompt, ignores its outcome, then leaves a fresh new-session view with
- * Agent Host Copilot selected so the caller can submit the real prompt
- * against an already-warmed model list.
- */
-async function warmUpAgentHostModel(app: Application, logger: Logger, label: string): Promise<void> {
-	await app.workbench.agentsWindow.waitForNewSessionView();
-	await app.workbench.agentsWindow.selectSessionType('Copilot');
-	await app.workbench.agentsWindow.submitNewSessionPrompt(`hello world [scenario:${AGENT_HOST_WARMUP_SCENARIO_ID}]`);
-	try {
-		await app.workbench.agentsWindow.waitForAssistantText(AGENT_HOST_WARMUP_REPLY, 30_000);
-	} catch (error) {
-		// Ignore — the warm-up itself may hit the cold-start race; the caller's
-		// real attempt runs against an already-warmed model list.
-		logger.log(`${label} warm-up attempt did not produce the expected reply (likely the cold-start race); proceeding with the real attempt. Reason: ${error instanceof Error ? error.message : String(error)}`);
-	}
-	await app.workbench.agentsWindow.startNewSession();
-	await app.workbench.agentsWindow.waitForNewSessionView();
-	await app.workbench.agentsWindow.selectSessionType('Copilot');
-}
-
-
-/**
  * Pre-pays the Codex session cold-start cost: the first Codex session in a
  * fresh agent host has to spawn the native `codex app-server` binary and
  * resolve its model list before the first `/responses` request can complete.
@@ -749,7 +266,6 @@ function setupAgentHostSuite(logger: Logger, config: {
 		const { startServer, ScenarioBuilder, registerScenario } = require(getMockLlmServerPath());
 
 		registerScenario('text-only', new ScenarioBuilder().emit('OK').build());
-		registerScenario(AGENT_HOST_WARMUP_SCENARIO_ID, new ScenarioBuilder().emit(AGENT_HOST_WARMUP_REPLY).build());
 		config.registerScenarios({ ScenarioBuilder, registerScenario });
 
 		mockServer = await startServer(0, {
@@ -797,9 +313,7 @@ function setupAgentHostSuite(logger: Logger, config: {
 			extraArgs: [...(opts.extraArgs ?? []), ...(remoteFixture?.extraArgs ?? [])],
 			extraEnv: {
 				...(opts.extraEnv ?? {}),
-				...getCopilotSmokeTestEnv(mockServer, { userDataDir: opts.userDataDir }),
-				COPILOT_API_URL: getMockLlmServerUrl(mockServer),
-				COPILOT_DEBUG_GITHUB_API_URL: getMockLlmServerUrl(mockServer),
+				CODEX_HOME: opts.userDataDir ? path.join(opts.userDataDir, 'codex-home') : undefined,
 				GITHUB_COPILOT_API_TOKEN: 'smoketest-fake-agent-host-token',
 				// Route the agent host's shared CAPI client (used by the Codex /
 				// agent-host harnesses for model discovery + requests) at the mock
@@ -815,7 +329,6 @@ function setupAgentHostSuite(logger: Logger, config: {
 		const userDataDir = (this.app as Application).userDataPath;
 		if (userDataDir) {
 			const settings = JSON.stringify({
-				'github.copilot.advanced.debug.overrideProxyUrl': getMockLlmServerUrl(mockServer),
 				// AgentHost's fetch patch honors PAC/system proxy resolution only
 				// when proxy support is enabled. The smoke profile is pre-seeded from
 				// scratch, so set the production default explicitly rather than
@@ -824,14 +337,8 @@ function setupAgentHostSuite(logger: Logger, config: {
 				...(process.env.VSCODE_SMOKE_TEST_PROXY_HEADER ? {
 					'sessions.useWorktree': false,
 				} : {}),
-				'chat.allowAnonymousAccess': true,
-				'github.copilot.chat.githubMcpServer.enabled': false,
 				'chat.agentHost.ahpJsonlLoggingEnabled': true,
 				'chat.agentHost.unsafeTestToken': 'smoketest-fake-agent-host-token',
-				// Verbose Copilot runtime logging for capturable failure diagnostics.
-				'chat.agentHost.copilotSdk.logLevel': 'trace',
-				// These suites exercise Agent Host and sandbox behavior, not Auto routing.
-				'chat.defaultModel': AGENT_HOST_MODEL,
 				...config.settings,
 				...remoteFixture?.settings,
 			}, null, 2);
@@ -891,43 +398,6 @@ function setupAgentHostSuite(logger: Logger, config: {
 	};
 }
 
-async function waitForPromptRequest(mockServer: MockLlmServer, requestsBefore: number, requestTag: string): Promise<void> {
-	const deadline = Date.now() + 30_000;
-	while (Date.now() < deadline) {
-		if (mockServer.getRequests().slice(requestsBefore).some(request =>
-			request.path === '/responses' &&
-			request.method === 'POST' &&
-			latestUserInputCarriesTag(request.body, requestTag))) {
-			return;
-		}
-		await new Promise(resolve => setTimeout(resolve, 100));
-	}
-	throw new Error(`Timed out waiting for the Copilot model request with ${requestTag}`);
-}
-
-async function assertRemoteDevContainerRouting(logsPath: string, transport: RemoteDevContainerTransport, workspacePath: string, reply: string): Promise<void> {
-	interface IFrame {
-		readonly _ahpLog?: { readonly transport?: string };
-		readonly method?: string;
-		readonly params?: { readonly workspaceFolder?: string; readonly action?: { readonly type?: string } };
-	}
-	const parseFrames = (content: string): IFrame[] => content.split(/\r?\n/).filter(Boolean).map(line => JSON.parse(line));
-	const content = await waitForLogContent(
-		() => readAhpFrames(path.join(logsPath, 'ahp')),
-		content => parseFrames(content).some(frame => frame._ahpLog?.transport === 'devcontainer' && JSON.stringify(frame).includes(reply)),
-		30_000,
-	);
-	const frames = parseFrames(content);
-	assert.ok(frames.some(frame =>
-		frame._ahpLog?.transport === transport
-		&& frame.method === 'vscode/devContainers/connect'
-		&& frame.params?.workspaceFolder === workspacePath
-	), `Expected container startup for the selected workspace on the ${transport} connection`);
-	const containerFrames = frames.filter(frame => frame._ahpLog?.transport === 'devcontainer');
-	assert.ok(containerFrames.some(frame => frame.method === 'dispatchAction' && frame.params?.action?.type === 'chat/turnStarted'), 'Expected a turn sent through the nested Dev Container transport');
-	assert.ok(containerFrames.some(frame => JSON.stringify(frame).includes(reply)), 'Expected the mock response on the nested Dev Container transport');
-}
-
 /**
  * Polls `readContent` until it returns a string matching `matcher` or the
  * timeout elapses, then returns the last content read. Log files in these
@@ -946,10 +416,6 @@ async function waitForLogContent(readContent: () => string, matcher: RegExp | st
 }
 
 /** Reads a file, returning '' if it does not exist yet. */
-function readFileIfExists(filePath: string): string {
-	return fs.existsSync(filePath) ? fs.readFileSync(filePath, 'utf8') : '';
-}
-
 /** Lists the `.jsonl` transcript files in an AHP log directory. */
 function ahpJsonlFiles(ahpLogDir: string): string[] {
 	return fs.existsSync(ahpLogDir) ? fs.readdirSync(ahpLogDir).filter(f => f.endsWith('.jsonl')) : [];
@@ -958,13 +424,4 @@ function ahpJsonlFiles(ahpLogDir: string): string[] {
 /** Concatenates every AHP JSONL transcript in `ahpLogDir` into one string. */
 function readAhpFrames(ahpLogDir: string): string {
 	return ahpJsonlFiles(ahpLogDir).map(f => fs.readFileSync(path.join(ahpLogDir, f), 'utf8')).join('\n');
-}
-
-function readRendererLogs(logsPath: string): string {
-	return fs.existsSync(logsPath)
-		? fs.readdirSync(logsPath, { withFileTypes: true })
-			.filter(entry => entry.isDirectory() && /^window\d+$/.test(entry.name))
-			.map(entry => readFileIfExists(path.join(logsPath, entry.name, 'renderer.log')))
-			.join('\n')
-		: '';
 }

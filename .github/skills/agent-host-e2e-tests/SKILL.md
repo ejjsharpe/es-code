@@ -5,11 +5,11 @@ description: Use when writing, recording, updating, validating, or troubleshooti
 
 # Agent host end-to-end tests
 
-These tests run the whole agent host end-to-end (real server, real bundled provider SDK/CLI, real AHP protocol) while replaying recorded model traffic from committed YAML fixtures — deterministic and tokenless.
+These tests run the whole agent host end-to-end (real server, Claude or Codex provider SDK, real AHP protocol) while replaying recorded model traffic from committed YAML fixtures — deterministic and tokenless.
 
 **Before doing anything, read the architecture + troubleshooting reference:** `src/vs/platform/agentHost/test/node/e2e/README.md`
 
-It documents the mental model, the fixture format, every config flag, and a symptom→cause→fix troubleshooting table. This skill is only the *workflows*; the README is the source of truth for *how it works*.
+It documents current entrypoints, fixture locations, update modes, and troubleshooting. This skill describes the workflow; the README is the source of truth for current test commands.
 
 When validating an upstream provider/runtime fix, use [ci-artifact-testing](../ci-artifact-testing/SKILL.md) to check for a compatible CI artifact before building locally. Run the same strict replay against the bundled baseline and candidate; preserve the test assertions and existing cross-platform validation requirements.
 
@@ -56,7 +56,7 @@ Re-record when you add a test, or when a bundled SDK/CLI bump changes its wire b
    AGENT_HOST_REPLAY_RECORD=1 ./scripts/test-integration.sh --run \
      src/vs/platform/agentHost/test/node/e2e/providers/claudeAgentHostE2E.integrationTest.ts
    ```
-   Repeat for `copilotAgentHostE2E` / `codexAgentHostE2E` as needed.
+   Repeat for `claudeAgentHostE2E` / `codexAgentHostE2E` as needed.
 3. **Review `git diff` on the fixtures**: no local usernames/absolute paths, no tokens, no unreleased model ids. If something leaked, the fix is to extend normalization/redaction in `capiReplayProxy.ts` (`_normalize` + the `*_RE` redactors) and re-record — not to edit the fixture.
 4. Run plain replay (no env var) to confirm green, then commit.
 
@@ -88,5 +88,5 @@ New Agent Host E2E and real-provider integration tests are not ready to merge af
 
 - Run a single provider in replay: `./scripts/test-integration.sh --run <path>` (no env var).
 - Filter to one test: add `--grep "<test title fragment>"`.
-- **On a hang / timeout, read the runtime log first.** For the **Copilot** provider, a failed test tails the most recent Copilot runtime (`@github/copilot` CLI) `process-*.log` into the test output (`[agent-host-e2e] # …` lines) — the SDK/CLI's own account of startup, auth, the model request, and the turn lifecycle. It runs at `--log trace`. A turn that never produced a model response, a panic, or an out-of-order/protocol error points at the SDK/CLI (re-record if a bump left the fixture stale; otherwise it's a real regression). Claude/Codex use their own runtimes and are not captured here. See the README's "A turn hangs or times out with no OS pattern".
-- For any failure (`cache miss`, missing fixture, per-OS timeout, leaked PII, subagent staleness, accidental real-CAPI contact), go to the **Troubleshooting** section of the README — it maps each symptom to its cause and fix.
+- **On a hang or timeout, inspect the Agent Host process log and provider stderr first.** Check whether the provider sent a model request, whether replay served it, and whether AHP emitted the expected turn lifecycle events. Re-record only if an SDK change intentionally changed the request or response sequence.
+- For cache misses, missing fixtures, OS-specific failures, or unexpected upstream contact, use the troubleshooting steps in the README.

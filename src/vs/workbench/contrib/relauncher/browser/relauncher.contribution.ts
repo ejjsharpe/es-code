@@ -29,7 +29,6 @@ interface IConfiguration extends IWindowsConfiguration {
 	workbench?: { enableExperiments?: boolean };
 	telemetry?: { feedback?: { enabled?: boolean } };
 	chat?: {
-		extensionUnification?: { enabled?: boolean };
 		agentSessions?: { migrateLegacyCopilotCli?: boolean };
 		agentHost?: {
 			enabled?: boolean;
@@ -66,7 +65,6 @@ export class SettingsChangeRelauncher extends Disposable implements IWorkbenchCo
 		'security.restrictUNCAccess',
 		'accessibility.verbosity.debug',
 		'telemetry.feedback.enabled',
-		'chat.extensionUnification.enabled',
 		'chat.agentSessions.migrateLegacyCopilotCli',
 		'chat.agentHost.claudeAgent.enabled',
 		'chat.editor.codex.preferAgentHost',
@@ -91,7 +89,6 @@ export class SettingsChangeRelauncher extends Disposable implements IWorkbenchCo
 	private readonly restrictUNCAccess = new ChangeObserver('boolean');
 	private readonly accessibilityVerbosityDebug = new ChangeObserver('boolean');
 	private readonly telemetryFeedbackEnabled = new ChangeObserver('boolean');
-	private readonly extensionUnificationEnabled = new ChangeObserver('boolean');
 	private readonly agentSessionsMigrateLegacyCopilotCli = new ChangeObserver('boolean');
 	private readonly agentHostClaudeAgentEnabled = new ChangeObserver('boolean');
 	private readonly editorCodexPreferAgentHost = new ChangeObserver('boolean');
@@ -176,9 +173,6 @@ export class SettingsChangeRelauncher extends Disposable implements IWorkbenchCo
 
 		// Enable Feedback
 		processChanged(this.telemetryFeedbackEnabled.handleChange(config.telemetry?.feedback?.enabled));
-
-		// Extension Unification (only when turning on)
-		processChanged(this.extensionUnificationEnabled.handleChange(config.chat?.extensionUnification?.enabled) && config.chat?.extensionUnification?.enabled === true);
 
 		// Agent provider registration and implementation preferences are read at spawn.
 		processChanged(this.agentHostClaudeAgentEnabled.handleChange(config.chat?.agentHost?.claudeAgent?.enabled));

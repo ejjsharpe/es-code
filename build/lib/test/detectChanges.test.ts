@@ -99,7 +99,6 @@ suite('Detect Changes', () => {
 			['README.md', ['false', 'false', 'false']],
 			['.github/skills/unit-tests/SKILL.md', ['false', 'false', 'false']],
 			['cli/src/commands/tunnels.rs', ['false', 'false', 'false']],
-			['copilot_shim/src/main.rs', ['false', 'false', 'false']],
 			['extensions/git/src/repository.ts', ['false', 'true', 'true']],
 			['extensions/markdown-language-features/test-workspace/a.md', ['false', 'true', 'true']],
 			['extensions/theme-defaults/themes/dark_modern.json', ['true', 'true', 'true']],

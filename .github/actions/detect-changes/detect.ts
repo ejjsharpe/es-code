@@ -58,13 +58,6 @@ const rules: readonly IChangeRule[] = [
 			'.github/workflows/pr-linux-cli-test.yml',
 		],
 	},
-	{
-		output: 'copilot-shim',
-		paths: [
-			'copilot_shim/',
-			'.github/workflows/pr-linux-cli-test.yml',
-		],
-	},
 ];
 
 /**
@@ -85,7 +78,7 @@ function isDocumentation(path: string): boolean {
 
 /** The Rust crates, which the core test jobs neither build nor run. */
 function isRustCrate(path: string): boolean {
-	return path.startsWith('cli/') || path.startsWith('copilot_shim/');
+	return path.startsWith('cli/');
 }
 
 /**

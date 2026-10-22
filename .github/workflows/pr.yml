@@ -30,7 +30,6 @@ jobs:
     runs-on: ubuntu-24.04
     outputs:
       cli: ${{ steps.detect.outputs.cli }}
-      copilot-shim: ${{ steps.detect.outputs.copilot-shim }}
       unit-tests: ${{ steps.detect.outputs.unit-tests }}
       browser-integration: ${{ steps.detect.outputs.browser-integration }}
       product-tests: ${{ steps.detect.outputs.product-tests }}
@@ -149,19 +148,6 @@ jobs:
     with:
       rustup_toolchain: 1.88
       affected: ${{ needs.changes.result != 'success' || needs.changes.outputs.cli == 'true' }}
-
-  linux-copilot-shim-tests:
-    name: Linux Copilot Shim
-    needs: changes
-    if: ${{ !cancelled() }}
-    uses: ./.github/workflows/pr-linux-cli-test.yml
-    with:
-      rustup_toolchain: 1.88
-      working_directory: copilot_shim
-      format: true
-      locked: true
-      all_targets: true
-      affected: ${{ needs.changes.result != 'success' || needs.changes.outputs.copilot-shim == 'true' }}
 
   # The test jobs below report "<OS> (<part>) / <job>" checks and skip when the
   # changes cannot affect them. required-checks reports the required

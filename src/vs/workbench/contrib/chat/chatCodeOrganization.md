@@ -23,7 +23,6 @@ The boolean treatment `chatOpenInAgentsTitleBarExpandOnHover` applies to all use
 - `attachments/` - Context attachment model, pickers, context widgets.
 - `chatContentParts/` - Rendering components for different response content types (markdown, code blocks, tool output, etc.).
 - `chatEditing/` - The edit session model, edit diff UI, edit snapshots.
-- `chatSetup/` - Placeholder registrations before the chat extentension is set up. Running the chat auth/install flow.
 - `contextContrib/` - The contribution point for chat context providers - note the difference from `attachments/`.
 - `widget/` - The core files related to rendering parts of the ChatWidget, including the list, the input, the model/agent pickers, and other main UI parts. Must have direct references from ChatWidget itself.
 - `widgetHosts/` - Hosts that embed chat widgets in other places (view pane, editor, quick chat).

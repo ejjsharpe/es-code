@@ -4,68 +4,19 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { mock } from '../../../../../base/test/common/mock.js';
-import { ICommandService } from '../../../../../platform/commands/common/commands.js';
 import { IMarkdownRendererService, MarkdownRendererService } from '../../../../../platform/markdown/browser/markdownRenderer.js';
-import { TelemetryLevel } from '../../../../../platform/telemetry/common/telemetry.js';
-import { ChatSetupDialog, getChatSetupDialogButtons, getChatSetupDialogFooter } from '../../../../contrib/chat/browser/chatSetup/chatSetupRunner.js';
-import { ChatEntitlement } from '../../../../services/chat/common/chatEntitlementService.js';
 import { IHostService } from '../../../../services/host/browser/host.js';
 import { IWorkbenchLayoutService } from '../../../../services/layout/browser/layoutService.js';
 // eslint-disable-next-line local/code-import-patterns
-import { createSessionsSignInDialogOptions, SessionsSigningInDialog } from '../../../../../sessions/browser/sessionsSignInDialog.js';
+import { SessionsSigningInDialog } from '../../../../../sessions/browser/sessionsSignInDialog.js';
 import { ComponentFixtureContext, createEditorServices, defineComponentFixture, defineThemedFixtureGroup } from '../fixtureUtils.js';
 
-const providers = {
-	default: { name: 'GitHub' },
-	enterprise: { name: 'GHE' },
-	google: { name: 'Google' },
-	apple: { name: 'Apple' },
-};
-
-const footerContent = {
-	providerName: 'GitHub',
-	termsStatementUrl: 'https://example.com/terms',
-	privacyStatementUrl: 'https://example.com/privacy',
-	publicCodeMatchesUrl: 'https://example.com/public-code',
-};
-
 export default defineThemedFixtureGroup({ path: 'sessions/signInDialog/' }, {
-	SignIn: defineComponentFixture({
-		labels: { kind: 'screenshot' },
-		render: context => renderSignInDialog(context, false, true, true),
-	}),
-	SignInWithEditorWindowOpen: defineComponentFixture({
-		labels: { kind: 'screenshot' },
-		render: context => renderSignInDialog(context, false, false, true),
-	}),
-	SignInRequired: defineComponentFixture({
-		labels: { kind: 'screenshot' },
-		render: context => renderSignInDialog(context, false, true, false),
-	}),
-	EnterpriseSignIn: defineComponentFixture({
-		labels: { kind: 'screenshot' },
-		render: context => renderSignInDialog(context, true, true, true),
-	}),
 	SigningIn: defineComponentFixture({
 		labels: { kind: 'screenshot' },
 		render: renderSigningInDialog,
 	}),
 });
-
-function renderSignInDialog(context: ComponentFixtureContext, enterpriseAuthentication: boolean, showReturnToVSCodeEditor: boolean, allowContinueWithoutSignIn: boolean): void {
-	const instantiationService = createDialogServices(context);
-	const presentation = createSessionsSignInDialogOptions(instantiationService.get(ICommandService), showReturnToVSCodeEditor, allowContinueWithoutSignIn);
-	const dialog = context.disposableStore.add(instantiationService.createInstance(ChatSetupDialog, context.container, {
-		title: presentation.dialogTitle,
-		buttons: getChatSetupDialogButtons(ChatEntitlement.Unknown, presentation, enterpriseAuthentication, providers),
-		icon: presentation.dialogIcon,
-		disableCloseButton: presentation.disableCloseButton,
-		footer: getChatSetupDialogFooter(undefined, TelemetryLevel.USAGE, 'https://github.com/settings/copilot/features', footerContent),
-		extraClasses: presentation.dialogExtraClasses,
-		renderFooter: presentation.renderDialogFooter,
-	}));
-	void dialog.show();
-}
 
 function renderSigningInDialog(context: ComponentFixtureContext): void {
 	const instantiationService = createDialogServices(context);

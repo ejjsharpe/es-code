@@ -209,7 +209,6 @@ export const tocData: ITOCEntry<string> = {
 						'chat.codeBlock.*',
 						'chat.editing.explainChanges.enabled',
 						'chat.editorAssociations',
-						'chat.extensionUnification.*',
 						'chat.inlineReferences.*',
 						'chat.notifyWindow*',
 						'chat.statusWidget.*',

@@ -688,7 +688,7 @@ export class ChatWidget extends Disposable implements IChatWidget {
 		// hydrates after the agent host connects (and can reset on restart), and
 		// `rootState` is a placeholder subscription whose `onDidChange` is
 		// `Event.None` until then — so (re)bind on every start and listen for both
-		// value and error transitions, mirroring agentHostSignedOutModelsNotification.
+		// value and error transitions.
 		const rootStateListeners = this._register(new DisposableStore());
 		const bindRootState = () => {
 			rootStateListeners.clear();

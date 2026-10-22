@@ -1070,14 +1070,14 @@ function mapAccountQuotaSnapshot(snapshot: AccountQuotaSnapshot): IQuotaSnapshot
 	const entitlement = typeof snapshot.entitlementRequests === 'number' ? snapshot.entitlementRequests : undefined;
 
 	// Skip categories with no allocated entitlement (e.g. free-tier premium with 0 credits),
-	// mirroring `parseQuotas` so we don't surface an empty premium bucket.
+	// Avoid surfacing an empty premium bucket.
 	if (!unlimited && entitlement === 0) {
 		return undefined;
 	}
 
 	// `remainingPercentage` is required to express a usable snapshot. Treat its absence as
 	// "no data" and skip the category rather than defaulting to 0, which would otherwise
-	// masquerade as an exhausted quota (matching `parseQuotas`, where `percent_remaining` is required).
+	// masquerade as an exhausted quota; a remaining percentage is required.
 	if (typeof snapshot.remainingPercentage !== 'number') {
 		return undefined;
 	}
