@@ -5,6 +5,9 @@
 
 //#region --- editor/workbench core
 
+// Register editor chat fallbacks before contributions can create quick diff models.
+import './contrib/chat/browser/chat.noop.contribution.js';
+
 import '../editor/editor.all.js';
 
 import './api/browser/extensionHost.contribution.js';
@@ -194,9 +197,6 @@ registerSingleton(IOnboardingService, EmptyOnboardingService, InstantiationType.
 // Default Account
 import './services/accounts/browser/defaultAccount.js';
 import './contrib/esCode/browser/esCode.contribution.js';
-
-// Chat services used by quick access in the editor workbench
-import './contrib/chat/browser/chat.noop.contribution.js';
 
 // Account Policy Gate
 import './services/policies/browser/accountPolicyGate.contribution.js';
