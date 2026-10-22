@@ -102,8 +102,8 @@ import '../workbench/services/extensionRecommendations/common/workspaceExtension
 import '../workbench/services/extensionManagement/common/extensionFeaturesManagemetService.js';
 import '../workbench/services/notification/common/notificationService.js';
 import '../workbench/services/userDataSync/common/userDataSyncUtil.js';
+import '../workbench/services/userDataSync/common/disabledUserDataSyncServices.js';
 import '../workbench/services/userDataProfile/browser/userDataProfileImportExportService.js';
-import '../workbench/services/userDataProfile/browser/userDataProfileManagement.js';
 import '../workbench/services/userDataProfile/common/remoteUserDataProfiles.js';
 import '../workbench/services/remote/common/remoteExplorerService.js';
 import '../workbench/services/remote/common/remoteExtensionsScanner.js';

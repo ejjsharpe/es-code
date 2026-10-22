@@ -7,7 +7,7 @@ import { isUndefined } from '../../../../base/common/types.js';
 import { Event } from '../../../../base/common/event.js';
 import { localize, localize2 } from '../../../../nls.js';
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
-import { IUserDataProfile, IUserDataProfileOptions, IUserDataProfileUpdateOptions, ProfileResourceType, ProfileResourceTypeFlags } from '../../../../platform/userDataProfile/common/userDataProfile.js';
+import { IUserDataProfile, IUserDataProfileOptions, ProfileResourceType, ProfileResourceTypeFlags } from '../../../../platform/userDataProfile/common/userDataProfile.js';
 import { RawContextKey } from '../../../../platform/contextkey/common/contextkey.js';
 import { URI } from '../../../../base/common/uri.js';
 import { registerIcon } from '../../../../platform/theme/common/iconRegistry.js';
@@ -29,25 +29,6 @@ export interface IUserDataProfileService {
 	readonly currentProfile: IUserDataProfile;
 	readonly onDidChangeCurrentProfile: Event<DidChangeUserDataProfileEvent>;
 	updateCurrentProfile(currentProfile: IUserDataProfile): Promise<void>;
-}
-
-export interface IProfileTemplateInfo {
-	readonly name: string;
-	readonly url: string;
-}
-
-export const IUserDataProfileManagementService = createDecorator<IUserDataProfileManagementService>('IUserDataProfileManagementService');
-export interface IUserDataProfileManagementService {
-	readonly _serviceBrand: undefined;
-
-	createProfile(name: string, options?: IUserDataProfileOptions): Promise<IUserDataProfile>;
-	createAndEnterProfile(name: string, options?: IUserDataProfileOptions): Promise<IUserDataProfile>;
-	createAndEnterTransientProfile(): Promise<IUserDataProfile>;
-	removeProfile(profile: IUserDataProfile): Promise<void>;
-	updateProfile(profile: IUserDataProfile, updateOptions: IUserDataProfileUpdateOptions): Promise<IUserDataProfile>;
-	switchProfile(profile: IUserDataProfile): Promise<void>;
-	getBuiltinProfileTemplates(): Promise<IProfileTemplateInfo[]>;
-	getDefaultProfileToUse(): IUserDataProfile;
 }
 
 export interface IUserDataProfileTemplate {
