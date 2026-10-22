@@ -78,7 +78,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Known suite names (used for help text and validation)
-KNOWN_SUITES="api-folder api-workspace colorize typescript markdown emmet git git-base configuration-editing github-authentication copilot css html json"
+KNOWN_SUITES="api-folder api-workspace colorize typescript markdown emmet git git-base configuration-editing github-authentication css html json"
 
 if $HELP; then
 	echo "Usage: $0 [options]"
@@ -289,12 +289,6 @@ fi
 if should_run_suite github-authentication; then
 start_suite "GitHub Authentication tests"
 npm run test-extension -- -l github-authentication "${GREP_ARGS[@]}"
-kill_app
-fi
-
-if should_run_suite copilot; then
-start_suite "Copilot tests"
-npm run test-extension -- -l copilot "${GREP_ARGS[@]}"
 kill_app
 fi
 
