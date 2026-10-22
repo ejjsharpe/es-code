@@ -568,9 +568,9 @@ suite('AgentHost seam split guards', () => {
 		assert.deepStrictEqual({
 			noConfigurationResource,
 			// The scan reads the built production sources, so an empty or misdirected scan fails here instead of passing vacuously.
-			scannedProviders: ['common/agent.js', 'node/agentService.js', 'node/agentChatContext.js', 'node/claude/claudeAgent.js', 'node/codex/codexAgent.js', 'node/copilot/copilotAgent.js'].filter(path => scanned.has(path)).length,
+			scannedProviders: ['common/agent.js', 'node/agentService.js', 'node/agentChatContext.js', 'node/claude/claudeAgent.js', 'node/codex/codexAgent.js'].filter(path => scanned.has(path)).length,
 			productionUses: sources.filter(source => source.text.includes('configurationResource')).map(source => source.path),
-		}, { noConfigurationResource: true, scannedProviders: 6, productionUses: [] });
+		}, { noConfigurationResource: true, scannedProviders: 5, productionUses: [] });
 	});
 
 	test('production builds a fixed owner only for the legacy session-only form and runtimes no host context records', () => {
@@ -579,8 +579,6 @@ suite('AgentHost seam split guards', () => {
 			'common/agent.js',
 			// A runtime created before any chat binds to it.
 			'node/codex/codexAgent.js',
-			// A legacy resume of a chat no host context recorded.
-			'node/copilot/copilotAgent.js',
 		]);
 	});
 

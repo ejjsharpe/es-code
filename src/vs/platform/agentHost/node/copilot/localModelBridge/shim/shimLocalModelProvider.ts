@@ -24,7 +24,6 @@ import { containsCredential, dropCredentialEntries, dropCredentialItems, errorCo
 import { IAgentHostProxyResolver } from '../../../agentHostProxyResolver.js';
 import type { IAgentHostStorageService } from '../../../agentHostStorageService.js';
 import type { ILocalModelDirectRequestWait, ILocalModelLiveConfig, ILocalModelModelRow, ILocalModelProvider, ILocalModelSessionConfigContribution } from '../localModelProvider.js';
-import { getLocalModelSelectionId } from '../../copilotSessionLauncher.js';
 import { createLocalModelRouteTelemetrySink, LocalModelCopilotRequestHandler, type LocalModelFetch } from './copilotRequestHandler.js';
 import { CATALOG_REFRESH_INTERVAL_MS, CONTEXT_SIZE_OPTIONS, DEFAULT_CONTEXT_SIZE, GGUF_ARCHITECTURE_READ_MAX_BYTES, PRESET_INI_FILE_NAME, PRESET_INI_MAX_BYTES, PRESET_JSON_FILE_NAME, PRESET_MAX_PARALLEL, RECURRENT_MODEL_CTX_CHECKPOINTS, SENTINEL_BASE_URL, SENTINEL_MODEL_PROVIDER, PUBLIC_REGISTRY, type LocalModelRegistryName } from './constants.js';
 import { createLocalModelAcquisitionError, findResumablePartial, LocalModelDownloadError, ModelDownloader, reportLocalModelSetup, RequestServiceHttpClient, resolveModelFilePath, toTelemetryArchitecture, type ILocalModelSetupEvent } from './downloader.js';
@@ -43,6 +42,11 @@ import { ServingAccess } from './servingAccessImpl.js';
 import { checkAdmission, chooseServingProfile, computeFitClass, computeFootprintBytes, isOfferableFit, reportLocalModelEligibility, spareSystemMemoryAfterAdmission, toGiB, type IAdmissionInput, type ILlamaDevice, type LocalModelFitResult } from './servingProfile.js';
 import { AZURE_ML_MODELS_DIR_NAME, LocalModelStore, LocalModelStoreError, type ILocalModelInstalledVersion, toCatalogInstallFact } from './store.js';
 import { TurnLedger } from './turnLedger.js';
+
+/** The selection id used for an on-device model row. */
+function getLocalModelSelectionId(rowId: string): string {
+	return `${LOCAL_MODEL_SENTINEL_PROVIDER_NAME}/${rowId}`;
+}
 
 /** The status published before the catalog, device probe and runtime resolution have run. */
 export function createInitialLocalModelStatus(useInAuto: boolean): ILocalModelStatusV1 {

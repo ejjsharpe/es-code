@@ -15,7 +15,6 @@ import { TestConfigurationService } from '../../../configuration/test/common/tes
 import { INativeEnvironmentService } from '../../../environment/common/environment.js';
 import { NullLogService } from '../../../log/common/log.js';
 import { NullTelemetryService } from '../../../telemetry/common/telemetryUtils.js';
-import { createCopilotCliEnvironment } from '../../node/copilot/copilotCliEnvironment.js';
 import { NodeAgentHostStarter } from '../../node/nodeAgentHostStarter.js';
 import { AgentHostAhpJsonlLoggingEnvVar } from '../../common/ahpJsonlLogger.js';
 import { AgentHostAhpJsonlLoggingSettingId } from '../../common/agentService.js';
@@ -72,7 +71,6 @@ suite('NodeAgentHostStarter', () => {
 		}));
 		disposables.add((await starter.start()).store);
 		const env = starter.environments[0];
-		const cliEnv = createCopilotCliEnvironment(env);
 
 		assert.deepStrictEqual({
 			token: env.GITHUB_TOKEN,
@@ -82,8 +80,6 @@ suite('NodeAgentHostStarter', () => {
 			agent: env[AiAgentEnvVar],
 			entrypoint: env.VSCODE_ESM_ENTRYPOINT,
 			connectionToken: env.VSCODE_AGENT_HOST_CONNECTION_TOKEN,
-			cliToken: cliEnv.GITHUB_TOKEN,
-			cliGhToken: cliEnv.GH_TOKEN,
 		}, {
 			token: 'codespace-token',
 			ghToken: undefined,
@@ -92,8 +88,6 @@ suite('NodeAgentHostStarter', () => {
 			agent: AiAgentEnvValue,
 			entrypoint: 'vs/platform/agentHost/node/agentHostMain',
 			connectionToken: 'launcher-connection-token',
-			cliToken: 'codespace-token',
-			cliGhToken: undefined,
 		});
 	});
 

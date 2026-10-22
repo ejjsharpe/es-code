@@ -70,7 +70,6 @@ import { SessionConfigKey } from '../../common/sessionConfigKeys.js';
 import { readSessionSandboxPolicy } from '../../common/meta/agentSandboxPolicyMeta.js';
 import { readChatUsage } from '../../common/meta/agentUsageMeta.js';
 import { getSessionSandboxConfig } from '../../node/sessionSandbox.js';
-import { buildSandboxConfigForSdk } from '../../node/copilot/sandboxConfigForSdk.js';
 import { AgentMergeConfigKey, readAgentMergeSessionState } from '../../common/agentMerge.js';
 import { SessionDatabase, sessionDatabaseMigrations } from '../../node/sessionDatabase.js';
 import { ActionType, ActionEnvelope, NotificationType, type ChatAction, type ChatConfigChangedAction, type INotification, type SessionAction, type SessionSummaryChanges } from '../../common/state/sessionActions.js';
@@ -42243,7 +42242,7 @@ suite('AgentService (node dispatcher)', () => {
 			disposables.add(configuration.onDidSessionConfigChange(event => {
 				if (event.session === session.toString()) {
 					const target = { session: event.session, chat: buildDefaultChatUri(event.session) };
-					const enabled = buildSandboxConfigForSdk(process.platform, getSessionSandboxConfig(configuration, target))?.enabled ?? false;
+					const enabled = getSessionSandboxConfig(configuration, target).enabled === 'on';
 					applied.push(enabled);
 					configuration.setChatSandboxEnabled(target, enabled);
 				}

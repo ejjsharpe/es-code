@@ -23,7 +23,6 @@ import { AgentService } from './agentService.js';
 import { AgentHostStateManager, IAgentHostStateManager } from './agentHostStateManager.js';
 import { IAgentConfigurationService } from './agentConfigurationService.js';
 import { IAgentHostCompletions } from './agentHostCompletions.js';
-import { CopilotAgent } from './copilot/copilotAgent.js';
 import { ClaudeAgent } from './claude/claudeAgent.js';
 import { ClaudeSdkPackage } from './claude/claudeAgentSdkService.js';
 import { CodexAgent } from './codex/codexAgent.js';
@@ -67,7 +66,7 @@ import { markNodeCompileCacheReady } from '../../../base/node/nodeCompileCache.j
 import { formatAgentHostExit, formatAgentHostStartupFailure, identifyAgentHostExitCaller } from '../common/agentHostProcessExit.js';
 
 // Entry point for the agent host utility process.
-// Sets up IPC, logging, and registers agent providers (Copilot).
+// Sets up IPC, logging, and registers agent providers.
 // When VSCODE_AGENT_HOST_PORT or VSCODE_AGENT_HOST_SOCKET_PATH env vars
 // are set, also starts a WebSocket server for external clients.
 
@@ -187,7 +186,6 @@ async function startAgentHost(): Promise<void> {
 		const agentSdkDownloader = runtimeServices.agentSdkDownloader;
 		const providerService = runtimeServices.providerService;
 		sdkDownloadProgress = runtime.sdkDownloadProgress;
-		providerService.registerProvider(instantiationService.createInstance(CopilotAgent));
 		// Claude and Codex providers are gated on two things:
 		//  1. The user-facing enable toggle (`chat.agentHost.<x>Agent.enabled`,
 		//     forwarded as an env var by the starters). Claude defaults to on.
