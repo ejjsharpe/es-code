@@ -748,9 +748,8 @@ export class ClaudeAgent extends Disposable implements IAgent {
 	getProtectedResources(): ProtectedResourceMetadata[] {
 		// Always listed, always optional. Listing it is what lets the host forward a
 		// token to an already-signed-in user (matching ignores `required`); the
-		// unconditional `required: false` is what stops `resolveSignedOutWindowGate`
-		// walling off the whole Agents window before the user reaches a surface that
-		// could explain itself.
+		// unconditional `required: false` lets this session type initialize without
+		// GitHub sign-in. Features that need GitHub can request it when selected.
 		const copilotResource = this._gitHubEndpointService.getCopilotResource();
 		return [
 			{ ...copilotResource, required: false },

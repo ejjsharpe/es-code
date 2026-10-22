@@ -6833,17 +6833,14 @@ suite('ClaudeAgent — per-session provider', () => {
 	});
 
 	test('the Copilot resource is unconditionally optional, whatever the opt-in or the SDK account report says', async () => {
-		// The load-bearing assertion of the whole feature. `required: false` is what
-		// stops `resolveAgentAuthRequirement` answering `GitHub` for this session
-		// type; when *every* type answers `GitHub`, `resolveSignedOutWindowGate`
-		// puts a non-dismissible sign-in wall over the entire Agents window.
+		// `required: false` stops `resolveAgentAuthRequirement` answering `GitHub`
+		// for this session type, so it can initialize without GitHub sign-in.
 		//
 		// The full 2x2 is asserted because the behavior it replaces was a 2x2 with
 		// three `true`s in it: neither the opt-in nor the account report may bring
 		// the requirement back. Even with no Claude account the type reads as
-		// `Unusable` rather than `GitHub`, which is what opens the window. The flag
-		// is absent by design — it gates this one level up, in
-		// `resolveSignedOutWindowGate`.
+		// `Unusable` rather than `GitHub`, so any required sign-in belongs to the
+		// selected session type instead of the whole Agents window.
 		const advertisedRequirement = async (inputs: { optIn: boolean; account: boolean }) => {
 			const { agent } = createTestContext(disposables, {
 				...(inputs.optIn ? { rootConfig: { [AgentHostConfigKey.AllowSignedOutWhenUsable]: true } } : {}),

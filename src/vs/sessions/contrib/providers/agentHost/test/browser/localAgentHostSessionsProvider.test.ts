@@ -6,7 +6,6 @@
 import assert from 'assert';
 import { getAgentHostChatId } from '../../../../../../platform/agentHost/common/agentHostChatIdentity.js';
 import { agentModelConfigurationReportKey } from '../../../../../../platform/agentHost/common/agentModelConfiguration.js';
-import { resolveSignedOutWindowGate, SignedOutWindowGate } from '../../../../../browser/sessionsAuthGate.js';
 import { withSessionSandboxPolicy } from '../../../../../../platform/agentHost/common/meta/agentSandboxPolicyMeta.js';
 import { withChatSandboxState, withSessionSandboxState } from '../../../../../../platform/agentHost/common/meta/agentSandboxStateMeta.js';
 import { spy, stub } from 'sinon';
@@ -1191,27 +1190,21 @@ suite('LocalAgentHostSessionsProvider', () => {
 		disposables.add(provider.onDidChangeSessionTypes(() => changes++));
 
 		const initialization = () => provider.sessionTypes[0]?.initializationOnSelection;
-		const windowGate = () => resolveSignedOutWindowGate(false, provider.sessionTypes.map(type => type.authRequirement), initialization()?.canInitializeWithoutGitHub);
 		const states = [initialization()];
-		const windowGates = [windowGate()];
 		agentHost.setRootState(rootState('signedIn'));
 		states.push(initialization());
-		windowGates.push(windowGate());
 		agentHost.setRootState(rootState('signedOut'));
 		states.push(initialization());
-		windowGates.push(windowGate());
 		agentHost.setRootState(rootState('signedOut', false));
 		states.push(initialization());
-		windowGates.push(windowGate());
 
-		assert.deepStrictEqual({ states, windowGates, changes, configRequests: agentHost.resolveSessionConfigRequests }, {
+		assert.deepStrictEqual({ states, changes, configRequests: agentHost.resolveSessionConfigRequests }, {
 			states: [
 				{ canInitializeWithoutGitHub: true },
 				{ canInitializeWithoutGitHub: true },
 				{ canInitializeWithoutGitHub: false },
 				undefined,
 			],
-			windowGates: [SignedOutWindowGate.Proceed, SignedOutWindowGate.Proceed, SignedOutWindowGate.ForceGitHubSignIn, SignedOutWindowGate.ForceGitHubSignIn],
 			changes: 2,
 			configRequests: [],
 		});

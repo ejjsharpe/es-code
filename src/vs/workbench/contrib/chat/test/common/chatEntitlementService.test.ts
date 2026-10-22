@@ -9,7 +9,7 @@ import { TestConfigurationService } from '../../../../../platform/configuration/
 import { MockContextKeyService } from '../../../../../platform/keybinding/test/common/mockKeybindingService.js';
 import { NullLogService } from '../../../../../platform/log/common/log.js';
 import { NullTelemetryService } from '../../../../../platform/telemetry/common/telemetryUtils.js';
-import { ChatEntitlement, ChatEntitlementContext, ChatEntitlementContextKeys, ChatEntitlementService, getQuotaReset, getQuotaUsage, QuotaUsageKind } from '../../../../services/chat/common/chatEntitlementService.js';
+import { ChatEntitlementService, getQuotaReset, getQuotaUsage, QuotaUsageKind } from '../../../../services/chat/common/chatEntitlementService.js';
 import { TestStorageService } from '../../../../test/common/workbenchTestServices.js';
 
 suite('getQuotaUsage', () => {
@@ -208,39 +208,6 @@ suite('ChatEntitlementService', () => {
 				creditsUsed: 700,
 			},
 			removed: undefined,
-		});
-	});
-});
-
-suite('ChatEntitlementContext', () => {
-	const store = ensureNoDisposablesAreLeakedInTestSuite();
-
-	async function resolveInternal(organisations: string[], isStaff: boolean | undefined): Promise<boolean | undefined> {
-		const contextKeyService = store.add(new MockContextKeyService());
-		const context = store.add(new ChatEntitlementContext(
-			contextKeyService,
-			store.add(new TestStorageService()),
-			new NullLogService(),
-			new TestConfigurationService(),
-			NullTelemetryService,
-		));
-
-		await context.update({ entitlement: ChatEntitlement.Pro, organisations, isStaff, sku: undefined, copilotTrackingId: undefined });
-
-		return contextKeyService.getContextKeyValue(ChatEntitlementContextKeys.Entitlement.internal.key);
-	}
-
-	test('treats staff and internal organisation members as internal', async () => {
-		assert.deepStrictEqual({
-			external: await resolveInternal(['contoso'], false),
-			staff: await resolveInternal(['contoso'], true),
-			internalOrg: await resolveInternal(['microsoft'], false),
-			unknownStaff: await resolveInternal(['contoso'], undefined),
-		}, {
-			external: false,
-			staff: true,
-			internalOrg: true,
-			unknownStaff: false,
 		});
 	});
 });

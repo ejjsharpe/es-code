@@ -38,7 +38,7 @@ import { HoverPosition } from '../../../../base/browser/ui/hover/hoverWidget.js'
 import { ThemeIcon } from '../../../../base/common/themables.js';
 import { getAccountProfileImageUrl, getAccountTitleBarBadgeKey, getAccountTitleBarState, IAccountTitleBarState, resolveAccountInfo } from '../../../browser/accountTitleBarState.js';
 import { observeAllowSignedOutWhenUsable } from '../../../browser/sessionsAuthGate.js';
-import { IsPhoneLayoutContext, SessionsWelcomeVisibleContext } from '../../../common/contextkeys.js';
+import { IsPhoneLayoutContext } from '../../../common/contextkeys.js';
 import { IsAuxiliaryWindowContext } from '../../../../workbench/common/contextkeys.js';
 import { IAuthenticationAccessService } from '../../../../workbench/services/authentication/browser/authenticationAccessService.js';
 import { IAuthenticationUsageService } from '../../../../workbench/services/authentication/browser/authenticationUsageService.js';
@@ -97,10 +97,7 @@ export function getChatGPTRateLimitResetHover(rateLimit: ICodexAccountRateLimitI
 registerUpdateTitleBarMenuPlacement(Menus.TitleBarLeftLayout, {
 	group: 'navigation',
 	order: 2,
-	when: ContextKeyExpr.and(
-		IsAuxiliaryWindowContext.toNegated(),
-		SessionsWelcomeVisibleContext.toNegated()
-	),
+	when: IsAuxiliaryWindowContext.toNegated(),
 });
 
 // Sign In (shown when signed out)

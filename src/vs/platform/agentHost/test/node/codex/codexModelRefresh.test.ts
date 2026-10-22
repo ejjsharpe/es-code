@@ -749,10 +749,8 @@ suite('CodexAgent model refresh', () => {
 		withAccount['_connection'] = createChatGPTConnection() as never;
 		await Promise.all([withoutAccount.refreshModels(), withAccount.refreshModels()]);
 
-		// `required: false` is unconditional: a `true` here from any of these
-		// combinations puts the whole Agents window behind a GitHub sign-in wall,
-		// because `resolveSignedOutWindowGate` forces sign-in only when *every*
-		// session type requires GitHub.
+		// `required: false` is unconditional, so GitHub sign-in is not required
+		// to initialize this session type in any of these combinations.
 		assert.deepStrictEqual({
 			signedOutUseDisabled: copilotRequired(createAgent(disposables, async () => [], {})),
 			noLocalSdk: copilotRequired(withoutSdk),
