@@ -7,9 +7,7 @@
  * Contract for the inline model feedback survey.
  *
  * A survey is fully described by a versioned JSON payload delivered as an experiment treatment,
- * so one can be authored or retired without shipping code. The shapes stay close to the editor
- * pane survey in `contrib/surveys/browser/surveyQuestions.ts` so the two can converge later,
- * but cannot share code today because that renderer needs telemetry keys known at compile time.
+ * so one can be authored or retired without shipping code.
  */
 
 import { expandModelMatchCandidates, ID_PATTERN, isObject, MAX_ID_LENGTH, normalizeSelector, parseExpPayloadEnvelope, readSelectorList, readText } from '../expPayload.js';

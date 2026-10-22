@@ -81,7 +81,6 @@ export const enum AccessibilityVerbositySettingId {
 	SessionsListNotification = 'accessibility.verbosity.sessionsListNotification',
 	SessionCanvas = 'accessibility.verbosity.sessionCanvas',
 	ChatQuestionCarousel = 'accessibility.verbosity.chatQuestionCarousel',
-	Survey = 'accessibility.verbosity.survey',
 	Automations = 'accessibility.verbosity.automations',
 	AgentsWindowExtensions = 'accessibility.verbosity.agentsWindowExtensions',
 	ConnectionDiagnostics = 'accessibility.verbosity.connectionDiagnostics',
@@ -274,10 +273,6 @@ const configuration: IConfigurationNode = {
 		},
 		[AccessibilityVerbositySettingId.ChatQuestionCarousel]: {
 			description: localize('verbosity.chatQuestionCarousel', 'Provide information about how to navigate and interact with the chat question carousel, including how to focus the terminal when applicable.'),
-			...baseVerbosityProperty
-		},
-		[AccessibilityVerbositySettingId.Survey]: {
-			description: localize('verbosity.survey', 'Provide information about how to navigate and interact with the survey editor pane.'),
 			...baseVerbosityProperty
 		},
 		[AccessibilityVerbositySettingId.Automations]: {
