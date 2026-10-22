@@ -12,4 +12,4 @@ The diff uses working-tree changes first, then staged changes. An untracked file
 
 To run from the source tree, install dependencies and compile according to the upstream build instructions, then run `scripts/es-code.sh /path/to/project`. To build the macOS arm64 app, run `npm run gulp -- vscode-darwin-arm64`; the result is `../VSCode-darwin-arm64/ES Code.app`. Pi must be available on the shell `PATH`; if it is missing, the Pi terminal explains that rather than silently failing. ES Code uses its own `.es-code` user-data folder and does not load the Copilot extension.
 
-On this Mac, `code .` opens the packaged ES Code app. `es-code .` is an explicit alias for the same app. Both commands point to `../VSCode-darwin-arm64/ES Code.app`, so keep the app at that path when rebuilding it.
+On this Mac, `code .` and `es-code .` open the installed `/Applications/ES Code.app`. After rebuilding `../VSCode-darwin-arm64/ES Code.app`, install the new bundle in Applications to update these commands.

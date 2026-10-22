@@ -17,13 +17,13 @@ guard let artwork = NSImage(contentsOf: artworkURL), artwork.size == NSSize(widt
 let image = NSImage(size: NSSize(width: size, height: size))
 image.lockFocus()
 
-// Crop the outer black canvas and keep transparent corners around the supplied tile.
+// Crop the outer canvas and keep transparent corners around the supplied tile.
 NSGraphicsContext.saveGraphicsState()
-let tile = NSBezierPath(roundedRect: NSRect(x: 26, y: 26, width: 972, height: 972), xRadius: 210, yRadius: 210)
+let tile = NSBezierPath(roundedRect: NSRect(x: 26, y: 26, width: 972, height: 972), xRadius: 190, yRadius: 190)
 tile.addClip()
 artwork.draw(
     in: NSRect(x: 0, y: 0, width: size, height: size),
-    from: NSRect(x: 115, y: 115, width: size, height: size),
+    from: NSRect(x: 250, y: 237, width: 754, height: 754),
     operation: .copy,
     fraction: 1
 )
