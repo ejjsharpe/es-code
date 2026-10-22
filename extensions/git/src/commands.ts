@@ -5,7 +5,7 @@
 
 import * as os from 'os';
 import * as path from 'path';
-import { Command, commands, Disposable, MessageOptions, Position, QuickPickItem, Range, SourceControlResourceState, TextDocumentShowOptions, TextEditor, Uri, ViewColumn, window, workspace, WorkspaceEdit, WorkspaceFolder, TimelineItem, env, Selection, TextDocumentContentProvider, InputBoxValidationSeverity, TabInputText, TabInputTextMerge, QuickPickItemKind, TextDocument, LogOutputChannel, l10n, Memento, UIKind, QuickInputButton, ThemeIcon, SourceControlHistoryItem, SourceControl, InputBoxValidationMessage, Tab, TabInputNotebook, TabInputNotebookDiff, QuickInputButtonLocation, languages, SourceControlArtifact, ProgressLocation } from 'vscode';
+import { Command, commands, Disposable, MessageOptions, Position, QuickPickItem, Range, SourceControlResourceState, TextDocumentShowOptions, TextEditor, Uri, ViewColumn, window, workspace, WorkspaceEdit, WorkspaceFolder, TimelineItem, env, Selection, TextDocumentContentProvider, InputBoxValidationSeverity, TabInputText, TabInputTextMerge, QuickPickItemKind, TextDocument, LogOutputChannel, l10n, Memento, QuickInputButton, ThemeIcon, SourceControlHistoryItem, SourceControl, InputBoxValidationMessage, Tab, TabInputNotebook, TabInputNotebookDiff, QuickInputButtonLocation, languages, SourceControlArtifact, ProgressLocation } from 'vscode';
 import TelemetryReporter from '@vscode/extension-telemetry';
 import type { CommitOptions, RemoteSourcePublisher, Remote, Branch, Ref } from './api/git';
 import { ForcePushMode, GitErrorCodes, RefType, Status } from './api/git.constants';
@@ -957,76 +957,6 @@ export class CommandCenter {
 				};
 			}
 			return undefined;
-		}
-	}
-
-	private getRepositoriesWithRemote(repositories: Repository[]) {
-		return repositories.reduce<(QuickPickItem & { repository: Repository })[]>((items, repository) => {
-			const remote = repository.remotes.find((r) => r.name === repository.HEAD?.upstream?.remote);
-			if (remote?.pushUrl) {
-				items.push({ repository: repository, label: remote.pushUrl });
-			}
-			return items;
-		}, []);
-	}
-
-	@command('git.continueInLocalClone')
-	async continueInLocalClone(): Promise<Uri | void> {
-		if (this.model.repositories.length === 0) { return; }
-
-		// Pick a single repository to continue working on in a local clone if there's more than one
-		let items = this.getRepositoriesWithRemote(this.model.repositories);
-
-		// We have a repository but there is no remote URL (e.g. git init)
-		if (items.length === 0) {
-			const pick = this.model.repositories.length === 1
-				? { repository: this.model.repositories[0] }
-				: await window.showQuickPick(this.model.repositories.map((i) => ({ repository: i, label: i.root })), { canPickMany: false, placeHolder: l10n.t('Choose which repository to publish') });
-			if (!pick) { return; }
-
-			await this.publish(pick.repository);
-
-			items = this.getRepositoriesWithRemote([pick.repository]);
-			if (items.length === 0) {
-				return;
-			}
-		}
-
-		let selection = items[0];
-		if (items.length > 1) {
-			const pick = await window.showQuickPick(items, { canPickMany: false, placeHolder: l10n.t('Choose which repository to clone') });
-			if (pick === undefined) { return; }
-			selection = pick;
-		}
-
-		const uri = selection.label;
-		const ref = selection.repository.HEAD?.upstream?.name;
-
-		if (uri !== undefined) {
-			let target = `${env.uriScheme}://vscode.git/clone?url=${encodeURIComponent(uri)}`;
-			const isWeb = env.uiKind === UIKind.Web;
-			const isRemote = env.remoteName !== undefined;
-
-			if (isWeb || isRemote) {
-				if (ref !== undefined) {
-					target += `&ref=${encodeURIComponent(ref)}`;
-				}
-
-				if (isWeb) {
-					// Launch desktop client if currently in web
-					return Uri.parse(target);
-				}
-
-				if (isRemote) {
-					// If already in desktop client but in a remote window, we need to force a new window
-					// so that the git extension can access the local filesystem for cloning
-					target += `&windowId=_blank`;
-					return Uri.parse(target);
-				}
-			}
-
-			// Otherwise, directly clone
-			void this.clone(uri, undefined, { ref: ref });
 		}
 	}
 

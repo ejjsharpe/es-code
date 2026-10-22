@@ -347,10 +347,6 @@
 			"project": "vscode-workbench"
 		},
 		{
-			"name": "vs/workbench/contrib/editSessions",
-			"project": "vscode-workbench"
-		},
-		{
 			"name": "vs/workbench/contrib/views",
 			"project": "vscode-workbench"
 		},
@@ -532,10 +528,6 @@
 		},
 		{
 			"name": "vs/workbench/services/userData",
-			"project": "vscode-workbench"
-		},
-		{
-			"name": "vs/workbench/services/editSessions",
 			"project": "vscode-workbench"
 		},
 		{

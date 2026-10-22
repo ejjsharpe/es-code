@@ -215,8 +215,6 @@ export const OPTIONS: OptionDescriptions<Required<NativeParsedArgs>> = {
 	'disable-gpu-sandbox': { type: 'boolean' },
 	'logsPath': { type: 'string' },
 	'__enable-file-policy': { type: 'boolean' },
-	'editSessionId': { type: 'string' },
-	'continueOn': { type: 'string' },
 	'enable-coi': { type: 'boolean' },
 	'unresponsive-sample-interval': { type: 'string' },
 	'unresponsive-sample-period': { type: 'string' },

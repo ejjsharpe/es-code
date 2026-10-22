@@ -212,11 +212,6 @@ export interface IWorkbenchConstructionOptions {
 	readonly codeExchangeProxyEndpoints?: { [providerId: string]: string };
 
 	/**
-	 * The identifier of an edit session associated with the current workspace.
-	 */
-	readonly editSessionId?: string;
-
-	/**
 	 * Resource delegation handler that allows for loading of resources when
 	 * using remote resolvers.
 	 *

@@ -65,7 +65,6 @@ import '../workbench/browser/parts/statusbar/statusbarPart.js';
 import '../platform/actions/common/actions.contribution.js';
 import '../platform/undoRedo/common/undoRedoService.js';
 import '../platform/mcp/common/mcpResourceScannerService.js';
-import '../workbench/services/workspaces/common/editSessionIdentityService.js';
 import '../workbench/services/workspaces/common/canonicalUriService.js';
 import '../workbench/services/extensions/browser/extensionUrlHandler.js';
 import '../workbench/services/keybinding/common/keybindingEditing.js';
@@ -401,7 +400,6 @@ import '../workbench/contrib/languageDetection/browser/languageDetection.contrib
 import '../workbench/contrib/authentication/browser/authentication.contribution.js';
 
 // Continue Edit Session
-import '../workbench/contrib/editSessions/browser/editSessions.contribution.js';
 
 // Remote Coding Agents
 import '../workbench/contrib/remoteCodingAgents/browser/remoteCodingAgents.contribution.js';

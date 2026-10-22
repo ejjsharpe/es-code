@@ -1081,17 +1081,6 @@ export class CodeApplication extends Disposable {
 			shouldOpenInNewWindow = true;
 		}
 
-		// Pass along whether the application is being opened via a Continue On flow
-		const continueOn = params.get('continueOn');
-		if (continueOn !== null) {
-			this.logService.trace(`app#handleProtocolUrl() found 'continueOn' as parameter:`, uri.toString(true));
-
-			params.delete('continueOn');
-			uri = uri.with({ query: params.toString() });
-
-			this.environmentMainService.continueOn = continueOn ?? undefined;
-		}
-
 		// Check if the protocol URL is a window openable to open...
 		const windowOpenableFromProtocolUrl = this.getWindowOpenableFromProtocolUrl(uri);
 		if (windowOpenableFromProtocolUrl) {

@@ -281,22 +281,12 @@ export abstract class AbstractNativeEnvironmentService implements INativeEnviron
 		return joinPath(this.appSettingsHome, 'agent-sessions.code-workspace');
 	}
 
-	get editSessionId(): string | undefined { return this.args['editSessionId']; }
-
 	get exportPolicyData(): string | undefined {
 		return this.args['export-policy-data'];
 	}
 
 	get exportDefaultKeybindings(): string | undefined {
 		return this.args['export-default-keybindings'];
-	}
-
-	get continueOn(): string | undefined {
-		return this.args['continueOn'];
-	}
-
-	set continueOn(value: string | undefined) {
-		this.args['continueOn'] = value;
 	}
 
 	get args(): NativeParsedArgs { return this._args; }

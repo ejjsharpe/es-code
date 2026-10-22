@@ -13,7 +13,6 @@
     "agentSessionsWorkspace",
     "agentsWindowConfiguration",
     "canonicalUriProvider",
-    "contribEditSessions",
     "contribEditorContentMenu",
     "contribMergeEditorMenus",
     "contribMultiDiffEditorMenus",
@@ -25,7 +24,6 @@
     "contribSourceControlInputBoxMenu",
     "contribSourceControlTitleMenu",
     "contribViewsWelcome",
-    "editSessionIdentityProvider",
     "envIsConnectionMetered",
     "quickDiffProvider",
     "quickPickSortByLabel",
@@ -50,7 +48,6 @@
   ],
   "activationEvents": [
     "*",
-    "onEditSession:file",
     "onFileSystem:git",
     "onFileSystem:git-show"
   ],
@@ -73,13 +70,6 @@
   },
   "contributes": {
     "commands": [
-      {
-        "command": "git.continueInLocalClone",
-        "title": "%command.continueInLocalClone%",
-        "category": "Git",
-        "icon": "$(repo-clone)",
-        "enablement": "config.git.enabled && !git.missing && gitOpenRepositoryCount != 0 && remoteName"
-      },
       {
         "command": "git.clone",
         "title": "%command.clone%",
@@ -1190,14 +1180,6 @@
         "category": "Git"
       }
     ],
-    "continueEditSession": [
-      {
-        "command": "git.continueInLocalClone",
-        "qualifiedName": "%command.continueInLocalClone.qualifiedName%",
-        "when": "config.git.enabled && !git.missing && gitOpenRepositoryCount != 0 && remoteName",
-        "remoteGroup": "remote_42_git_0_local@0"
-      }
-    ],
     "keybindings": [
       {
         "command": "git.stageSelectedRanges",
@@ -1220,10 +1202,6 @@
     ],
     "menus": {
       "commandPalette": [
-        {
-          "command": "git.continueInLocalClone",
-          "when": "false"
-        },
         {
           "command": "git.clone",
           "when": "config.git.enabled && !git.missing"

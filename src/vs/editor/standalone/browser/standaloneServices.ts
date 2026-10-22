@@ -153,8 +153,6 @@ class StandaloneEnvironmentService implements IEnvironmentService {
 	readonly cacheHome: URI = URI.from({ scheme: 'monaco', authority: 'cacheHome' });
 	readonly userDataSyncHome: URI = URI.from({ scheme: 'monaco', authority: 'userDataSyncHome' });
 	readonly sync: 'on' | 'off' | undefined = undefined;
-	readonly continueOn?: string | undefined = undefined;
-	readonly editSessionId?: string | undefined = undefined;
 	readonly debugExtensionHost: IExtensionHostDebugParams = { port: null, break: false };
 	readonly isExtensionDevelopment: boolean = false;
 	readonly disableExtensions: boolean | string[] = false;

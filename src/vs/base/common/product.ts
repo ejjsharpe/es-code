@@ -268,7 +268,6 @@ export interface IProductConfiguration {
 
 	readonly 'configurationSync.store'?: ConfigurationSyncStore;
 
-	readonly 'editSessions.store'?: Omit<ConfigurationSyncStore, 'insidersUrl' | 'stableUrl'>;
 	readonly darwinUniversalAssetId?: string;
 	readonly darwinBundleIdentifier?: string;
 	readonly profileTemplatesUrl?: string;
