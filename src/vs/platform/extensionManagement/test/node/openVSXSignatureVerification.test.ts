@@ -84,7 +84,10 @@ suite('Open VSX signature verification', () => {
 	});
 
 	test('rejects a changed VSIX after it was signed', async () => {
-		await fs.appendFile(vsixPath, 'changed');
+		const vsix = await fs.readFile(vsixPath);
+		const comment = Buffer.from('changed');
+		vsix.writeUInt16LE(comment.length, vsix.length - 2);
+		await fs.writeFile(vsixPath, Buffer.concat([vsix, comment]));
 		assert.strictEqual(await verifyOpenVSXSignature(extension(), vsixPath, signaturePath, requestService(metadata(), publicKey, requests)), false);
 	});
 
