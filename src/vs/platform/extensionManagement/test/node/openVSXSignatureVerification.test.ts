@@ -106,7 +106,7 @@ suite('Open VSX signature verification', () => {
 
 	test('uses the universal metadata path only for a universal package', () => {
 		const universal = extension(TargetPlatform.UNDEFINED);
-		assert.strictEqual(getOpenVSXMetadataUrl(universal), `${origin}/api/Anthropic/claude-code/${version}`);
+		assert.strictEqual(getOpenVSXMetadataUrl(universal), `${origin}/api/Anthropic/claude-code/universal/${version}`);
 		assert.strictEqual(validateOpenVSXMetadata(metadata('universal'), universal), publicKeyUrl);
 	});
 

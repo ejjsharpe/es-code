@@ -79,7 +79,7 @@ export function getOpenVSXMetadataUrl(extension: IGalleryExtension): string {
 		checkGalleryAsset(asset, extension, 'Microsoft.VisualStudio.Services.VsixSignature', platform);
 	}
 	const base = `/api/${encodeURIComponent(extension.publisher)}/${encodeURIComponent(extension.name)}`;
-	return `${OPEN_VSX_ORIGIN}${base}/${universal ? '' : `${encodeURIComponent(target)}/`}${encodeURIComponent(extension.version)}`;
+	return `${OPEN_VSX_ORIGIN}${base}/${encodeURIComponent(platform)}/${encodeURIComponent(extension.version)}`;
 }
 
 export function validateOpenVSXMetadata(metadata: IOpenVSXMetadata, extension: IGalleryExtension): string {
