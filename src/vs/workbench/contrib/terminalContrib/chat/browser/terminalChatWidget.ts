@@ -453,7 +453,7 @@ export class TerminalChatWidget extends Disposable {
 		this._activeRequestCts = new CancellationTokenSource();
 		const store = new DisposableStore();
 		this._requestActiveContextKey.set(true);
-		const response = await this._inlineChatWidget.chatWidget.acceptInput(lastInput, { isVoiceInput: options?.isVoiceInput });
+		const response = await this._inlineChatWidget.chatWidget.acceptInput(lastInput, options);
 		this._currentRequestId = response?.requestId;
 		const responsePromise = new DeferredPromise<IChatResponseModel | undefined>();
 		try {

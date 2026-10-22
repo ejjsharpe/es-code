@@ -29,7 +29,6 @@ import { IActionViewItemFactory, IActionViewItemService, NullActionViewItemServi
 import { IMenu, IMenuService, MenuId, MenuItemAction } from '../../../../../../platform/actions/common/actions.js';
 import { agentHostAuthority, toAgentHostContentUri } from '../../../../../../platform/agentHost/common/agentHostUri.js';
 import { remoteAgentHostSessionTypeId } from '../../../../../../platform/agentHost/common/agentHostSessionType.js';
-import { CLOUD_SANDBOX_AGENT_PROVIDER, cloudSandboxAddress } from '../../../../../../platform/agentHost/common/cloudSandboxAgentHost.js';
 import { ConfirmationOptionKind, McpServerStatus, ToolCallCancellationReason, ToolCallConfirmationReason, ToolCallStatus, ToolResultContentType, type ToolCallCompletedState, type ToolCallRunningState } from '../../../../../../platform/agentHost/common/state/protocol/state.js';
 import { ConfigurationTarget, IConfigurationService } from '../../../../../../platform/configuration/common/configuration.js';
 import { CommandsRegistry } from '../../../../../../platform/commands/common/commands.js';
@@ -1610,7 +1609,7 @@ suite('ChatListRenderer', () => {
 	suite('shouldHideChatUserIdentity', () => {
 		test('hides cloud sandbox response identity without hiding user identity', () => {
 			const sessionResource = URI.from({
-				scheme: remoteAgentHostSessionTypeId(agentHostAuthority(cloudSandboxAddress('environment-one')), CLOUD_SANDBOX_AGENT_PROVIDER),
+				scheme: remoteAgentHostSessionTypeId(agentHostAuthority('wsl:Ubuntu'), 'copilot'),
 				path: '/session-one',
 			});
 			assert.deepStrictEqual([

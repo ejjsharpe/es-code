@@ -8,7 +8,6 @@ import { constObservable, observableValue } from '../../../../../base/common/obs
 import { URI } from '../../../../../base/common/uri.js';
 import { mock } from '../../../../../base/test/common/mock.js';
 import { Codicon } from '../../../../../base/common/codicons.js';
-import { ThemeIcon } from '../../../../../base/common/themables.js';
 import { IMenuService, MenuId } from '../../../../../platform/actions/common/actions.js';
 import { ActionWidgetService, IActionWidgetService } from '../../../../../platform/actionWidget/browser/actionWidget.js';
 import { ResolveSessionConfigResult } from '../../../../../platform/agentHost/common/state/protocol/commands.js';
@@ -38,51 +37,10 @@ import { FixtureMenuService, registerChatFixtureServices } from './chatFixtureUt
 import { IChatPetService } from '../../../../contrib/chat/browser/chatPetService.js';
 import { IChatPetWidgetService } from '../../../../contrib/chat/browser/widget/chatPetWidgetService.js';
 import { configureChatPetFixtureFileRoot, FixtureChatPetService, assertChatPetInScreenshot } from './chatPetFixtureUtils.js';
-import { IVoiceInputModeService, VoiceInputMode } from '../../../../contrib/chat/browser/voiceInputMode/voiceInputMode.js';
-import { ChatVoiceInputModeAction } from '../../../../contrib/chat/browser/voiceInputMode/voiceInputModeActionViewItem.js';
-import { IVoiceSessionController } from '../../../../contrib/chat/browser/voiceClient/voiceSessionController.js';
-import { IMicCaptureService } from '../../../../contrib/chat/browser/voiceClient/micCaptureService.js';
-import { ITtsPlaybackService } from '../../../../contrib/chat/browser/voiceClient/ttsPlaybackService.js';
-import { ChatSpeechToTextState, IChatSpeechToTextService } from '../../../../contrib/chat/browser/speechToText/chatSpeechToTextService.js';
 
 /** Room above the input for the pet, which stands outside it. */
 const PET_HEADROOM = 64;
 
-/**
- * A standalone dictation / Voice Mode control rendered in the execute toolbar,
- * in one of the states its styling varies across. These controls are only shown
- * when the segmented voice pill isn't active, and each state changes some part
- * of the border / color / glow cascade in chat.css, so they are covered
- * individually rather than as a single "voice on" screenshot.
- */
-export type VoiceControlState =
-	| 'dictationIdle'
-	| 'dictationRecording'
-	| 'dictationPreparing'
-	| 'voiceIdle'
-	| 'voiceConnecting'
-	| 'voiceListening'
-	| 'voiceSpeaking'
-	| 'voiceDisconnect';
-
-interface IVoiceControlRendering {
-	readonly icon: ThemeIcon;
-	/** Applied to `.chat-input-container`, mirroring what the voice session controller does. */
-	readonly containerClasses?: readonly string[];
-	/** Applied to the toolbar `.action-item`, mirroring `setupDictationMicGlow`. */
-	readonly itemClasses?: readonly string[];
-}
-
-const voiceControlRenderings: Record<VoiceControlState, IVoiceControlRendering> = {
-	dictationIdle: { icon: Codicon.mic },
-	dictationRecording: { icon: Codicon.micFilled, itemClasses: ['dictation-mic-active'] },
-	dictationPreparing: { icon: Codicon.micDownloadCompact },
-	voiceIdle: { icon: Codicon.voiceModeCompact },
-	voiceConnecting: { icon: Codicon.loadingCompact },
-	voiceListening: { icon: Codicon.voiceModeCompact, containerClasses: ['voice-active', 'voice-listening'] },
-	voiceSpeaking: { icon: Codicon.voiceModeCompact, containerClasses: ['voice-active', 'voice-speaking'] },
-	voiceDisconnect: { icon: Codicon.debugDisconnectCompact, containerClasses: ['voice-active'] },
-};
 
 function createFixtureChatViewModel(sessionResource: URI): IChatViewModel {
 	const model = new class extends mock<IChatModel>() {
@@ -130,11 +88,6 @@ export interface ChatInputFixtureOptions {
 	readonly agentHostSessionConfig?: ResolveSessionConfigResult;
 	/** Combines the Agent Host mode and permissions controls in the composer. */
 	readonly combinedModePermissionsPicker?: boolean;
-	/** Renders a standalone dictation / Voice Mode control in the given state. */
-	readonly voiceControl?: VoiceControlState;
-	readonly voiceInputMode?: boolean;
-	/** Gives the matching standalone control or segmented control cell keyboard focus. */
-	readonly focusVoiceControl?: 'dictation' | 'voice';
 	/**
 	 * Docks a notification above the input. Drives the real notification service,
 	 * so the seam between the notice and the input is produced by the stack
@@ -149,7 +102,7 @@ export interface ChatInputFixtureOptions {
 
 export async function renderChatInput(context: ComponentFixtureContext, fixtureOptions: ChatInputFixtureOptions = {}): Promise<void> {
 	const { container, disposableStore } = context;
-	const { artifacts = [], editingSession, todos = [], isSessionsWindow = false, value, selection, sandboxingEnabled = false, width = 500, resizeWidths = [], models = [], agentHostSessionConfig, combinedModePermissionsPicker = false, voiceControl, focusVoiceControl, notification, pet = false, secondaryPickerLabels = ['Local', 'Default permissions'] } = fixtureOptions;
+	const { artifacts = [], editingSession, todos = [], isSessionsWindow = false, value, selection, sandboxingEnabled = false, width = 500, resizeWidths = [], models = [], agentHostSessionConfig, combinedModePermissionsPicker = false, notification, pet = false, secondaryPickerLabels = ['Local', 'Default permissions'] } = fixtureOptions;
 	const artifactGroups: IArtifactSourceGroup[] = artifacts.length > 0 ? [{ source: { kind: 'agent' as const }, artifacts }] : [];
 	const artifactsObs = observableValue<readonly IArtifactSourceGroup[]>('artifactGroups', artifactGroups);
 	const sessionResource = fixtureOptions.sessionResource ?? (agentHostSessionConfig ? getNewChatSessionResource(SessionType.AgentHostCopilot) : undefined);
@@ -175,42 +128,6 @@ export async function renderChatInput(context: ComponentFixtureContext, fixtureO
 			}());
 			if (chatPetService) {
 				reg.defineInstance(IChatPetService, chatPetService);
-			}
-			if (fixtureOptions.voiceInputMode) {
-				reg.defineInstance(IVoiceInputModeService, new class extends mock<IVoiceInputModeService>() {
-					override readonly selectedMode = constObservable<VoiceInputMode>('voice');
-					override readonly voiceAvailable = constObservable(true);
-					override readonly dictationAvailable = constObservable(true);
-					override readonly handsFree = constObservable(true);
-					override readonly simulatedVoiceState = constObservable(undefined);
-					override readonly simulatedHandsFree = constObservable(undefined);
-					override readonly simulatedVersion = constObservable(undefined);
-					override readonly simulatedHover = constObservable(false);
-				}());
-				reg.defineInstance(IVoiceSessionController, new class extends mock<IVoiceSessionController>() {
-					override readonly targetSession = constObservable<URI | undefined>(undefined);
-					override readonly hasDraftTarget = constObservable(false);
-					override readonly isConnected = constObservable(false);
-					override readonly isConnecting = constObservable(false);
-					override readonly isReconnecting = constObservable(false);
-					override readonly isMuted = constObservable(false);
-					override readonly voiceState = constObservable('idle' as const);
-				}());
-				reg.defineInstance(IMicCaptureService, new class extends mock<IMicCaptureService>() {
-					override readonly analyserNode = undefined;
-				}());
-				reg.defineInstance(ITtsPlaybackService, new class extends mock<ITtsPlaybackService>() {
-					override readonly analyserNode = undefined;
-				}());
-				reg.defineInstance(IChatSpeechToTextService, new class extends mock<IChatSpeechToTextService>() {
-					override readonly onDidChangeState = Event.None;
-					override readonly onDidChangePreparingModel = Event.None;
-					override readonly onDidChangeDownloadingModel = Event.None;
-					override readonly state = ChatSpeechToTextState.Idle;
-					override readonly isConfigured = true;
-					override readonly isPreparingModel = false;
-					override readonly isDownloadingModel = false;
-				}());
 			}
 			if (models.length > 0) {
 				const modelsById = new Map(models.map(model => [model.identifier, model]));
@@ -271,17 +188,7 @@ export async function renderChatInput(context: ComponentFixtureContext, fixtureO
 	menuService.addItem(MenuId.ChatInput, { command: { id: 'workbench.action.chat.attachContext', title: '+', icon: Codicon.addCompact }, group: 'navigation', order: -1 });
 	menuService.addItem(MenuId.ChatInput, { command: { id: 'workbench.action.chat.openModePicker', title: 'Agent' }, group: 'navigation', order: 1 });
 	menuService.addItem(MenuId.ChatInput, { command: { id: 'workbench.action.chat.openModelPicker', title: 'GPT-5.3-Codex' }, group: 'navigation', order: 3 });
-	if (!fixtureOptions.voiceInputMode || !isSessionsWindow) {
-		menuService.addItem(MenuId.ChatInput, { command: { id: 'workbench.action.chat.configureTools', title: '', icon: Codicon.settingsCompact }, group: 'navigation', order: 100 });
-	}
-	if (fixtureOptions.voiceInputMode) {
-		menuService.addItem(MenuId.ChatExecute, { command: { id: ChatVoiceInputModeAction.ID, title: 'Voice Input Mode' }, group: 'navigation', order: 2 });
-	}
-	if (voiceControl) {
-		// Order 2 puts the voice control between the pickers and Send, where the
-		// real dictation / Voice Mode actions are contributed.
-		menuService.addItem(MenuId.ChatExecute, { command: { id: 'fixture.voiceControl', title: 'Voice', icon: voiceControlRenderings[voiceControl].icon }, group: 'navigation', order: 2 });
-	}
+	menuService.addItem(MenuId.ChatInput, { command: { id: 'workbench.action.chat.configureTools', title: '', icon: Codicon.settingsCompact }, group: 'navigation', order: 100 });
 	menuService.addItem(MenuId.ChatExecute, { command: { id: 'workbench.action.chat.submit', title: 'Send', icon: Codicon.arrowUpCompact, precondition: fixtureOptions.sendEnabled === false ? ContextKeyExpr.false() : undefined }, group: 'navigation', order: 4 });
 	const hasCustomSecondaryPickerLabels = fixtureOptions.secondaryPickerLabels !== undefined;
 	menuService.addItem(MenuId.ChatInputSecondary, { command: { id: hasCustomSecondaryPickerLabels ? 'fixture.secondaryTarget' : 'workbench.action.chat.openSessionTargetPicker', title: secondaryPickerLabels[0] }, group: 'navigation', order: 0 });
@@ -372,36 +279,6 @@ export async function renderChatInput(context: ComponentFixtureContext, fixtureO
 		inputPart.layout(width);
 	}
 
-	if (voiceControl) {
-		// Apply the state classes the voice session controller and the mic-glow
-		// helper set at runtime. They are the contract between those components
-		// and the border / color / glow rules in chat.css, so driving them here
-		// is what lets a screenshot lock that cascade without standing up the
-		// whole speech service stack.
-		const { containerClasses, itemClasses } = voiceControlRenderings[voiceControl];
-		if (containerClasses?.length) {
-			session.querySelector('.chat-input-container')?.classList.add(...containerClasses);
-		}
-		if (itemClasses?.length) {
-			const item = session.querySelector('.chat-execute-toolbar .monaco-action-bar .action-item');
-			item?.classList.add(...itemClasses);
-			// The glow's intensity is audio-reactive at runtime; pin it so the
-			// screenshot is deterministic.
-			(item as HTMLElement | null)?.style.setProperty('--dictation-mic-level', '0.6');
-		}
-	}
-
-	if (focusVoiceControl) {
-		const focusTarget = session.querySelector<HTMLElement>(
-			fixtureOptions.voiceInputMode
-				? `.chat-voice-input-mode-cell.${focusVoiceControl}:not(.collapsed)`
-				: '.chat-execute-toolbar .action-item:not(.chat-submit-button) > .action-label'
-		);
-		if (!focusTarget) {
-			throw new Error('Expected a visible voice control to focus.');
-		}
-		context.focus(focusTarget);
-	}
 
 	if (pet) {
 		// Virtual timers do not wait for the native image load that paints the sprite.

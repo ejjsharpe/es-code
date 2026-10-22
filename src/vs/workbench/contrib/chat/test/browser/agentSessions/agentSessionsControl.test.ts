@@ -14,11 +14,9 @@ import { IAgentSession, IAgentSessionsModel } from '../../../browser/agentSessio
 import { IAgentSessionsService } from '../../../browser/agentSessions/agentSessionsService.js';
 import { IAgentSessionsFilter } from '../../../browser/agentSessions/agentSessionsViewer.js';
 import { ChatSessionStatus, IChatSessionsService } from '../../../common/chatSessionsService.js';
-import { IVoicePlaybackService } from '../../../common/voicePlaybackService.js';
 import { workbenchInstantiationService } from '../../../../../test/browser/workbenchTestServices.js';
 import { URI } from '../../../../../../base/common/uri.js';
 import { Codicon } from '../../../../../../base/common/codicons.js';
-import { observableValue } from '../../../../../../base/common/observable.js';
 import { timeout } from '../../../../../../base/common/async.js';
 import { CancellationToken } from '../../../../../../base/common/cancellation.js';
 import { AgentSessionsGrouping } from '../../../browser/agentSessions/agentSessionsFilter.js';
@@ -73,7 +71,7 @@ suite('AgentSessionsControl', () => {
 		const filter = createFilter();
 		const instantiationService = workbenchInstantiationService(undefined, store);
 		instantiationService.stub(IChatSessionsService, new class extends mock<IChatSessionsService>() { });
-		instantiationService.stub(IVoicePlaybackService, new class extends mock<IVoicePlaybackService>() { });
+
 		instantiationService.stub(IAgentSessionsService, new class extends mock<IAgentSessionsService>() {
 			override readonly model = model;
 			override readonly onDidChangeSessionArchivedState = Event.None;
@@ -123,10 +121,7 @@ suite('AgentSessionsControl', () => {
 			override getChatSessionContribution() { return undefined; }
 			override resolveChatSessionItem = async () => undefined;
 		});
-		instantiationService.stub(IVoicePlaybackService, new class extends mock<IVoicePlaybackService>() {
-			override readonly pendingResponseVersion = observableValue(this, 0);
-			override hasPendingResponse = () => false;
-		});
+
 		instantiationService.stub(IAgentSessionsService, new class extends mock<IAgentSessionsService>() {
 			override readonly model = model;
 			override readonly onDidChangeSessionArchivedState = Event.None;
@@ -182,10 +177,7 @@ suite('AgentSessionsControl', () => {
 			override getChatSessionContribution() { return undefined; }
 			override resolveChatSessionItem = async () => undefined;
 		});
-		instantiation.stub(IVoicePlaybackService, new class extends mock<IVoicePlaybackService>() {
-			override readonly pendingResponseVersion = observableValue(this, 0);
-			override hasPendingResponse = () => false;
-		});
+
 		instantiation.stub(IAgentSessionsService, new class extends mock<IAgentSessionsService>() {
 			override readonly model = model;
 			override readonly onDidChangeSessionArchivedState = Event.None;
@@ -243,10 +235,7 @@ suite('AgentSessionsControl', () => {
 			override getChatSessionContribution() { return undefined; }
 			override resolveChatSessionItem = async () => undefined;
 		});
-		instantiation.stub(IVoicePlaybackService, new class extends mock<IVoicePlaybackService>() {
-			override readonly pendingResponseVersion = observableValue(this, 0);
-			override hasPendingResponse = () => false;
-		});
+
 		instantiation.stub(IAgentSessionsService, new class extends mock<IAgentSessionsService>() {
 			override readonly model = model;
 			override readonly onDidChangeSessionArchivedState = Event.None;
@@ -304,10 +293,7 @@ suite('AgentSessionsControl', () => {
 			override getChatSessionContribution() { return undefined; }
 			override resolveChatSessionItem = async () => undefined;
 		});
-		instantiationService.stub(IVoicePlaybackService, new class extends mock<IVoicePlaybackService>() {
-			override readonly pendingResponseVersion = observableValue(this, 0);
-			override hasPendingResponse = () => false;
-		});
+
 		instantiationService.stub(IAgentSessionsService, new class extends mock<IAgentSessionsService>() {
 			override readonly model = model;
 			override readonly onDidChangeSessionArchivedState = Event.None;
@@ -370,10 +356,7 @@ suite('AgentSessionsControl', () => {
 			override getChatSessionContribution() { return undefined; }
 			override resolveChatSessionItem = async () => undefined;
 		});
-		instantiationService.stub(IVoicePlaybackService, new class extends mock<IVoicePlaybackService>() {
-			override readonly pendingResponseVersion = observableValue(this, 0);
-			override hasPendingResponse = () => false;
-		});
+
 		instantiationService.stub(IAgentSessionsService, new class extends mock<IAgentSessionsService>() {
 			override readonly model = model;
 			override readonly onDidChangeSessionArchivedState = Event.None;

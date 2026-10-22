@@ -46,10 +46,6 @@ steps:
     parameters:
       vscodePlatform: darwin
 
-  - template: ../../common/dictation-runtime-produce.yml@self
-    parameters:
-      vscodePlatform: darwin
-
   - template: ../../common/mixin-vscode-capi.yml@self
 
   - script: npm run gulp core-ci

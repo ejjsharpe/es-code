@@ -105,7 +105,6 @@ export class InlineCompletionsController extends Disposable {
 			this._positions,
 			this._debounceValue,
 			this._enabledInConfig,
-			() => this._isEditorDictationInProgress(),
 			this.editor,
 		);
 		return model;
@@ -137,11 +136,7 @@ export class InlineCompletionsController extends Disposable {
 			() => this.model.get()?.selectedInlineCompletion.get()?.getSingleTextEdit(),
 		));
 		this._enabledInConfig = observableFromEvent(this, this.editor.onDidChangeConfiguration, () => this.editor.getOption(EditorOption.inlineSuggest).enabled);
-		this._register(this._contextKeyService.onDidChangeContext(e => {
-			if (e.affectsSome(new Set(['editorDictation.inProgress'])) && this._isEditorDictationInProgress()) {
-				this.model.get()?.stop();
-			}
-		}));
+
 
 		this._debounceValue = this._debounceService.for(
 			this._languageFeaturesService.inlineCompletionsProvider,
@@ -203,13 +198,13 @@ export class InlineCompletionsController extends Disposable {
 		}));
 
 		this._register(runOnChange(this._editorObs.onDidType, (_value, _changes) => {
-			if (this._enabledInConfig.get() && !this._isEditorDictationInProgress()) {
+			if (this._enabledInConfig.get()) {
 				this.model.get()?.trigger();
 			}
 		}));
 
 		this._register(runOnChange(this._editorObs.onDidPaste, (_value, _changes) => {
-			if (this._enabledInConfig.get() && !this._isEditorDictationInProgress()) {
+			if (this._enabledInConfig.get()) {
 				this.model.get()?.trigger();
 			}
 		}));
@@ -231,7 +226,7 @@ export class InlineCompletionsController extends Disposable {
 			...TriggerInlineEditCommandsRegistry.getRegisteredCommands(),
 		]);
 		this._register(this._commandService.onDidExecuteCommand((e) => {
-			if (triggerCommands.has(e.commandId) && editor.hasTextFocus() && this._enabledInConfig.get() && !this._isEditorDictationInProgress()) {
+			if (triggerCommands.has(e.commandId) && editor.hasTextFocus() && this._enabledInConfig.get()) {
 				let noDelay = false;
 				if (e.commandId === inlineSuggestCommitId) {
 					noDelay = true;
@@ -426,9 +421,7 @@ export class InlineCompletionsController extends Disposable {
 		this._register(this._instantiationService.createInstance(TextModelChangeRecorder, this.editor));
 	}
 
-	private _isEditorDictationInProgress(): boolean {
-		return this._contextKeyService.getContext(this.editor.getDomNode())?.getValue('editorDictation.inProgress') === true;
-	}
+
 
 	public playAccessibilitySignal(tx: ITransaction) {
 		this._playAccessibilitySignal.trigger(tx);

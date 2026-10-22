@@ -13,7 +13,7 @@ import { createMarkdownCommandLink } from '../../../../base/common/htmlContent.j
 import { Disposable, DisposableMap, DisposableStore } from '../../../../base/common/lifecycle.js';
 import { Schemas } from '../../../../base/common/network.js';
 import { autorun, observableFromEvent } from '../../../../base/common/observable.js';
-import { isMacintosh, isWeb } from '../../../../base/common/platform.js';
+import { isMacintosh } from '../../../../base/common/platform.js';
 import { PolicyCategory } from '../../../../base/common/policy.js';
 import { registerEditorFeature } from '../../../../editor/common/editorFeatures.js';
 import * as nls from '../../../../nls.js';
@@ -42,7 +42,6 @@ import { SyncDescriptor } from '../../../../platform/instantiation/common/descri
 import { InstantiationType, registerSingleton } from '../../../../platform/instantiation/common/extensions.js';
 import { IInstantiationService, ServicesAccessor } from '../../../../platform/instantiation/common/instantiation.js';
 import { IJSONContributionRegistry, Extensions as JSONExtensions } from '../../../../platform/jsonschemas/common/jsonContributionRegistry.js';
-import { DEFAULT_LOCAL_TRANSCRIPTION_MODEL } from '../../../../platform/localTranscription/common/localTranscription.js';
 import { McpAccessValue, McpAutoStartValue, mcpAccessConfig, mcpAllowedServersConfig, mcpAppsEnabledConfig, mcpAutoStartConfig, mcpDeniedServersConfig, mcpGalleryServiceEnablementConfig, mcpGalleryServiceUrlConfig } from '../../../../platform/mcp/common/mcpManagement.js';
 import { AgentNetworkFilterService, IAgentNetworkFilterService } from '../../../../platform/networkFilter/common/networkFilterService.js';
 import { AgentNetworkDomainSettingId } from '../../../../platform/networkFilter/common/settings.js';
@@ -103,7 +102,6 @@ import { ChatTodoListService, IChatTodoListService } from '../common/tools/chatT
 import { ILanguageModelToolsConfirmationService } from '../common/tools/languageModelToolsConfirmationService.js';
 import { LanguageModelToolsExtensionPointHandler } from '../common/tools/languageModelToolsContribution.js';
 import { ILanguageModelToolsService } from '../common/tools/languageModelToolsService.js';
-import { IVoiceChatService, VoiceChatService } from '../common/voiceChatService.js';
 import '../common/widget/chatColors.js';
 import { IChatLayoutService } from '../common/widget/chatLayoutService.js';
 import { ChatResponseResourceFileSystemProvider, ChatResponseResourceWorkbenchContribution, IChatResponseResourceFileSystemProvider } from '../common/widget/chatResponseResourceFileSystemProvider.js';
@@ -136,11 +134,9 @@ import { registerChatPluginActions } from './actions/chatPluginActions.js';
 import { registerChatPromptNavigationActions } from './actions/chatPromptNavigationActions.js';
 import { registerChatQueueActions } from './actions/chatQueueActions.js';
 import { registerQuickChatActions } from './actions/chatQuickInputActions.js';
-import { registerChatSpeechToTextActions } from './actions/chatSpeechToTextActions.js';
 import { registerChatTitleActions } from './actions/chatTitleActions.js';
 import { registerChatToolActions } from './actions/chatToolActions.js';
 import { ChatTransferContribution } from './actions/chatTransfer.js';
-import { CONFIGURE_DICTATION_INSTRUCTIONS_ACTION_ID, registerConfigureSpeechInstructionsActions } from './actions/configureVoiceInstructionsAction.js';
 import './agentSessions/agentSessions.contribution.js';
 import { AgentHostChatDebugContribution } from './chatDebug/agentHostChatDebugProvider.js';
 import { ChatDebugEditor } from './chatDebug/chatDebugEditor.js';
@@ -151,21 +147,12 @@ import { CustomizationsTelemetryContribution, CustomizationsTelemetryService, IC
 import { ChatSubmitRequestHandlerService, IChatSubmitRequestHandlerService } from './chatSubmitRequestHandlerService.js';
 import { PromptsDebugContribution } from './promptsDebugContribution.js';
 import { PromptLanguageFeaturesProvider } from './promptSyntax/promptFileContributions.js';
-import { ChatSpeechToTextService, DICTATION_MAI_MODEL_ID, DictationSettingId, IChatSpeechToTextService } from './speechToText/chatSpeechToTextService.js';
-import { IVoiceCodeTranscriptionClient, VoiceCodeTranscriptionClient } from './speechToText/voiceCodeTranscriptionClient.js';
 import './telemetry/chatEditorTopologyTelemetry.js';
 import './telemetry/chatModelCountTelemetry.js';
 import { ChatToolRiskAssessmentService, IChatToolRiskAssessmentService } from './tools/chatToolRiskAssessmentService.js';
 import { ClientToolSetsContribution } from './tools/clientToolSetsContribution.js';
 import { RenameToolContribution } from './tools/renameTool.js';
 import { UsagesToolContribution } from './tools/usagesTool.js';
-import './voiceClient/micCaptureService.js';
-import './voiceClient/ttsPlaybackService.js';
-import './voiceClient/voiceClientService.js';
-import './voiceClient/voiceSessionController.js';
-import './voiceClient/voiceToolDispatchService.js';
-import './voiceInputMode/voiceInputMode.js';
-import { ChatVoiceInputModeAction, ChatVoiceInputModeToggleListenAction, registerVoiceInputModeSimulateActions } from './voiceInputMode/voiceInputModeActionViewItem.js';
 
 import { ChatContextKeys } from '../common/actions/chatContextKeys.js';
 import { AICustomizationManagementCommands } from '../common/aiCustomizationWorkspaceService.js';
@@ -344,102 +331,6 @@ configurationRegistry.registerConfiguration({
 			type: 'string',
 			description: nls.localize('chat.fontFamily', "Controls the font family in chat messages."),
 			default: 'default'
-		},
-		'dictation.enabled': {
-			type: 'boolean',
-			markdownDescription: nls.localize('dictation.enabled', "Enables dictation across the product (chat input, editor, and terminal). When enabled, a microphone button appears in the chat input and the dictation shortcut becomes available. Desktop uses the selected transcription model; web uses cloud transcription."),
-			default: true,
-			tags: ['experimental'],
-			policy: {
-				name: 'DictationEnabled',
-				category: PolicyCategory.InteractiveSession,
-				minimumVersion: '1.131',
-				localization: {
-					description: {
-						key: 'dictation.enabled.policy',
-						value: nls.localize('dictation.enabled.policy', "Controls whether dictation is available across the product (chat input, editor, and terminal).")
-					}
-				},
-			}
-		},
-		'dictation.model': {
-			type: 'string',
-			enum: [
-				DEFAULT_LOCAL_TRANSCRIPTION_MODEL,
-				DICTATION_MAI_MODEL_ID,
-			],
-			enumItemLabels: [
-				nls.localize('dictation.model.nemotronMultilingual.label', "Nemotron 3.5 ASR (Multilingual) — On-Device"),
-				nls.localize('dictation.model.mai.label', "MAI — Cloud"),
-			],
-			markdownEnumDescriptions: [
-				nls.localize('dictation.model.nemotronMultilingual', "NVIDIA Nemotron 3.5 multilingual streaming RNN-T, run on-device through Microsoft Foundry Local. Works offline; no audio leaves the device. Automatic language selection follows the Voice Mode language setting; when that setting is Automatic, dictation uses the configured display language when supported, then the system or browser locale, with model detection as a fallback. Downloaded on first use and cached on disk."),
-				nls.localize('dictation.model.mai', "Cloud transcription through the same Microsoft AI voice service used by Voice Mode. Requires a network connection and GitHub sign-in; audio is streamed to the service."),
-			],
-			markdownDescription: nls.localize('dictation.model', "The model used for dictation. On-device models download on first use and run locally through Microsoft Foundry Local; the cloud option streams audio to the Microsoft AI voice service. On the web, user and default on-device selections use cloud transcription because local transcription is unsupported. If policy requires on-device transcription, dictation is unavailable on the web."),
-			default: isWeb ? DICTATION_MAI_MODEL_ID : DEFAULT_LOCAL_TRANSCRIPTION_MODEL,
-			tags: ['experimental'],
-			experiment: { mode: 'auto' },
-			policy: {
-				name: 'DictationModel',
-				category: PolicyCategory.InteractiveSession,
-				minimumVersion: '1.136',
-				localization: {
-					description: {
-						key: 'dictation.model.policy',
-						value: nls.localize('dictation.model.policy', "Controls the transcription model used for dictation.")
-					},
-					enumDescriptions: [
-						{
-							key: 'dictation.model.nemotronMultilingual.policy',
-							value: nls.localize('dictation.model.nemotronMultilingual.policy', "Use the on-device transcription model. Audio does not leave the device.")
-						},
-						{
-							key: 'dictation.model.mai.policy',
-							value: nls.localize('dictation.model.mai.policy', "Use the cloud transcription service. Audio is streamed to the service.")
-						},
-					]
-				},
-			}
-		},
-		[DictationSettingId.ShowTranscript]: {
-			type: 'boolean',
-			markdownDescription: nls.localize('dictation.showTranscript', "Controls whether the transcript is shown while dictating. The final transcript is inserted when dictation ends."),
-			default: true,
-			tags: ['experimental']
-		},
-		[DictationSettingId.ShowButton]: {
-			type: 'boolean',
-			markdownDescription: nls.localize('dictation.showButton', "Controls whether the dictation microphone button is shown in the chat input. When hidden, dictation can still be started with its keyboard shortcut."),
-			default: true,
-			tags: ['experimental']
-		},
-		'dictation.experimental.llmCleanup': {
-			type: 'boolean',
-			markdownDescription: nls.localize('dictation.experimental.llmCleanup', "Experimental: when dictation ends, the final transcript is passed through a small language model to restore punctuation, capitalization, paragraphs, and lists. Requires Copilot to be enabled; the transcript is sent to the language model for cleanup. Falls back to the raw transcript when no model is available. Use [dictation instructions](command:{0}) to customize terminology and formatting.", CONFIGURE_DICTATION_INSTRUCTIONS_ACTION_ID),
-			default: true,
-			tags: ['experimental'],
-			policy: {
-				name: 'DictationLLMCleanup',
-				category: PolicyCategory.InteractiveSession,
-				minimumVersion: '1.136',
-				localization: {
-					description: {
-						key: 'dictation.experimental.llmCleanup.policy',
-						value: nls.localize('dictation.experimental.llmCleanup.policy', "Controls whether final dictation transcripts are sent to a language model for cleanup.")
-					}
-				},
-			}
-		},
-		'dictation.experimental.llmCleanupModel': {
-			type: 'string',
-			enum: ['auto', 'copilot-utility-small', 'gpt-5.6-luna'],
-			markdownDescription: nls.localize('dictation.experimental.llmCleanupModel', "Controls the language model used for experimental dictation cleanup. `auto` follows the experiment-provided default."),
-			default: 'auto',
-			tags: ['experimental'],
-			experiment: {
-				mode: 'auto'
-			}
 		},
 		'chat.editor.fontSize': {
 			type: 'number',
@@ -2692,61 +2583,7 @@ Registry.as<IConfigurationMigrationRegistry>(Extensions.ConfigurationMigration).
 			return [[AgentMergeSettingId.MergePullRequest, { value: migrateAgentMergeMergePullRequest(value) }]];
 		}
 	},
-	{
-		// The on-device dictation runtime moved to Foundry Local; the old
-		// transformers.js/onnxruntime model IDs no longer resolve and would fail
-		// with an unknown-model error. Map any explicitly-stored legacy value to
-		// the new default so existing users keep working. Also migrate the setting
-		// from its old `chat.speechToText.model` id to `dictation.model`.
-		key: 'chat.speechToText.model',
-		migrateFn: (value: unknown, accessor) => {
-			const legacyModelIds = [
-				'onnx-community/whisper-tiny',
-				'onnx-community/whisper-base',
-				'onnx-community/whisper-small',
-				'onnx-community/nemotron-3.5-asr-streaming-0.6b-onnx-int4',
-				'nemotron-speech-streaming-en-0.6b',
-			];
-			const migrated = (typeof value === 'string' && legacyModelIds.includes(value))
-				? DEFAULT_LOCAL_TRANSCRIPTION_MODEL
-				: value;
-			const pairs: ConfigurationKeyValuePairs = [['chat.speechToText.model', { value: undefined }]];
-			// Never clobber an explicitly configured new key (e.g. after settings
-			// sync brought both keys across versions).
-			if (accessor('dictation.model') === undefined) {
-				pairs.push(['dictation.model', { value: migrated }]);
-			}
-			return pairs;
-		}
-	},
-	{
-		// Existing users may have the former English-only default stored
-		// explicitly. Move them to the multilingual replacement as well.
-		key: 'dictation.model',
-		migrateFn: value => ({
-			value: value === 'nemotron-speech-streaming-en-0.6b'
-				? DEFAULT_LOCAL_TRANSCRIPTION_MODEL
-				: value
-		})
-	},
-	{
-		// Dictation settings were regrouped under the top-level `dictation.*`
-		// namespace (they govern dictation across chat, editor, and terminal).
-		key: 'chat.speechToText.enabled',
-		migrateFn: (value: unknown, accessor) => {
-			const pairs: ConfigurationKeyValuePairs = [['chat.speechToText.enabled', { value: undefined }]];
-			if (accessor('dictation.enabled') === undefined) {
-				pairs.push(['dictation.enabled', { value }]);
-			}
-			return pairs;
-		}
-	},
-	{
-		// `chat.speechToText.mode` was removed (the shortcut is always tap-toggle /
-		// hold-to-talk); clear it so it does not linger as an unknown setting.
-		key: 'chat.speechToText.mode',
-		migrateFn: () => ([['chat.speechToText.mode', { value: undefined }]])
-	},
+
 ]);
 
 class ChatResolverContribution extends Disposable {
@@ -3165,22 +3002,6 @@ class ToolReferenceNamesContribution extends Disposable implements IWorkbenchCon
 	}
 }
 
-/**
- * Forces the eager {@link ChatSpeechToTextService} to instantiate at startup so
- * it can publish the `chatSpeechToTextConfigured` context key that gates the
- * dictation (mic) button. Registered singletons are created lazily on first
- * access, so without this the key would never be set and the button never shows.
- */
-class ChatSpeechToTextInitContribution implements IWorkbenchContribution {
-
-	static readonly ID = 'workbench.contrib.chatSpeechToTextInit';
-
-	constructor(
-		@IChatSpeechToTextService _chatSpeechToTextService: IChatSpeechToTextService,
-	) {
-		// Injecting the service is enough to construct it.
-	}
-}
 
 AccessibleViewRegistry.register(new ChatTerminalOutputAccessibleView());
 AccessibleViewRegistry.register(new ChatBackgroundShellOutputAccessibleView());
@@ -3198,7 +3019,6 @@ Registry.as<IEditorFactoryRegistry>(EditorExtensions.EditorFactory).registerEdit
 
 registerWorkbenchContribution2(CopilotTelemetryContribution.ID, CopilotTelemetryContribution, WorkbenchPhase.BlockRestore);
 registerWorkbenchContribution2(EditorChatUsageContribution.ID, EditorChatUsageContribution, WorkbenchPhase.BlockRestore);
-registerWorkbenchContribution2(ChatSpeechToTextInitContribution.ID, ChatSpeechToTextInitContribution, WorkbenchPhase.BlockRestore);
 registerWorkbenchContribution2(ChatResolverContribution.ID, ChatResolverContribution, WorkbenchPhase.BlockStartup);
 registerWorkbenchContribution2(ChatDebugResolverContribution.ID, ChatDebugResolverContribution, WorkbenchPhase.BlockStartup);
 registerWorkbenchContribution2(PromptsDebugContribution.ID, PromptsDebugContribution, WorkbenchPhase.BlockRestore);
@@ -3272,11 +3092,6 @@ registerChatPromptNavigationActions();
 registerChatTitleActions();
 registerChatExecuteActions();
 registerChatFindActions();
-registerAction2(ChatVoiceInputModeAction);
-registerAction2(ChatVoiceInputModeToggleListenAction);
-registerVoiceInputModeSimulateActions();
-registerChatSpeechToTextActions();
-registerConfigureSpeechInstructionsActions();
 registerChatQueueActions();
 registerQuickChatActions();
 registerChatExportActions();
@@ -3299,8 +3114,6 @@ agentPluginDiscoveryRegistry.register(new SyncDescriptor(CopilotCliAgentPluginDi
 
 registerSingleton(IChatResponseResourceFileSystemProvider, ChatResponseResourceFileSystemProvider, InstantiationType.Delayed);
 registerSingleton(IChatTerminalOutputTextModelService, ChatTerminalOutputTextModelService, InstantiationType.Delayed);
-registerSingleton(IChatSpeechToTextService, ChatSpeechToTextService, InstantiationType.Eager);
-registerSingleton(IVoiceCodeTranscriptionClient, VoiceCodeTranscriptionClient, InstantiationType.Delayed);
 registerSingleton(IChatTransferService, ChatTransferService, InstantiationType.Delayed);
 registerSingleton(IChatService, ChatService, InstantiationType.Delayed);
 registerSingleton(IChatWidgetService, ChatWidgetService, InstantiationType.Delayed);
@@ -3335,7 +3148,6 @@ registerSingleton(ILanguageModelToolsConfirmationService, LanguageModelToolsConf
 registerSingleton(IChatToolRiskAssessmentService, ChatToolRiskAssessmentService, InstantiationType.Delayed);
 registerSingleton(IChatGoalSummaryService, ChatGoalSummaryService, InstantiationType.Delayed);
 registerSingleton(IChatSubmitRequestHandlerService, ChatSubmitRequestHandlerService, InstantiationType.Delayed);
-registerSingleton(IVoiceChatService, VoiceChatService, InstantiationType.Delayed);
 registerSingleton(IChatCodeBlockContextProviderService, ChatCodeBlockContextProviderService, InstantiationType.Delayed);
 registerSingleton(ICodeMapperService, CodeMapperService, InstantiationType.Delayed);
 registerSingleton(IChatEditingService, ChatEditingService, InstantiationType.Delayed);

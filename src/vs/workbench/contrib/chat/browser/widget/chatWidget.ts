@@ -30,7 +30,6 @@ import { isDefined } from '../../../../../base/common/types.js';
 import { URI } from '../../../../../base/common/uri.js';
 import { IChatOpenDiagnosticsService } from '../../common/chatOpenDiagnosticsService.js';
 import { ChatPerfMark, clearChatMarks, markChat } from '../../common/chatPerf.js';
-import { CloudSandboxSessionTrace } from '../../common/cloudSandboxSessionTrace.js';
 import { ICodeEditor } from '../../../../../editor/browser/editorBrowser.js';
 import { ICodeEditorService } from '../../../../../editor/browser/services/codeEditorService.js';
 import { OffsetRange } from '../../../../../editor/common/core/ranges/offsetRange.js';
@@ -121,7 +120,6 @@ import { getChatPetListPadding } from './chatPetWidget.js';
 import { IChatPetWidgetService } from './chatPetWidgetService.js';
 import { IChatPetService } from '../chatPetService.js';
 import { ChatPetAchievementIds, hasChatPetImageAttachment } from '../chatPetAchievements.js';
-import { stopDictationForEditor } from '../speechToText/dictationSession.js';
 import { ChatUserInteraction } from '../chatUserInteractionTelemetry.js';
 import { ChatContentMarkdownRenderer } from './chatContentMarkdownRenderer.js';
 
@@ -1521,7 +1519,6 @@ export class ChatWidget extends Disposable implements IChatWidget {
 			if (this._pendingFirstRenderSessionResource && this.viewModel && isEqual(this.viewModel.sessionResource, this._pendingFirstRenderSessionResource)) {
 				this._pendingFirstRenderSessionResource = undefined;
 				this.logService.trace(`ChatWidget#firstRender: session=${this.viewModel.sessionResource.toString()} items=${items.length}`);
-				CloudSandboxSessionTrace.get(this.viewModel.model)?.record('firstRender', { items: items.length });
 				this.chatOpenDiagnosticsService.mark(this.viewModel.sessionResource, 'firstRender');
 			}
 
@@ -2743,7 +2740,6 @@ export class ChatWidget extends Disposable implements IChatWidget {
 			inputPartHorizontalPadding: this.viewOptions.inputPartHorizontalPadding,
 			hostModelSelection: this.viewOptions.hostModelSelection,
 			deferredNotificationsEnabled: this.viewOptions.deferredNotificationsEnabled,
-			ownsDraftVoiceSession: this.viewOptions.ownsDraftVoiceSession,
 			hostSubmit: this.viewOptions.hostSubmit,
 		};
 
@@ -3090,7 +3086,6 @@ export class ChatWidget extends Disposable implements IChatWidget {
 		this.viewModelDisposables.add(this.autoMigratePolicySession(model, archived));
 
 		this.listWidget.setViewModel(this.viewModel);
-		CloudSandboxSessionTrace.get(model)?.record('widgetBound');
 		this.chatOpenDiagnosticsService.mark(model.sessionResource, 'modelAttached');
 		// Armed only once the list is bound, so a render triggered while the
 		// outgoing model was torn down cannot consume it.
@@ -3385,9 +3380,6 @@ export class ChatWidget extends Disposable implements IChatWidget {
 		}
 		this._participantRedirectInFlight = true;
 		try {
-			if (!options.preserveInput) {
-				await stopDictationForEditor(this.inputEditor);
-			}
 			if (this._store.isDisposed || this.viewModel !== source) {
 				throw new CancellationError();
 			}
@@ -3487,14 +3479,6 @@ export class ChatWidget extends Disposable implements IChatWidget {
 		}
 
 		try {
-			if (!options?.preserveInput) {
-				// preserveInput submissions (e.g. /compact or programmatic maintenance
-				// requests) leave the input draft untouched, so they must not stop an
-				// unrelated dictation and flush its final transcript into that draft.
-				await stopDictationForEditor(this.inputEditor);
-			}
-			// Dictation may flush its final transcript while stopping. Snapshot the
-			// owned source only after that update, immediately before submission.
 			clearOwnedForkPromptInput = this._createForkPromptInputCleanup(query, options);
 
 			if (this.viewModel) {
@@ -3770,7 +3754,6 @@ export class ChatWidget extends Disposable implements IChatWidget {
 		}
 
 		if (!options.preserveInput) {
-			// Would stop dictation the preserved draft may still be using.
 			this._onDidAcceptInput.fire();
 		}
 		this.listWidget.setScrollLock(this.isLockedToCodingAgent || !!checkModeOption(this.input.currentModeKind, this.viewOptions.autoScroll));
@@ -4030,7 +4013,7 @@ export class ChatWidget extends Disposable implements IChatWidget {
 			sent.data.responseCompletePromise.then(() => {
 				const responses = this.viewModel?.getItems().filter(isResponseVM);
 				const lastResponse = responses?.[responses.length - 1];
-				this.chatAccessibilityService.acceptResponse(lastResponse, submittedSessionResource, options?.isVoiceInput);
+				this.chatAccessibilityService.acceptResponse(lastResponse, submittedSessionResource);
 				if (lastResponse?.result?.nextQuestion) {
 					const { prompt, participant, command } = lastResponse.result.nextQuestion;
 					const question = formatChatQuestion(this.chatAgentService, this.location, prompt, participant, command);

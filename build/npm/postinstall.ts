@@ -10,7 +10,6 @@ import * as child_process from 'child_process';
 import { dirs } from './dirs.ts';
 import { root, stateFile, stateContentsFile, computeState, computeContents, isUpToDate } from './installStateHash.ts';
 import { ensureElectronTypes } from './electronTypes.ts';
-import { finishCloudSandbox } from './cloudSandbox.ts';
 
 const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 const rootNpmrcConfigKeys = getNpmrcConfigKeys(path.join(root, '.npmrc'));
@@ -243,7 +242,6 @@ async function main() {
 	await ensureElectronTypes();
 
 	if (!process.env['VSCODE_FORCE_INSTALL'] && isUpToDate()) {
-		finishCloudSandbox();
 		log('.', 'All dependencies up to date, skipping postinstall.');
 		child_process.execSync('git config pull.rebase merges');
 		child_process.execSync('git config blame.ignoreRevsFile .git-blame-ignore-revs');
@@ -321,7 +319,6 @@ async function main() {
 	child_process.execSync('git config pull.rebase merges');
 	child_process.execSync('git config blame.ignoreRevsFile .git-blame-ignore-revs');
 
-	finishCloudSandbox();
 
 	fs.writeFileSync(stateFile, JSON.stringify(_state));
 	fs.writeFileSync(stateContentsFile, JSON.stringify(computeContents()));
@@ -342,39 +339,7 @@ async function main() {
 		log('.', `Created ${claudeSkillsLinkType} .claude/skills -> .agents/skills`);
 	}
 
-	// foundry-local-sdk's libraryPath redirects its shared libraries but not its
-	// two N-API addons. Packaged builds provision all native files together, so
-	// patch the lazy loader to resolve the addons from libraryPath as well.
-	for (const dir of ['', 'remote']) {
-		const nativeLoaderFile = path.join(root, dir, 'node_modules', 'foundry-local-sdk', 'dist', 'detail', 'native.js');
-		if (!fs.existsSync(nativeLoaderFile)) {
-			continue;
-		}
-		const content = fs.readFileSync(nativeLoaderFile, 'utf8');
-		const marker = '// VSCODE_PATCH:foundry-addons-from-library-path';
-		if (content.includes(marker)) {
-			continue;
-		}
-		const replacements: readonly [string, string][] = [
-			[
-				`const addonPath = resolve(prebuildDir, "foundry_local_node.node");\nconst preloadAddonPath = resolve(prebuildDir, "foundry_local_preload.node");`,
-				`${marker}\nlet addonPath = resolve(prebuildDir, "foundry_local_node.node");\nlet preloadAddonPath = resolve(prebuildDir, "foundry_local_preload.node");`,
-			],
-			[
-				`if (!existsSync(fullPath)) {\n        throw new Error(\`libraryPath does not contain \${expected}: \${libraryPath}\`);\n    }`,
-				`if (!existsSync(fullPath)) {\n        throw new Error(\`libraryPath does not contain \${expected}: \${libraryPath}\`);\n    }\n    const configuredAddonPath = resolve(libraryPath, "foundry_local_node.node");\n    const configuredPreloadAddonPath = resolve(libraryPath, "foundry_local_preload.node");\n    if (!existsSync(configuredAddonPath) || !existsSync(configuredPreloadAddonPath)) {\n        throw new Error(\`libraryPath does not contain both Foundry Local addons: \${libraryPath}\`);\n    }\n    addonPath = configuredAddonPath;\n    preloadAddonPath = configuredPreloadAddonPath;`,
-			],
-		];
-		let patched = content;
-		for (const [needle, replacement] of replacements) {
-			if (!patched.includes(needle)) {
-				throw new Error(`Unexpected foundry-local-sdk native loader shape in ${nativeLoaderFile}`);
-			}
-			patched = patched.replace(needle, replacement);
-		}
-		fs.writeFileSync(nativeLoaderFile, patched);
-		log(dir || '.', 'Patched foundry-local-sdk native loader (addons from libraryPath)');
-	}
+
 }
 
 main().catch(err => {

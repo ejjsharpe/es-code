@@ -141,7 +141,6 @@ export const enum RemoteAgentHostEntryType {
 	WebSocket = 'websocket',
 	SSH = 'ssh',
 	WSL = 'wsl',
-	CloudSandbox = 'cloudSandbox',
 	DevContainer = 'devContainer',
 }
 
@@ -196,24 +195,6 @@ export interface IRemoteAgentHostWSLConnection {
 }
 
 /**
- * A connection to a Copilot cloud "sandbox" environment (agent integration slug
- * `copilot-developer-cli`), reached over a Mission Control-brokered Azure Web
- * PubSub relay. Not persisted to settings — the connection is established
- * on demand with freshly-minted, short-lived credentials.
- */
-export interface IRemoteAgentHostCloudSandboxConnection {
-	/** User-local environments use the same MC transport but not sandbox-specific providers. */
-	readonly environmentKind?: 'user-local';
-	readonly type: RemoteAgentHostEntryType.CloudSandbox;
-	/** Synthesized display address: `cloudsandbox:<environmentId>`. */
-	readonly address: string;
-	/** Stable Mission Control environment identifier (`env_<uuid>`). */
-	readonly environmentId: string;
-	/** The cloud session/task id this connection is for, when known. */
-	readonly sessionId?: string;
-}
-
-/**
  * A runtime-only connection to an agent host running inside a Dev Container.
  * The Dev Container integration stages its transport for its connection factory.
  */
@@ -225,7 +206,7 @@ export type IRemoteAgentHostDevContainerConnection = {
 	readonly hostAuthority?: string;
 } & ({ readonly hostPath: string; readonly repository?: never } | { readonly repository: IDevContainerRepository; readonly hostPath?: never });
 
-export type RemoteAgentHostConnection = IRemoteAgentHostWebSocketConnection | IRemoteAgentHostSSHConnection | IRemoteAgentHostWSLConnection | IRemoteAgentHostCloudSandboxConnection | IRemoteAgentHostDevContainerConnection;
+export type RemoteAgentHostConnection = IRemoteAgentHostWebSocketConnection | IRemoteAgentHostSSHConnection | IRemoteAgentHostWSLConnection | IRemoteAgentHostDevContainerConnection;
 
 /** A configured remote agent host entry. WebSocket entries are persisted in {@link RemoteAgentHostsSettingId}; SSH entries are persisted in storage. */
 export interface IRemoteAgentHostEntry {
@@ -616,7 +597,6 @@ const WSL_ENTRY_TYPE_CONFIG: IRemoteAgentHostEntryTypeConfig<IRemoteAgentHostWSL
 	dialedFromEntries: true,
 	autoConnectGated: true,
 };
-const CLOUD_SANDBOX_ENTRY_TYPE_CONFIG = runtimeEntryTypeConfig<IRemoteAgentHostCloudSandboxConnection>(RemoteAgentHostEntryType.CloudSandbox, true, connection => connection.address);
 // Relay failures are cheap, but a cold container can make `devcontainer up` rebuild Docker for minutes; retry slower and favor explicit recovery.
 const DEV_CONTAINER_RECONNECT_POLICY: IRemoteAgentHostReconnectPolicy = {
 	autoRestore: true,
@@ -630,7 +610,6 @@ const ENTRY_TYPE_CONFIGS: { readonly [K in RemoteAgentHostEntryType]: IRemoteAge
 	[RemoteAgentHostEntryType.WebSocket]: WEBSOCKET_ENTRY_TYPE_CONFIG,
 	[RemoteAgentHostEntryType.SSH]: SSH_ENTRY_TYPE_CONFIG,
 	[RemoteAgentHostEntryType.WSL]: WSL_ENTRY_TYPE_CONFIG,
-	[RemoteAgentHostEntryType.CloudSandbox]: CLOUD_SANDBOX_ENTRY_TYPE_CONFIG,
 	[RemoteAgentHostEntryType.DevContainer]: DEV_CONTAINER_ENTRY_TYPE_CONFIG,
 };
 

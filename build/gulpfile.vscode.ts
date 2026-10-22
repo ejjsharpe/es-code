@@ -30,7 +30,6 @@ import { compileNonNativeExtensionsBuildTask, compileNativeExtensionsBuildTask, 
 import { checkApiProposalNamesTask, copyCodiconsTask } from './lib/compilation.ts';
 import { getRipgrepExcludeFilter } from './lib/copilot.ts';
 import { ensureOSProxyResolverPlatformPackage, getOSProxyResolverExcludeFilter, getOSProxyResolverPlatformFiles } from './lib/osProxyResolver.ts';
-import { readDictationRuntimeResults } from './dictation-runtime/common.ts';
 import { promisify } from 'util';
 import globCallback from 'glob';
 import rceditCallback from 'rcedit';
@@ -103,16 +102,6 @@ function computeChecksum(filename: string, stripSourceMapReferences: boolean): s
 		.replace(/=+$/, '');
 
 	return hash;
-}
-
-// foundry-local-sdk (on-device chat dictation) loads its N-API addons and shared
-// libraries from the per-user runtime cache. Exclude the package's native files,
-// which may require a newer glibc than VS Code's supported maximum.
-function getFoundryLocalExcludeFilter(): string[] {
-	return [
-		'**',
-		'!**/foundry-local-sdk/prebuilds/**',
-	];
 }
 
 function packageTask(platform: string, arch: string, sourceFolderName: string, destinationFolderName: string, _opts?: { stats?: boolean }) {
@@ -189,13 +178,6 @@ function packageTask(platform: string, arch: string, sourceFolderName: string, d
 				json.date = readISODate(out);
 				json.checksums = checksums;
 				json.version = version;
-				// Stamp dictationRuntime from the per-platform results file
-				// produced by `build/dictation-runtime/produce.ts`. Local dev /
-				// unsupported target: file absent → undefined → not stamped.
-				const dictationRuntime = readDictationRuntimeResults();
-				if (dictationRuntime) {
-					json.dictationRuntime = dictationRuntime;
-				}
 				return json;
 			}))
 			.pipe(es.through(function (file) {
@@ -228,9 +210,8 @@ function packageTask(platform: string, arch: string, sourceFolderName: string, d
 		const osProxyResolverPlatformPackage = gulp.src(getOSProxyResolverPlatformFiles(platform, arch), { base: '.', dot: true, allowEmpty: true });
 		const deps = es.merge(cleanedDeps, osProxyResolverPlatformPackage)
 			.pipe(filter(depFilterPattern, { dot: true }))
-			.pipe(filter(['**', '!**/@github/copilot-sdk/**', '!**/@github/copilot-sdk-*/**', '!**/@vscode/copilot-api/**']))
+			.pipe(filter(['**', '!**/@github/copilot-sdk/**', '!**/@github/copilot-sdk-*/**', '!**/@vscode/copilot-api/**', '!**/foundry-local-sdk/**']))
 			.pipe(filter(getRipgrepExcludeFilter(platform, arch)))
-			.pipe(filter(getFoundryLocalExcludeFilter()))
 			.pipe(filter(getOSProxyResolverExcludeFilter(platform, arch)))
 			.pipe(jsFilter)
 			.pipe(useCdnSourceMapsForPackagingTasks ? util.rewriteSourceMappingURL(sourceMappingURLBase) : es.mapSync<VinylFile, VinylFile>(file => file))

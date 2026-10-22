@@ -94,9 +94,6 @@ function getCopilotHarnessTargetCategory(target: AgentSessionTarget, chatSession
 	if (target === AgentSessionProviders.Codex || target === AgentSessionProviders.AgentHostCodex || provider === 'codex') {
 		return 'codex';
 	}
-	if (target === AgentSessionProviders.Cloud) {
-		return 'cloud';
-	}
 	return 'other';
 }
 

@@ -850,10 +850,17 @@ export interface IConnectionTrackerService {
  * operations travel over {@link AgentHostIpcChannels.Protocol}.
  */
 /** Stateless sealing on trusted local IPC; this surface is not exposed through AHP. */
+export interface IHostEncryptionKey {
+	readonly key_id: string;
+	readonly use: string;
+	readonly algorithm: string;
+	readonly public_key: string;
+}
+
 export interface IMissionControlCredentialSealingRequest {
 	readonly token: string;
 	readonly resource: string;
-	readonly key: { readonly key_id: string; readonly use: 'auth-token' | 'mcp-auth-token'; readonly algorithm: string; readonly public_key: string };
+	readonly key: IHostEncryptionKey;
 	readonly challenge?: string;
 }
 

@@ -164,11 +164,6 @@ export const agentHostPolicySupport: Readonly<Record<string, IAgentHostPolicySup
 
 	// #region Shared editor-owned controls
 
-	// Shared voice/dictation entry points and service honor policy-backed configuration.
-	AgentsVoice: { status: 'enforced' },
-	DictationEnabled: { status: 'enforced' },
-	DictationLLMCleanup: { status: 'enforced' },
-	DictationModel: { status: 'enforced' },
 	// Governs VS Code extensions, their updater and gallery, not SDK runtime extensions/plugins.
 	AllowedExtensions: { status: 'enforced' },
 	ExtensionsAutoUpdate: { status: 'enforced' },

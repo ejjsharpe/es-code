@@ -48,10 +48,6 @@ steps:
       parameters:
         vscodePlatform: linux
 
-    - template: ../../common/dictation-runtime-produce.yml@self
-      parameters:
-        vscodePlatform: linux
-
   - template: ../../common/mixin-vscode-capi.yml@self
 
   - script: npm run gulp core-ci

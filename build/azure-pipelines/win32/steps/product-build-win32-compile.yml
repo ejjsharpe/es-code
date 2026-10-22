@@ -39,10 +39,6 @@ steps:
     parameters:
       vscodePlatform: win32
 
-  - template: ../../common/dictation-runtime-produce.yml@self
-    parameters:
-      vscodePlatform: win32
-
   - template: ../../common/mixin-vscode-capi.yml@self
 
   - powershell: npm run gulp core-ci

@@ -5,7 +5,6 @@
 
 import { IAction } from '../../../../../../base/common/actions.js';
 import { Codicon } from '../../../../../../base/common/codicons.js';
-import { Iterable } from '../../../../../../base/common/iterator.js';
 import { URI } from '../../../../../../base/common/uri.js';
 import { localize } from '../../../../../../nls.js';
 import { IActionWidgetService } from '../../../../../../platform/actionWidget/browser/actionWidget.js';
@@ -32,10 +31,9 @@ import { ISessionTypePickerDelegate } from '../../chat.js';
 import { IChatHarnessSwitchFeedbackSurveyService } from '../../feedbackSurvey/chatHarnessSwitchFeedbackSurveyService.js';
 import { IChatInputPickerOptions } from './chatInputPickerActionItem.js';
 import { ISessionTypeItem, SessionTypePickerActionItem } from './sessionTargetPickerActionItem.js';
-import { IGitService } from '../../../../git/common/gitService.js';
 
 /**
- * Action view item for delegating to a remote session (Background or Cloud).
+ * Action view item for delegating to another agent session.
  * This picker allows switching to remote execution providers when the session is not empty.
  */
 export class DelegationSessionPickerActionItem extends SessionTypePickerActionItem {
@@ -62,7 +60,6 @@ export class DelegationSessionPickerActionItem extends SessionTypePickerActionIt
 		@IAgentSdkSetupService agentSdkSetupService: IAgentSdkSetupService,
 		@ICodexAccountService codexAccountService: ICodexAccountService,
 		@IChatHarnessSwitchFeedbackSurveyService harnessSwitchFeedbackSurveyService: IChatHarnessSwitchFeedbackSurveyService,
-		@IGitService private readonly gitService: IGitService,
 		@IManagedSettingsService managedSettingsService: IManagedSettingsService,
 	) {
 		super(action, chatSessionPosition, delegate, pickerOptions, inputUri, actionWidgetService, keybindingService, contextKeyService, chatSessionsService, commandService, openerService, telemetryService, chatEntitlementService, languageModelsService, configurationService, storageService, workspaceContextService, agentHostEnablementService, agentSdkSetupService, codexAccountService, harnessSwitchFeedbackSurveyService, managedSettingsService);
@@ -108,23 +105,11 @@ export class DelegationSessionPickerActionItem extends SessionTypePickerActionIt
 			return false;
 		}
 
-		// In the sessions window, cloud delegation requires a git repository
-		if (this._isSessionsWindow && type === AgentSessionProviders.Cloud && !this._hasGitRepository()) {
-			return false;
-		}
-
 		if (contribution && !contribution.canDelegate && activeProvider !== type /* Allow switching back to active type */) {
 			return false;
 		}
 
 		return this._getSelectedSessionType() !== type; // Always allow switching back to active session
-	}
-
-	private _hasGitRepository(): boolean {
-		if (this.delegate.hasGitRepository) {
-			return this.delegate.hasGitRepository();
-		}
-		return !Iterable.isEmpty(this.gitService.repositories);
 	}
 
 	protected override _isVisible(type: AgentSessionTarget): boolean {

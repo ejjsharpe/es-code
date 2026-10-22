@@ -43,7 +43,6 @@ import { IMcpService } from '../../../mcp/common/mcpTypes.js';
 import { awaitStatsForSession } from '../chat.js';
 import { IChatOpenDiagnosticsService } from '../chatOpenDiagnosticsService.js';
 import { ChatPerfMark, clearChatMarks, markChat } from '../chatPerf.js';
-import { CloudSandboxSessionTrace } from '../cloudSandboxSessionTrace.js';
 import { IChatAgentAttachmentCapabilities, IChatAgentCommand, IChatAgentData, IChatAgentHistoryEntry, IChatAgentRequest, IChatAgentResult, IChatAgentService } from '../participants/chatAgents.js';
 import { ChatModel, ChatRequestModel, ChatRequestRemovalReason, IChatModel, IChatModelInputState, IChatPendingRequest, IChatRequestModel, IChatRequestVariableData, IChatResponseModel, IExportableChatData, ISerializableChatData, ISerializableChatDataIn, ISerializableChatsData, ISerializedChatDataReference, normalizeSerializableChatData, toChatHistoryContent, updateRanges, ISerializableChatModelInputState, logChangesToStateModel } from '../model/chatModel.js';
 import { ChatModelStore, IStartSessionProps } from '../model/chatModelStore.js';
@@ -949,7 +948,6 @@ export class ChatService extends Disposable implements IChatService {
 	}
 
 	private async loadRemoteSession(sessionResource: URI, location: ChatAgentLocation, token: CancellationToken, debugOwner?: string, sessionTypeSelectionReason?: SessionTypeSelectionReason): Promise<IChatModelReference | undefined> {
-		const loadWatch = StopWatch.create(false);
 		this.trace('loadRemoteSession', `start ${sessionResource.toString()}`);
 		this.chatOpenDiagnosticsService.mark(sessionResource, 'contentRequested');
 		// Check if session already exists before resolving the provider,
@@ -958,7 +956,6 @@ export class ChatService extends Disposable implements IChatService {
 			const existingRef = this.acquireExistingSession(sessionResource, debugOwner);
 			if (existingRef) {
 				this.trace('loadRemoteSession', `reused existing model for ${sessionResource.toString()}`);
-				CloudSandboxSessionTrace.get(existingRef.object)?.record('modelReused');
 				return existingRef;
 			}
 		}
@@ -968,9 +965,7 @@ export class ChatService extends Disposable implements IChatService {
 		}
 
 		const providedSession = await this.chatSessionService.getOrCreateChatSession(sessionResource, token);
-		const modelStartedAt = loadWatch.elapsed();
 		this.chatOpenDiagnosticsService.mark(sessionResource, 'contentReceived');
-		const loadTrace = CloudSandboxSessionTrace.get(providedSession);
 		this.trace('loadRemoteSession', `session content resolved for ${sessionResource.toString()} with ${providedSession.history.length} history item(s)`);
 
 		// Make sure we haven't created this in the meantime
@@ -989,7 +984,6 @@ export class ChatService extends Disposable implements IChatService {
 			session: providedSession,
 			chatSessionType,
 			token,
-			trace: loadTrace,
 			parsePrompt,
 			publishModel: restoredModel => {
 				this.chatOpenDiagnosticsService.mark(sessionResource, 'replayDone');
@@ -1001,14 +995,9 @@ export class ChatService extends Disposable implements IChatService {
 		const restored = await restorer.restore();
 
 		try {
-			loadTrace?.associate(model);
 			this.finishRemoteSessionInputState(model, providedSession, inputRestore);
 			this.trace('loadRemoteSession', `history applied to model for ${sessionResource.toString()}: ${model.getRequests().length} request(s)`);
 			this.trackRemoteSession(model, providedSession, restorer, restored, parsePrompt);
-			if (loadTrace) {
-				const modelReadyAt = loadWatch.elapsed();
-				loadTrace.record('modelReady', { loadRemoteSessionMs: modelReadyAt, modelBuildMs: modelReadyAt - modelStartedAt, historyReplayYieldCount: restorer.yieldCount });
-			}
 			return restored.reference;
 		} catch (error) {
 			const activeRequest = model.lastRequest;

@@ -13,7 +13,7 @@ import { Disposable, DisposableMap, DisposableStore, IDisposable, toDisposable }
 export const enum ChatInputNoticeLane {
 	/** Quota, promo, permission and extension-provided notifications. */
 	Notification = 0,
-	/** Voice and dictation introductions. */
+	/** Reserved for onboarding cards. */
 	Onboarding = 1,
 	/** Getting-started tips. Always yields to anything else. */
 	Tip = 2,

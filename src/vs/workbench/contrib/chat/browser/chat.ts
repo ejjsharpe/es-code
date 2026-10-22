@@ -214,7 +214,7 @@ export interface IChatAccessibilityService {
 	readonly _serviceBrand: undefined;
 	acceptRequest(uri: URI, skipRequestSignal?: boolean, model?: IChatModel): void;
 	disposeRequest(requestId: URI): void;
-	acceptResponse(response: IChatResponseViewModel | string | undefined, requestId: URI | undefined, isVoiceInput?: boolean): void;
+	acceptResponse(response: IChatResponseViewModel | string | undefined, requestId: URI | undefined): void;
 	acceptElicitation(message: IChatElicitationRequest): void;
 }
 
@@ -311,7 +311,7 @@ export interface IChatWidgetViewOptions {
 	rendererOptions?: IChatListItemRendererOptions;
 	menus?: {
 		/**
-		 * The menu that is inside the input editor, use for send, dictation
+		 * The menu that is inside the input editor, use for send
 		 */
 		executeToolbar?: MenuId;
 		/**
@@ -378,11 +378,6 @@ export interface IChatWidgetViewOptions {
 	/** Whether deferred notifications, such as promotions, may show in the input. Defaults to the input's own rule. */
 	deferredNotificationsEnabled?: IObservable<boolean>;
 	/**
-	 * Whether this input owns a Voice Mode session that targets a draft the host
-	 * has not created yet. Without it, such a session belongs to no chat input.
-	 */
-	ownsDraftVoiceSession?: IObservable<boolean>;
-	/**
 	 * Submitting that a host sending through {@link submitHandler} takes part in;
 	 * see {@link IChatInputHostSubmit}. The host, not the widget's chat model,
 	 * then decides whether the input is blocked. Requests the widget sends itself
@@ -434,7 +429,6 @@ export type IChatWidgetViewContext = IChatViewViewContext | IChatResourceViewCon
 
 export interface IChatAcceptInputOptions {
 	noCommandDetection?: boolean;
-	isVoiceInput?: boolean;
 	isVoiceModeInput?: boolean;
 	enableImplicitContext?: boolean; // defaults to true
 	// Whether to store the input to history. This defaults to 'true' if the input

@@ -36,7 +36,6 @@ import { ServiceCollection } from '../../../../../../platform/instantiation/comm
 import { TestInstantiationService } from '../../../../../../platform/instantiation/test/common/instantiationServiceMock.js';
 import { MockContextKeyService } from '../../../../../../platform/keybinding/test/common/mockKeybindingService.js';
 import { ILogService, NullLogService } from '../../../../../../platform/log/common/log.js';
-import { CloudSandboxSessionTrace } from '../../../common/cloudSandboxSessionTrace.js';
 import { IStorageService, StorageScope, WillSaveStateReason } from '../../../../../../platform/storage/common/storage.js';
 import { ITelemetryService } from '../../../../../../platform/telemetry/common/telemetry.js';
 import { NullTelemetryService, NullTelemetryServiceShape } from '../../../../../../platform/telemetry/common/telemetryUtils.js';
@@ -5006,61 +5005,6 @@ suite('ChatService', () => {
 			}, {
 				requests: [['keep', 'live', 'Retained'], ['change', 'live', 'New'], ['new', 'live', 'Added']],
 				sameRetained: true, changedReplaced: true, viewsRetained: true, draft: 'Unsent draft',
-			});
-		});
-
-		test('promotes recorded history to a live turn without replacing the model, input, or unchanged requests', async () => {
-			const traceMessages: string[] = [];
-			const loadTrace = testDisposables.add(new CloudSandboxSessionTrace(new class extends NullLogService {
-				override info(message: string): void { traceMessages.push(message); }
-			}()));
-			const historyChanges = testDisposables.add(new Emitter<readonly IChatSessionHistoryItem[]>());
-			const serverRequests = testDisposables.add(new Emitter<IChatSessionServerRequest>());
-			const progressObs = observableValue<IChatProgress[]>('progress', []);
-			const isCompleteObs = observableValue('complete', true);
-			const isReadOnly = observableValue('readOnly', true);
-			const first: IChatSessionHistoryItem[] = [
-				{ id: 'first', type: 'request', prompt: 'First', participant: remoteScheme },
-				{ type: 'response', parts: [{ kind: 'markdownContent', content: new MarkdownString('Finished') }], participant: remoteScheme },
-			];
-			const active: IChatSessionHistoryItem = { id: 'active', type: 'request', prompt: 'Continue', participant: remoteScheme };
-			const { resource, provided, resolutionCount } = setupRemoteProvider({
-				history: [...first, active, { type: 'response', parts: [{ kind: 'markdownContent', content: new MarkdownString('Recorded prefix') }], participant: remoteScheme }],
-				onDidChangeHistory: historyChanges.event, onDidStartServerRequest: serverRequests.event,
-				progressObs, isCompleteObs, isReadOnly, interruptActiveResponseCallback: async () => true,
-				preserveHistoryItemIdentity: true,
-			});
-			loadTrace.associate(provided);
-			const service = createChatServiceWithFrozenHistoryClock();
-			instantiationService.stub(IChatService, service);
-			const ref = testDisposables.add((await service.acquireOrLoadSession(resource, ChatAgentLocation.Chat, CancellationToken.None))!);
-			const model = ref.object;
-			const input = model.inputModel;
-			const firstRequest = model.getRequests()[0];
-			input.setState({ inputText: 'Unsent draft' });
-
-			transaction(tx => {
-				const liveFirst = first.map(item => item.type === 'request' ? { ...item, modelId: 'live-model' } : { ...item, details: 'Live model' });
-				historyChanges.fire([...liveFirst, active, { type: 'response', parts: [], participant: remoteScheme }]);
-				serverRequests.fire({ id: 'active', prompt: 'Continue', resume: true });
-				progressObs.set([{ kind: 'markdownContent', content: new MarkdownString('Recorded prefix and live continuation') }], tx);
-				isCompleteObs.set(false, tx);
-				isReadOnly.set(false, tx);
-			});
-			isCompleteObs.set(true, undefined);
-			const reopened = testDisposables.add((await service.acquireOrLoadSession(resource, ChatAgentLocation.Chat, CancellationToken.None))!);
-			assert.deepStrictEqual({
-				sameModel: reopened.object === model, sameInput: model.inputModel === input,
-				sameTrace: CloudSandboxSessionTrace.get(model) === loadTrace,
-				modelReadyEvents: traceMessages.filter(message => message.includes('event=modelReady')).length,
-				sameFirstRequest: model.getRequests()[0] === firstRequest, resolutions: resolutionCount(),
-				draft: input.state.get()?.inputText, readOnly: model.isReadOnly.get(),
-				requests: model.getRequests().map(request => [request.id, request.response?.response.toString()]),
-			}, {
-				sameModel: true, sameInput: true, sameFirstRequest: true, resolutions: 1,
-				sameTrace: true, modelReadyEvents: 1,
-				draft: 'Unsent draft', readOnly: false,
-				requests: [['first', 'Finished'], ['active', 'Recorded prefix and live continuation']],
 			});
 		});
 

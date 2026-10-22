@@ -26,10 +26,7 @@ import { IDecorationsService } from '../../../../services/decorations/common/dec
 import { ITextFileService } from '../../../../services/textfile/common/textfiles.js';
 import { IWorkbenchAssignmentService } from '../../../../services/assignment/common/assignmentService.js';
 import { ChatEntitlement, IChatEntitlementService } from '../../../../services/chat/common/chatEntitlementService.js';
-import { IVoiceModeOnboardingService } from '../../../../contrib/agentsVoice/browser/voiceModeOnboarding.js';
 import { IChatInputNotificationService } from '../../../../contrib/chat/browser/widget/input/chatInputNotificationService.js';
-import { IDictationOnboardingService } from '../../../../contrib/chat/browser/speechToText/dictationOnboarding.js';
-import { ChatSpeechToTextState, IChatSpeechToTextService } from '../../../../contrib/chat/browser/speechToText/chatSpeechToTextService.js';
 import { IChatInputNoticeHubService } from '../../../../contrib/chat/browser/widget/input/chatInputNoticeHub.js';
 import { IPathService } from '../../../../services/path/common/pathService.js';
 import { IChatWidgetService, IChatAccessibilityService } from '../../../../contrib/chat/browser/chat.js';
@@ -212,12 +209,6 @@ function renderInlineChatZoneWidget({ container, disposableStore, theme, focus }
 				override acceptRequest() { }
 				override acceptResponse() { }
 			}());
-			reg.defineInstance(IChatSpeechToTextService, new class extends mock<IChatSpeechToTextService>() {
-				override readonly onDidChangeState = Event.None;
-				override readonly onDidChangePreparingModel = Event.None;
-				override readonly state = ChatSpeechToTextState.Idle;
-				override readonly isPreparingModel = false;
-			}());
 			reg.defineInstance(IChatSlashCommandService, new class extends mock<IChatSlashCommandService>() {
 				override readonly onDidChangeCommands = Event.None;
 				override getCommands() { return []; }
@@ -360,14 +351,6 @@ function renderInlineChatZoneWidget({ container, disposableStore, theme, focus }
 				override readonly onDidChange = Event.None;
 				override getActiveNotification() { return undefined; }
 				override announceRendered() { }
-			}());
-			reg.defineInstance(IDictationOnboardingService, new class extends mock<IDictationOnboardingService>() {
-				override readonly isVisible = false;
-				override registerHost() { return Disposable.None; }
-			}());
-			reg.defineInstance(IVoiceModeOnboardingService, new class extends mock<IVoiceModeOnboardingService>() {
-				override readonly isVisible = false;
-				override registerHost() { return Disposable.None; }
 			}());
 			reg.defineInstance(IChatInputNoticeHubService, new class extends mock<IChatInputNoticeHubService>() {
 				override registerHost() { return Disposable.None; }

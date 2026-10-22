@@ -74,7 +74,7 @@ Mission Control uses a separate cooldown identity keyed by the service host and 
 
 All domains share existing admission: twelve active requests overall and per host, ten per service-host/account pair, and eight per caller; retained limits are 256 overall and 64 per account and caller, including cooldown waiters. The caller label is `github.missionControl`. Coalesced reads have at most 64 waiters, and the domains do not add client-acquisition slots. These are runtime-local bounds, not a claim about deployed server quotas. Credential resolution and transport execution retain separate five-minute budgets; responses remain bounded to 16 MiB.
 
-Cloud Automations uses these portable clients over IPC on desktop and through the same local providers on web. Its repository eligibility reads use `client.repositories`; the store no longer accesses transport, credential objects, or account handles. The older cloud sandbox API service is deliberately not migrated.
+Cloud Automations uses these portable clients over IPC on desktop and through the same local providers on web. Its repository eligibility reads use `client.repositories`; the store no longer accesses transport, credential objects, or account handles.
 
 ### Copilot Connectors
 
@@ -115,8 +115,6 @@ Private caches and request sharing remain token/base-specific. Host-supplied acc
 ### Repository discovery
 
 Repository discovery uses the portable [repositories](common/core/repositories.ts) and [search](common/core/search.ts) domains. The authenticated repository listing returns repository objects; search returns `items`, `total_count` and `incomplete_results`. Query parameters, pagination limits, caller attribution and deadlines use the shared request options. Selection, search qualifiers and operation budgets remain caller-owned.
-
-The [Cloud Sandbox repository picker](../../workbench/contrib/chat/browser/remoteAgentHost/cloudSandboxRepositoryPicker.ts) uses `IWorkbenchGitHubService.acquireDefaultAccountApiClient`: shared-process IPC on desktop and local providers on web, with the same silent selected-account repository grant and host binding. Recent repositories and qualified search use the typed repositories/search domains; the user and organizations domains resolve the search scope once per pick. Listings, searches and organization discovery each request only their first page, capped at 100 items. Scope failures never fall back to an unrestricted search, superseded results cannot replace current results, and closing the picker cancels requests and disposes its client. Its now-unused legacy `listRepositories` and `searchRepositories` entry points, options, page types and pagination helpers are removed; cloud sandbox task/environment operations are unchanged.
 
 ### Browser plugin repository materialization
 
@@ -361,7 +359,7 @@ Mission Control requests use connection/lease-scoped request IDs and an acknowle
 
 `IWorkbenchGitHubService.acquireDefaultAccountApiClient` selects the repository grant in the renderer and pins its account provenance before asynchronous acquisition. Desktop workbenches acquire it through `ISharedProcessGitHubService`; web workbenches use equivalent local providers. The client itself is disposable and exposes credential-change and grant-invalidation notifications without exposing tokens. Late acquisitions are disposed after cancellation or selection changes.
 
-Cloud Automations retains its feature/account gates, private-repository preflight, bounded discovery/history, account-scoped persistence, mutation serialization, and uncertainty handling. Tests exercise its real repository-discovery path over serialized IPC as well as every Mission Control operation family. The legacy cloud sandbox service and other callers are outside this migration.
+Cloud Automations retains its feature/account gates, private-repository preflight, bounded discovery/history, account-scoped persistence, mutation serialization, and uncertainty handling. Tests exercise its real repository-discovery path over serialized IPC as well as every Mission Control operation family.
 
 ### Public repository files
 

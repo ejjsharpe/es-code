@@ -11,7 +11,6 @@ import { Disposable, DisposableStore } from '../../../../../base/common/lifecycl
 import { localize } from '../../../../../nls.js';
 import { ThemeIcon } from '../../../../../base/common/themables.js';
 import { Codicon } from '../../../../../base/common/codicons.js';
-import type { ICommandService } from '../../../../../platform/commands/common/commands.js';
 import { AICustomizationManagementSection } from './aiCustomizationManagement.js';
 import { agentIcon, instructionsIcon, pluginIcon, skillIcon, hookIcon, toolsIcon } from './aiCustomizationIcons.js';
 import { IAICustomizationWorkspaceService, IWelcomePageFeatures } from '../../common/aiCustomizationWorkspaceService.js';
@@ -19,7 +18,6 @@ import { PromptsType } from '../../common/promptSyntax/promptTypes.js';
 import type { IAICustomizationWelcomePageImplementation, ICustomizationMigrationCategorySummary, IWelcomePageCallbacks } from './aiCustomizationWelcomePage.js';
 import { IHoverService } from '../../../../../platform/hover/browser/hover.js';
 import { getDefaultHoverDelegate } from '../../../../../base/browser/ui/hover/hoverDelegateFactory.js';
-import { CONFIGURE_DICTATION_INSTRUCTIONS_ACTION_ID, CONFIGURE_VOICE_INSTRUCTIONS_ACTION_ID } from '../actions/configureVoiceInstructionsAction.js';
 
 const $ = DOM.$;
 
@@ -29,13 +27,6 @@ interface IPromptLaunchersCategoryDescription {
 	readonly icon: ThemeIcon;
 	readonly description: string;
 	readonly promptType?: PromptsType;
-}
-
-interface IStandaloneCustomizationDescription {
-	readonly label: string;
-	readonly icon: ThemeIcon;
-	readonly description: string;
-	readonly commandId: string;
 }
 
 export class PromptLaunchersAICustomizationWelcomePage extends Disposable implements IAICustomizationWelcomePageImplementation {
@@ -110,26 +101,11 @@ export class PromptLaunchersAICustomizationWelcomePage extends Disposable implem
 		},
 	];
 
-	private readonly standaloneCustomizations: IStandaloneCustomizationDescription[] = [
-		{
-			label: localize('voiceModeInstructions', "Voice Mode Instructions"),
-			icon: Codicon.voiceMode,
-			description: localize('voiceModeInstructionsDesc', "Customize Voice Mode behavior and terminology with voice.md."),
-			commandId: CONFIGURE_VOICE_INSTRUCTIONS_ACTION_ID,
-		},
-		{
-			label: localize('dictationInstructions', "Dictation Instructions"),
-			icon: Codicon.mic,
-			description: localize('dictationInstructionsDesc', "Customize Dictation terminology and transcript formatting with dictation.md."),
-			commandId: CONFIGURE_DICTATION_INSTRUCTIONS_ACTION_ID,
-		},
-	];
 
 	constructor(
 		parent: HTMLElement,
 		private readonly welcomePageFeatures: IWelcomePageFeatures | undefined,
 		private readonly callbacks: IWelcomePageCallbacks,
-		private readonly commandService: ICommandService,
 		private readonly workspaceService: IAICustomizationWorkspaceService,
 		private readonly hoverService: IHoverService,
 		private harnessLabel: string,
@@ -307,16 +283,6 @@ export class PromptLaunchersAICustomizationWelcomePage extends Disposable implem
 			}));
 		}
 
-		if (!this.workspaceService.isSessionsWindow) {
-			const otherGrid = this.renderOverviewSection(
-				localize('overviewOtherCustomizations', "Other Customizations"),
-				localize('overviewOtherCustomizationsDescription', "Configure specialized voice and dictation behavior."),
-				'welcome-prompts-other-section',
-			);
-			for (const customization of this.standaloneCustomizations) {
-				this.renderStandaloneCustomization(otherGrid, customization);
-			}
-		}
 
 		// Content changed — recompute scroll dimensions.
 		this.scrollable.scanDomNode();
@@ -330,29 +296,6 @@ export class PromptLaunchersAICustomizationWelcomePage extends Disposable implem
 		const descriptionElement = DOM.append(section, $('p.welcome-prompts-overview-section-description'));
 		descriptionElement.textContent = description;
 		return DOM.append(section, $('.welcome-prompts-overview-grid'));
-	}
-
-	private renderStandaloneCustomization(parent: HTMLElement, customization: IStandaloneCustomizationDescription): void {
-		const card = DOM.append(parent, $('button.welcome-prompts-card.welcome-prompts-navigation-card')) as HTMLButtonElement;
-		card.type = 'button';
-		card.setAttribute('aria-label', localize('configureCategoryAriaLabel', "Configure {0}", customization.label));
-		if (!this.firstCard) {
-			this.firstCard = card;
-		}
-
-		const cardHeader = DOM.append(card, $('.welcome-prompts-card-header'));
-		const iconEl = DOM.append(cardHeader, $('.welcome-prompts-card-icon'));
-		iconEl.classList.add(...ThemeIcon.asClassNameArray(customization.icon));
-		const labelEl = DOM.append(cardHeader, $('span.welcome-prompts-card-label'));
-		labelEl.textContent = customization.label;
-
-		const descEl = DOM.append(card, $('p.welcome-prompts-card-description'));
-		descEl.textContent = customization.description;
-
-		const configure = () => {
-			void this.commandService.executeCommand(customization.commandId);
-		};
-		this.cardDisposables.add(DOM.addDisposableListener(card, 'click', configure));
 	}
 
 	setMigrationCategories(categories: readonly ICustomizationMigrationCategorySummary[]): void {

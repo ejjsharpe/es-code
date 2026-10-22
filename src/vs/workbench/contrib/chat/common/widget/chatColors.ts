@@ -5,7 +5,7 @@
 
 import { Color, RGBA } from '../../../../../base/common/color.js';
 import { localize } from '../../../../../nls.js';
-import { activeContrastBorder, badgeBackground, badgeForeground, chartsGreen, chartsYellow, contrastBorder, editorBackground, editorSelectionBackground, editorWidgetBackground, errorForeground, focusBorder, foreground, registerColor, transparent } from '../../../../../platform/theme/common/colorRegistry.js';
+import { activeContrastBorder, badgeBackground, badgeForeground, chartsGreen, chartsYellow, contrastBorder, editorBackground, editorSelectionBackground, editorWidgetBackground, errorForeground, foreground, registerColor, transparent } from '../../../../../platform/theme/common/colorRegistry.js';
 import { editorFindMatchHighlight } from '../../../../../platform/theme/common/colors/editorColors.js';
 import { buttonBackground } from '../../../../../platform/theme/common/colors/inputColors.js';
 import { darken, lighten } from '../../../../../platform/theme/common/colorUtils.js';
@@ -153,31 +153,3 @@ export const chatInputWorkingBorderColor3 = registerColor(
 	{ dark: lighten(buttonBackground, 0.5), light: lighten(buttonBackground, 0.3), hcDark: '#000000', hcLight: '#000000' },
 	localize('chat.inputWorkingBorderColor3', 'Unused tertiary chat input accent color.'), false,
 	localize('chat.inputWorkingBorderColor3.deprecated', "This color is no longer used. Use 'chat.inputWorkingBorderColor1' to customize the animated chat input border."));
-
-// --- Voice Mode ambient glow -------------------------------------------------
-// The listening / processing / speaking glows are derived from a single base
-// accent by hue-shifting (see `resolveVoiceGlowColors` in `voiceGlow.ts`), so the
-// glow harmonizes with whatever accent the active theme uses. Themes can pin any
-// individual state by setting its own token.
-
-export const chatVoiceGlowBaseColor = registerColor(
-	'chat.voiceGlowBaseColor',
-	focusBorder,
-	localize('chat.voiceGlowBaseColor', 'Base accent the Voice Mode ambient glow is derived from. The listening and speaking glows are hue-shifted from this color.'), true);
-
-export const chatVoiceListeningGlow = registerColor(
-	'chat.voiceListeningGlow',
-	{ dark: null, light: null, hcDark: null, hcLight: null },
-	localize('chat.voiceListeningGlow', 'Accent color of the Voice Mode glow while listening. Derived from {0} when unset.', 'chat.voiceGlowBaseColor'), true);
-
-export const chatVoiceSpeakingGlow = registerColor(
-	'chat.voiceSpeakingGlow',
-	{ dark: null, light: null, hcDark: null, hcLight: null },
-	localize('chat.voiceSpeakingGlow', 'Accent color of the Voice Mode glow while the agent is speaking. Derived from {0} when unset.', 'chat.voiceGlowBaseColor'), true);
-
-// Dictation shares Voice Mode's listening accent, so an open microphone reads the
-// same whichever feature opened it.
-export const chatDictationActiveMicGlow = registerColor(
-	'chat.dictationActiveMicGlow',
-	chatVoiceGlowBaseColor,
-	localize('chat.dictationActiveMicGlow', 'Accent color of the glow shown on the microphone while dictation is listening.'));

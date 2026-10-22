@@ -88,8 +88,7 @@ class InputEditorDecorations extends Disposable {
 		this.triggerInputEditorDecorationsUpdate();
 		this._register(this.widget.inputEditor.onDidChangeModelContent(() => this.triggerInputEditorDecorationsUpdate()));
 		this._register(this.widget.inputEditor.onDidChangeConfiguration(e => {
-			// The editor's placeholder option is set/cleared by features such as
-			// dictation ("Listening…"). When it is set, PlaceholderTextContribution
+			// The editor's placeholder option can be set by other features. When it is set, PlaceholderTextContribution
 			// renders it, so the decoration placeholder must yield to avoid two
 			// overlapping placeholders; re-run when the option changes.
 			if (e.hasChanged(EditorOption.placeholder)) {
@@ -219,8 +218,8 @@ class InputEditorDecorations extends Disposable {
 		}
 
 		if (!inputValue) {
-			// If the editor's placeholder option is set (e.g. dictation shows
-			// "Listening…"), PlaceholderTextContribution renders it already; skip
+			// If the editor's placeholder option is set, PlaceholderTextContribution
+			// renders it already; skip
 			// the decoration placeholder so the two don't render on top of each
 			// other.
 			if (this.widget.inputEditor.getOption(EditorOption.placeholder)) {

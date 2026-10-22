@@ -29,10 +29,6 @@ import { buildDefaultChatUri } from '../../../../../../platform/agentHost/common
 import { IAgentHostConnectionsService } from '../../../../../../platform/agentHost/common/agentHostConnectionsService.js';
 import { IAgentHostSavedChat } from '../../../../../../platform/agentHost/common/agentHostSavedChat.js';
 import { IsSessionsWindowContext } from '../../../../../common/contextkeys.js';
-import { ICloudSandboxApiService } from '../../../../../../platform/agentHost/common/cloudSandboxAgentHost.js';
-import { IChatService } from '../../../common/chatService/chatService.js';
-import { CloudSandboxSessionHandler } from '../../../browser/remoteAgentHost/cloudSandboxSessionHandler.js';
-import { ReadOnlyChatSession } from '../../../browser/remoteAgentHost/cloudSandboxReadOnlySessionHandler.js';
 import { IWorkbenchEnvironmentService } from '../../../../../services/environment/common/environmentService.js';
 import { PolicyUnavailableAgentHostContentProvider } from '../../../browser/agentSessions/agentHost/agentHostPolicyUnavailableSession.js';
 import '../../../browser/agentSessions/agentHost/agentHostChatContribution.js';
@@ -202,6 +198,20 @@ suite('ChatSessionsService - async activation', () => {
 		});
 		return store.add(toDisposable(() => provider.dispose()));
 	}
+
+	test('legacy cloud session references remain unresolved without affecting a local provider', async () => {
+		const localProvider = registerProvider('retained-local-session');
+		assert.deepStrictEqual({
+			cloud: await service.canResolveChatSession(SessionType.CopilotCloud),
+			sandbox: await service.canResolveChatSession(SessionType.CloudSandbox),
+			local: await service.canResolveChatSession('retained-local-session'),
+		}, { cloud: false, sandbox: false, local: true });
+		await assert.rejects(
+			service.getOrCreateChatSession(URI.from({ scheme: SessionType.CopilotCloud, path: '/old-session' }), CancellationToken.None),
+			/Cannot find provider/,
+		);
+		localProvider.dispose();
+	});
 
 	test('does not wait after an opted-in activation lifetime ends before activation resolves', async () => {
 		const lifetime = store.add(new CancellationTokenSource());
@@ -1788,59 +1798,6 @@ suite('ChatSessionsService - lightweight history reads', () => {
 			first: history,
 			second: history,
 			counters: { provided: 2, disposed: 2 },
-		});
-	});
-
-	test('a concurrent sandbox history preview cannot dispose the conversation being retained for an editor', async () => {
-		const type = 'history-sandbox';
-		const resource = URI.from({ scheme: type, path: '/session-1' });
-		const historyReady = new DeferredPromise<void>();
-		const bothReaders = new DeferredPromise<void>();
-		let historyReads = 0;
-		let provided = 0;
-		instantiationService.stub(IChatService, new class extends mock<IChatService>() {
-			override readonly onDidSubmitRequest = Event.None;
-			override setSessionTitle(): void { }
-		}());
-		instantiationService.stub(ICloudSandboxApiService, new class extends mock<ICloudSandboxApiService>() {
-			override async getSessionHistory() { historyReads++; await historyReady.p; return undefined; }
-			override invalidateSessionHistory(): void { }
-		}());
-		const handler = store.add(instantiationService.createInstance(CloudSandboxSessionHandler, {
-			taskId: 'task', agentId: 'test', connectionAuthority: 'test',
-		}));
-		store.add(service.registerChatSessionContribution({ type, name: type, displayName: type, description: '' }));
-		store.add(service.registerChatSessionContentProvider(type, {
-			provideChatSessionContent: (resource, token) => {
-				if (++provided === 2) {
-					void bothReaders.complete();
-				}
-				return handler.provideChatSessionContent(resource, token);
-			},
-		}));
-		const preview = service.getChatSessionHistory(resource, CancellationToken.None);
-		const opening = service.getOrCreateChatSession(resource, CancellationToken.None);
-		await bothReaders.p;
-		await historyReady.complete();
-		const [history, session] = await Promise.all([preview, opening]);
-		let disposed = false;
-		store.add(session.onWillDispose(() => disposed = true));
-		const live = store.add(new ReadOnlyChatSession(resource, [
-			{ type: 'request', id: 'live', prompt: 'Live history', participant: 'test' },
-		], 'Live title', constObservable(false)));
-		let liveDisposed = false;
-		store.add(live.onWillDispose(() => liveDisposed = true));
-		handler.setLiveProvider({ provideChatSessionContent: async () => live });
-		await timeout(0);
-		const promoted = {
-			history: session.history, readOnly: session.isReadOnly?.get(), disposed, liveDisposed,
-			retained: session === await service.getOrCreateChatSession(resource, CancellationToken.None),
-		};
-		session.dispose();
-		assert.deepStrictEqual({ history, historyReads, provided, promoted, disposed, liveDisposed }, {
-			history: [], historyReads: 1, provided: 2,
-			promoted: { history: live.history, readOnly: false, disposed: false, liveDisposed: false, retained: true },
-			disposed: true, liveDisposed: true,
 		});
 	});
 

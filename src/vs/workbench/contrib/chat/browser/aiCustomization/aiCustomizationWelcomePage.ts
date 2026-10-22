@@ -5,7 +5,6 @@
 
 import * as DOM from '../../../../../base/browser/dom.js';
 import { Disposable, IDisposable, MutableDisposable } from '../../../../../base/common/lifecycle.js';
-import { ICommandService } from '../../../../../platform/commands/common/commands.js';
 import { IConfigurationChangeEvent, IConfigurationService } from '../../../../../platform/configuration/common/configuration.js';
 import { ICustomizationMarketplaceResource, ICustomizationMarketplaceService } from '../../../../../platform/customizationMarketplace/common/customizationMarketplaceService.js';
 import { IHoverService } from '../../../../../platform/hover/browser/hover.js';
@@ -106,7 +105,6 @@ export class AICustomizationWelcomePage extends Disposable {
 		@IInstantiationService private readonly instantiationService: IInstantiationService,
 		@IConfigurationService private readonly configurationService: IConfigurationService,
 		@ICustomizationMarketplaceService private readonly marketplaceService: ICustomizationMarketplaceService,
-		@ICommandService private readonly commandService: ICommandService,
 		@IAICustomizationWorkspaceService private readonly workspaceService: IAICustomizationWorkspaceService,
 		@IHoverService private readonly hoverService: IHoverService,
 	) {
@@ -157,7 +155,7 @@ export class AICustomizationWelcomePage extends Disposable {
 	private createImplementation(): void {
 		this.implementation.value = this.discoverEnabled
 			? this.instantiationService.createInstance(AICustomizationDiscoveryPage, this.container, this.welcomePageFeatures, this.callbacks, this.harnessLabel)
-			: new PromptLaunchersAICustomizationWelcomePage(this.container, this.welcomePageFeatures, this.callbacks, this.commandService, this.workspaceService, this.hoverService, this.harnessLabel);
+			: new PromptLaunchersAICustomizationWelcomePage(this.container, this.welcomePageFeatures, this.callbacks, this.workspaceService, this.hoverService, this.harnessLabel);
 		this.implementation.value.rebuildCards(this.visibleSectionIds);
 		this.implementation.value.setMigrationCategories?.(this.migrationCategories);
 		this.implementation.value.setVisible?.(this.visible);

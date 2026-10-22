@@ -494,7 +494,7 @@ suite('RemoteAgentHostService', () => {
 		assert.deepStrictEqual(createdClientInfos, [agentsWindowAgentHostClientInfo]);
 	});
 
-	test('editor window ignores configured WebSocket hosts but connects staged sandboxes on demand', async () => {
+	test('editor window ignores configured WebSocket hosts but connects staged containers on demand', async () => {
 		service.dispose();
 		configService.setEntries([{ name: 'Initial host', connection: { type: RemoteAgentHostEntryType.WebSocket, address: 'ws://initial:8080' } }]);
 		service = disposables.add(instantiationService.createInstance(EditorWindowRemoteAgentHostService));
@@ -502,13 +502,13 @@ suite('RemoteAgentHostService', () => {
 		configService.setEntries([{ name: 'Updated host', connection: { type: RemoteAgentHostEntryType.WebSocket, address: 'ws://updated:8080' } }]);
 		const updatedEntries = service.configuredEntries;
 
-		const factory = disposables.add(new TestConnectionFactory(RemoteAgentHostEntryType.CloudSandbox));
+		const factory = disposables.add(new TestConnectionFactory(RemoteAgentHostEntryType.DevContainer));
 		disposables.add(service.registerConnectionFactory(factory));
-		const address = 'cloudsandbox:editor-environment';
+		const address = 'devcontainer:editor-environment';
 		const client = disposables.add(new MockProtocolClient(address));
 		factory.stage({
-			name: 'Sandbox',
-			connection: { type: RemoteAgentHostEntryType.CloudSandbox, address, environmentId: 'editor-environment' },
+			name: 'Container',
+			connection: { type: RemoteAgentHostEntryType.DevContainer, address, hostPath: '/workspace' },
 		}, client);
 		const connectionsBeforeOpen = factory.createdConnectionCount;
 		service.reconnect(address, true);
@@ -890,16 +890,16 @@ suite('RemoteAgentHostService', () => {
 			};
 		}
 
-		function createFactory(kind = RemoteAgentHostEntryType.CloudSandbox): TestConnectionFactory {
+		function createFactory(kind = RemoteAgentHostEntryType.DevContainer): TestConnectionFactory {
 			const factory = disposables.add(new TestConnectionFactory(kind));
 			disposables.add(service.registerConnectionFactory(factory));
 			return factory;
 		}
 
-		function cloudSandboxEntry(name: string, address: string): IRemoteAgentHostEntry {
+		function runtimeEntry(name: string, address: string): IRemoteAgentHostEntry {
 			return {
 				name,
-				connection: { type: RemoteAgentHostEntryType.CloudSandbox, address, environmentId: 'env_test' },
+				connection: { type: RemoteAgentHostEntryType.DevContainer, address, hostPath: '/workspace' },
 			};
 		}
 
@@ -924,8 +924,8 @@ suite('RemoteAgentHostService', () => {
 		for (const removal of ['removed', 'unregistered', 'disabled'] as const) {
 			for (const outcome of ['success', 'failure'] as const) {
 				test(`abandons a ${removal} factory attempt before its late ${outcome}`, async () => {
-					const address = 'cloudsandbox:replaced';
-					const entry = cloudSandboxEntry('Sandbox', address);
+					const address = 'devcontainer:replaced';
+					const entry = runtimeEntry('Container', address);
 					const first = disposables.add(new MockProtocolClient(address));
 					const second = disposables.add(new MockProtocolClient(address));
 					const released = new DeferredPromise<void>();
@@ -945,7 +945,7 @@ suite('RemoteAgentHostService', () => {
 							}
 							return created;
 						}
-					}(RemoteAgentHostEntryType.CloudSandbox));
+					}(RemoteAgentHostEntryType.DevContainer));
 					const registration = disposables.add(service.registerConnectionFactory(factory));
 					factory.stage(entry, first, transport.disposable);
 					service.reconnect(address);
@@ -993,7 +993,7 @@ suite('RemoteAgentHostService', () => {
 
 		test('observes one initial retry and a complete inner-to-outer recovery without a terminal handoff', () => runWithFakedTimers({}, async () => {
 			const factory = createFactory();
-			const entry = cloudSandboxEntry('Sandbox', 'cloudsandbox:observed');
+			const entry = runtimeEntry('Container', 'devcontainer:observed');
 			const first = disposables.add(new MockProtocolClient(getEntryAddress(entry)));
 			factory.stage(entry, first);
 			service.reconnect(getEntryAddress(entry));
@@ -1029,15 +1029,15 @@ suite('RemoteAgentHostService', () => {
 				{ state: 'reconnecting', time: 200 },
 				{ state: 'connected', time: 300 },
 				{ state: 'reconnecting', time: 10_300 },
-				{ state: 'connecting', time: 11_300 },
-				{ state: 'connected', time: 14_100 },
-				{ state: 'disposed', time: 15_100 },
+				{ state: 'connecting', time: 12_300 },
+				{ state: 'connected', time: 15_100 },
+				{ state: 'disposed', time: 16_100 },
 			]);
 		}));
 
 		test('reports exhausted outer retries once, including failures before a client exists', () => runWithFakedTimers({}, async () => {
 			const factory = createFactory();
-			const entry = cloudSandboxEntry('Sandbox', 'cloudsandbox:failed');
+			const entry = runtimeEntry('Container', 'devcontainer:failed');
 			for (let i = 0; i <= 10; i++) {
 				factory.stageFailure(entry, new Error('factory failed'));
 			}
@@ -1048,12 +1048,12 @@ suite('RemoteAgentHostService', () => {
 			assert.deepStrictEqual({
 				dials: observations.filter(event => event.state === 'connecting').length,
 				outcomes: observations.filter(event => event.state !== 'connecting'),
-			}, { dials: 11, outcomes: [{ state: 'failed', time: 181_000 }] });
+			}, { dials: 4, outcomes: [{ state: 'failed', time: 14_000 }] });
 		}));
 
 		test('an explicit redial during recovery keeps the original operation alive', () => runWithFakedTimers({}, async () => {
 			const factory = createFactory();
-			const entry = cloudSandboxEntry('Sandbox', 'cloudsandbox:redial');
+			const entry = runtimeEntry('Container', 'devcontainer:redial');
 			const first = disposables.add(new MockProtocolClient(getEntryAddress(entry)));
 			await reconnectStagedConnection(factory, entry, first);
 			await timeout(1000);
@@ -1076,7 +1076,7 @@ suite('RemoteAgentHostService', () => {
 		test('connection waits follow client-owned recovery beyond the idle wait timeout', () => runWithFakedTimers({ useFakeTimers: true }, async () => {
 			const factory = createFactory();
 			factory.reconnectManagedByClient = true;
-			const entry = cloudSandboxEntry('Environment', 'cloudsandbox:slow-recovery');
+			const entry = runtimeEntry('Environment', 'devcontainer:slow-recovery');
 			const address = getEntryAddress(entry);
 			const client = disposables.add(new MockProtocolClient(address));
 			await reconnectStagedConnection(factory, entry, client);
@@ -1092,7 +1092,7 @@ suite('RemoteAgentHostService', () => {
 
 		test('authentication restoration failure rejects callers waiting for recovery', () => runWithFakedTimers({ useFakeTimers: true }, async () => {
 			const factory = createFactory();
-			const entry = cloudSandboxEntry('Environment', 'cloudsandbox:failed-auth-wait');
+			const entry = runtimeEntry('Environment', 'devcontainer:failed-auth-wait');
 			const address = getEntryAddress(entry);
 			const client = disposables.add(new MockProtocolClient(address));
 			await reconnectStagedConnection(factory, entry, client);
@@ -1105,7 +1105,7 @@ suite('RemoteAgentHostService', () => {
 
 		test('authentication restoration failure is terminal rather than an outer retry', () => runWithFakedTimers({}, async () => {
 			const factory = createFactory();
-			const entry = cloudSandboxEntry('Sandbox', 'cloudsandbox:auth');
+			const entry = runtimeEntry('Container', 'devcontainer:auth');
 			const client = disposables.add(new MockProtocolClient(getEntryAddress(entry)));
 			await reconnectStagedConnection(factory, entry, client);
 			await timeout(1000);
@@ -1131,7 +1131,7 @@ suite('RemoteAgentHostService', () => {
 			test(`does not restart client-owned recovery after ${initiallyConnected ? 'a live connection' : 'an initial handshake'} gives up`, () => runWithFakedTimers({}, async () => {
 				const factory = createFactory();
 				factory.reconnectManagedByClient = true;
-				const entry = cloudSandboxEntry('Sandbox', 'cloudsandbox:owned-recovery');
+				const entry = runtimeEntry('Container', 'devcontainer:owned-recovery');
 				const address = getEntryAddress(entry);
 				const client = disposables.add(new MockProtocolClient(address));
 				factory.stage(entry, client);
@@ -1160,7 +1160,7 @@ suite('RemoteAgentHostService', () => {
 		for (const action of ['remove', 'disable', 'dispose'] as const) {
 			test(`observes ${action} as intentional teardown, not a connection loss`, () => runWithFakedTimers({}, async () => {
 				const factory = createFactory();
-				const entry = cloudSandboxEntry('Sandbox', `cloudsandbox:${action}`);
+				const entry = runtimeEntry('Container', `devcontainer:${action}`);
 				const client = disposables.add(new MockProtocolClient(getEntryAddress(entry)));
 				await reconnectStagedConnection(factory, entry, client);
 				await timeout(1000);
@@ -1184,11 +1184,11 @@ suite('RemoteAgentHostService', () => {
 
 		test('preserves automatic reconnect attempts while resetting them for a user reconnect', async () => {
 			const factory = createFactory();
-			const entry = cloudSandboxEntry('Cloud Sandbox', 'cloud:reconnect-budget');
-			const automaticClient = new MockProtocolClient('cloud:reconnect-budget');
+			const entry = runtimeEntry('Container', 'devcontainer:reconnect-budget');
+			const automaticClient = new MockProtocolClient('devcontainer:reconnect-budget');
 			const address = getEntryAddress(entry);
 			const internals = service as unknown as IRemoteAgentHostServiceTestAccess;
-			const reconnectPolicy = getEntryTypeConfig(RemoteAgentHostEntryType.CloudSandbox).reconnect;
+			const reconnectPolicy = getEntryTypeConfig(RemoteAgentHostEntryType.DevContainer).reconnect;
 			internals._reconnectAttempts.set(address, 3);
 
 			factory.stage(entry, automaticClient);
@@ -1234,12 +1234,12 @@ suite('RemoteAgentHostService', () => {
 				attemptsAtLimit: internals._reconnectAttempts.get(address),
 				hasRetryAtLimit: internals._reconnectTimeouts.has(address),
 			}, {
-				delaysForSuccessiveAutomaticFailures: [1000, 2000, 4000, 8000, 16000, 30000, 30000, 30000, 30000, 30000],
+				delaysForSuccessiveAutomaticFailures: [2000, 4000, 8000],
 				attemptsAtLimit: reconnectPolicy.maxAttempts,
 				hasRetryAtLimit: false,
 			});
 
-			const userClient = new MockProtocolClient('cloud:reconnect-budget');
+			const userClient = new MockProtocolClient('devcontainer:reconnect-budget');
 			internals._reconnectAttempts.set(address, 3);
 			factory.stage(entry, userClient);
 			service.reconnect(address, true);
@@ -1254,28 +1254,28 @@ suite('RemoteAgentHostService', () => {
 
 		test('surfaces a protocol reconnect backoff deadline', async () => {
 			const factory = createFactory();
-			const entry = cloudSandboxEntry('Cloud Sandbox', 'cloud:backoff');
-			const client = new MockProtocolClient('cloud:backoff');
+			const entry = runtimeEntry('Container', 'devcontainer:backoff');
+			const client = new MockProtocolClient('devcontainer:backoff');
 			await reconnectStagedConnection(factory, entry, client);
 
 			client.nextReconnectAt = 123_456;
 			client.fireConnectionState('reconnecting');
 
 			assert.deepStrictEqual(
-				service.connections.find(connection => connection.address === 'cloud:backoff')?.status,
+				service.connections.find(connection => connection.address === 'devcontainer:backoff')?.status,
 				RemoteAgentHostConnectionStatus.reconnectingUntil(123_456),
 			);
 		});
 
 		test('refreshes the backoff deadline as the client reschedules', async () => {
 			const factory = createFactory();
-			const entry = cloudSandboxEntry('Cloud Sandbox', 'cloud:backoff-refresh');
-			const client = new MockProtocolClient('cloud:backoff-refresh');
+			const entry = runtimeEntry('Container', 'devcontainer:backoff-refresh');
+			const client = new MockProtocolClient('devcontainer:backoff-refresh');
 			await reconnectStagedConnection(factory, entry, client);
 
 			client.nextReconnectAt = 1_000;
 			client.fireConnectionState('reconnecting');
-			const armed = service.connections.find(connection => connection.address === 'cloud:backoff-refresh')?.status;
+			const armed = service.connections.find(connection => connection.address === 'devcontainer:backoff-refresh')?.status;
 
 			// The client stays `reconnecting` across rounds, so only the schedule
 			// event reports the new deadline.
@@ -1284,7 +1284,7 @@ suite('RemoteAgentHostService', () => {
 
 			assert.deepStrictEqual({
 				armed,
-				rescheduled: service.connections.find(connection => connection.address === 'cloud:backoff-refresh')?.status,
+				rescheduled: service.connections.find(connection => connection.address === 'devcontainer:backoff-refresh')?.status,
 			}, {
 				armed: RemoteAgentHostConnectionStatus.reconnectingUntil(1_000),
 				rescheduled: RemoteAgentHostConnectionStatus.reconnectingUntil(5_000),
@@ -1293,12 +1293,12 @@ suite('RemoteAgentHostService', () => {
 
 		test('prefers a protocol client reconnect over a fresh dial', async () => {
 			const factory = createFactory();
-			const entry = cloudSandboxEntry('Cloud Sandbox', 'cloud:in-place-reconnect');
-			const client = new MockProtocolClient('cloud:in-place-reconnect');
+			const entry = runtimeEntry('Container', 'devcontainer:in-place-reconnect');
+			const client = new MockProtocolClient('devcontainer:in-place-reconnect');
 			await reconnectStagedConnection(factory, entry, client);
 			client.reconnectNowResult = true;
 
-			service.reconnectNow('cloud:in-place-reconnect');
+			service.reconnectNow('devcontainer:in-place-reconnect');
 
 			assert.deepStrictEqual({
 				createdConnectionCount: factory.createdConnectionCount,
@@ -1311,7 +1311,7 @@ suite('RemoteAgentHostService', () => {
 
 		test('withdrawing a permanently refused broker entry prevents the outer service from redialing cached credentials', () => runWithFakedTimers({ useFakeTimers: true, maxTaskCount: 10_000 }, async () => {
 			const factory = createFactory();
-			const entry = cloudSandboxEntry('Missing brokered host', 'cloud:missing');
+			const entry = runtimeEntry('Missing brokered host', 'devcontainer:missing');
 			const client = new MockProtocolClient(getEntryAddress(entry));
 			factory.stage(entry, client);
 			service.reconnect(getEntryAddress(entry));
@@ -1355,8 +1355,8 @@ suite('RemoteAgentHostService', () => {
 		for (const authenticationFailure of [false, true]) {
 			test(`keeps an incompatible factory connection addressable for server upgrade after ${authenticationFailure ? 'authentication' : 'protocol negotiation'} failure`, async () => {
 				const factory = createFactory();
-				const entry = cloudSandboxEntry('Cloud Sandbox', 'cloud:incompatible');
-				const client = new MockProtocolClient('cloud:incompatible');
+				const entry = runtimeEntry('Container', 'devcontainer:incompatible');
+				const client = new MockProtocolClient('devcontainer:incompatible');
 				factory.stage(entry, client);
 				service.reconnect(getEntryAddress(entry));
 				const wait = service.waitForConnection(getEntryAddress(entry));
@@ -1372,11 +1372,11 @@ suite('RemoteAgentHostService', () => {
 				await changed;
 				await Promise.all([originalFailure, joiningFailure]);
 
-				const upgradeResult = await service.triggerServerUpgrade('cloud:incompatible', '_vscodeUpgrade');
+				const upgradeResult = await service.triggerServerUpgrade('devcontainer:incompatible', '_vscodeUpgrade');
 
 				assert.deepStrictEqual({
 					status: service.connections[0].status,
-					connectedConnection: service.getConnection('cloud:incompatible'),
+					connectedConnection: service.getConnection('devcontainer:incompatible'),
 					upgradeCalls: client.triggerVscodeUpgradeCalls,
 					upgradeResult,
 				}, {
@@ -1397,9 +1397,9 @@ suite('RemoteAgentHostService', () => {
 					void started.complete();
 					return pending.p;
 				}
-			}(RemoteAgentHostEntryType.CloudSandbox));
+			}(RemoteAgentHostEntryType.DevContainer));
 			disposables.add(service.registerConnectionFactory(factory));
-			const entry = cloudSandboxEntry('Pending host', 'cloud:pending');
+			const entry = runtimeEntry('Pending host', 'devcontainer:pending');
 			factory.stageFailure(entry, new Error('unused staged failure'));
 			service.reconnect(getEntryAddress(entry));
 			await started.p;
@@ -1416,7 +1416,7 @@ suite('RemoteAgentHostService', () => {
 				error: events.at(-1)?.error?.message,
 			}, {
 				entriesWhilePending: 0,
-				events: [[`factory.${RemoteAgentHostEntryType.CloudSandbox}`, 'started'], ['relay.connect', 'started'], [`factory.${RemoteAgentHostEntryType.CloudSandbox}`, 'failed']],
+				events: [[`factory.${RemoteAgentHostEntryType.DevContainer}`, 'started'], ['relay.connect', 'started'], [`factory.${RemoteAgentHostEntryType.DevContainer}`, 'failed']],
 				sameAttempt: true,
 				error: 'Host unavailable',
 			});
@@ -1519,47 +1519,47 @@ suite('RemoteAgentHostService', () => {
 		test('disposes transportDisposable when entry is removed via removeRemoteAgentHost', async () => {
 			const factory = createFactory();
 			const t = makeTransportDisposable();
-			await reconnectStagedConnection(factory, cloudSandboxEntry('Cloud Sandbox', 'cloud:remove'), new MockProtocolClient('cloud:remove'), t.disposable);
+			await reconnectStagedConnection(factory, runtimeEntry('Container', 'devcontainer:remove'), new MockProtocolClient('devcontainer:remove'), t.disposable);
 			assert.strictEqual(t.disposed(), false);
 
-			await service.removeRemoteAgentHost('cloud:remove');
+			await service.removeRemoteAgentHost('devcontainer:remove');
 
 			assert.strictEqual(t.disposed(), true, 'transport disposable runs when entry is removed');
-			assert.strictEqual(service.getConnection('cloud:remove'), undefined);
+			assert.strictEqual(service.getConnection('devcontainer:remove'), undefined);
 		});
 
 		test('does not dispose a previous transport when a replacement takes ownership', async () => {
 			const factory = createFactory();
-			const entry = cloudSandboxEntry('Cloud Sandbox', 'cloud:replacement');
+			const entry = runtimeEntry('Container', 'devcontainer:replacement');
 			const t1 = makeTransportDisposable();
-			await reconnectStagedConnection(factory, entry, new MockProtocolClient('cloud:replacement'), t1.disposable, true);
+			await reconnectStagedConnection(factory, entry, new MockProtocolClient('devcontainer:replacement'), t1.disposable, true);
 
 			const t2 = makeTransportDisposable();
-			await reconnectStagedConnection(factory, entry, new MockProtocolClient('cloud:replacement'), t2.disposable, true);
+			await reconnectStagedConnection(factory, entry, new MockProtocolClient('devcontainer:replacement'), t2.disposable, true);
 
 			assert.strictEqual(t1.disposed(), false, 'previous transport disposable is not run on replacement');
 			assert.strictEqual(t2.disposed(), false, 'new transport disposable is still alive');
 
-			await service.removeRemoteAgentHost('cloud:replacement');
+			await service.removeRemoteAgentHost('devcontainer:replacement');
 
 			assert.strictEqual(t2.disposed(), true, 'new transport disposable runs on full removal');
 		});
 
 		test('releases the retained transport owner when an explicit replacement fails', async () => {
 			const factory = createFactory();
-			const entry = cloudSandboxEntry('Cloud Sandbox', 'cloud:failed-replacement');
+			const entry = runtimeEntry('Container', 'devcontainer:failed-replacement');
 			const transport = makeTransportDisposable();
-			const client = new MockProtocolClient('cloud:failed-replacement');
+			const client = new MockProtocolClient('devcontainer:failed-replacement');
 			await reconnectStagedConnection(factory, entry, client, transport.disposable, true);
 
 			factory.stageFailure(entry, new Error('replacement failed'));
-			service.reconnect('cloud:failed-replacement');
-			await assert.rejects(() => service.waitForConnection('cloud:failed-replacement'), /replacement failed/);
+			service.reconnect('devcontainer:failed-replacement');
+			await assert.rejects(() => service.waitForConnection('devcontainer:failed-replacement'), /replacement failed/);
 
 			assert.deepStrictEqual({
 				clientDisposed: client.isDisposed,
 				transportDisposed: transport.disposed(),
-				connection: service.getConnection('cloud:failed-replacement'),
+				connection: service.getConnection('devcontainer:failed-replacement'),
 			}, {
 				clientDisposed: true,
 				transportDisposed: true,
@@ -1569,8 +1569,8 @@ suite('RemoteAgentHostService', () => {
 
 		for (const outcome of ['success', 'failure'] as const) {
 			test(`an abandoned factory ${outcome} does not release a newer reconnect owner`, async () => {
-				const address = 'cloud:retained-replacement';
-				const entry = cloudSandboxEntry('Sandbox', address);
+				const address = 'devcontainer:retained-replacement';
+				const entry = runtimeEntry('Container', address);
 				const abandoned = disposables.add(new MockProtocolClient(address));
 				const retained = disposables.add(new MockProtocolClient(address));
 				const replacement = disposables.add(new MockProtocolClient(address));
@@ -1592,7 +1592,7 @@ suite('RemoteAgentHostService', () => {
 						}
 						return created;
 					}
-				}(RemoteAgentHostEntryType.CloudSandbox));
+				}(RemoteAgentHostEntryType.DevContainer));
 				disposables.add(service.registerConnectionFactory(factory));
 				factory.stage(entry, abandoned);
 				service.reconnect(address);
@@ -1629,7 +1629,7 @@ suite('RemoteAgentHostService', () => {
 		test('disposes transportDisposable when service itself is disposed', async () => {
 			const factory = createFactory();
 			const t = makeTransportDisposable();
-			await reconnectStagedConnection(factory, cloudSandboxEntry('Cloud Sandbox', 'cloud:dispose'), new MockProtocolClient('cloud:dispose'), t.disposable);
+			await reconnectStagedConnection(factory, runtimeEntry('Container', 'devcontainer:dispose'), new MockProtocolClient('devcontainer:dispose'), t.disposable);
 
 			service.dispose();
 
@@ -1637,13 +1637,13 @@ suite('RemoteAgentHostService', () => {
 		});
 
 		test('does not persist runtime factory connections or their removal', async () => {
-			const cloudSandboxFactory = createFactory(RemoteAgentHostEntryType.CloudSandbox);
+			const runtimeFactory = createFactory(RemoteAgentHostEntryType.WSL);
 			const devContainerFactory = createFactory(RemoteAgentHostEntryType.DevContainer);
 			const entries: IRemoteAgentHostEntry[] = [
-				{ name: 'Cloud Sandbox', connection: { type: RemoteAgentHostEntryType.CloudSandbox, address: 'cloud:runtime', environmentId: 'env_runtime' } },
+				{ name: 'WSL', connection: { type: RemoteAgentHostEntryType.WSL, address: 'wsl:runtime', distro: 'Runtime' } },
 				{ name: 'Dev Container', connection: { type: RemoteAgentHostEntryType.DevContainer, address: 'devcontainer:runtime', hostPath: '/workspace' } },
 			];
-			const factories = [cloudSandboxFactory, devContainerFactory];
+			const factories = [runtimeFactory, devContainerFactory];
 
 			for (let index = 0; index < entries.length; index++) {
 				const address = getEntryAddress(entries[index]);
@@ -1666,13 +1666,13 @@ suite('RemoteAgentHostService', () => {
 
 		test('keeps a staged on-demand connection connected when WebSocket settings change', async () => {
 			const factory = createFactory();
-			const entry = cloudSandboxEntry('Cloud Sandbox', 'cloud:live');
-			const client = new MockProtocolClient('cloud:live');
+			const entry = runtimeEntry('Container', 'devcontainer:live');
+			const client = new MockProtocolClient('devcontainer:live');
 			await reconnectStagedConnection(factory, entry, client);
 
 			configService.setEntries([{ name: 'WebSocket', connection: { type: RemoteAgentHostEntryType.WebSocket, address: 'ws://host:8080' } }]);
 
-			assert.strictEqual(service.getConnection('cloud:live'), client);
+			assert.strictEqual(service.getConnection('devcontainer:live'), client);
 		});
 
 		test('does not surface storage-only SSH entries without an SSH factory', async () => {
@@ -1703,14 +1703,14 @@ suite('RemoteAgentHostService', () => {
 
 		test('keeps runtime connection names across reconciliation', async () => {
 			const factory = createFactory();
-			const cloudSandbox = cloudSandboxEntry('My Cloud Sandbox', 'cloud:name');
-			await reconnectStagedConnection(factory, cloudSandbox, new MockProtocolClient('cloud:name'));
+			const runtimeHost = runtimeEntry('My Container', 'devcontainer:name');
+			await reconnectStagedConnection(factory, runtimeHost, new MockProtocolClient('devcontainer:name'));
 
 			configService.setEntries([{ name: 'WebSocket', connection: { type: RemoteAgentHostEntryType.WebSocket, address: 'host1:8080' } }]);
 
 			assert.deepStrictEqual(
-				service.connections.find(connection => connection.address === 'cloud:name')?.name,
-				'My Cloud Sandbox');
+				service.connections.find(connection => connection.address === 'devcontainer:name')?.name,
+				'My Container');
 		});
 	});
 
@@ -1847,14 +1847,14 @@ suite('RemoteAgentHostService', () => {
 	suite('display names', () => {
 		test('delegates inventory-owned labels without writing global overrides or connecting', () => {
 			const name = observableValue<string | undefined>('name', undefined);
-			const registration = disposables.add(service.registerDisplayName('cloudsandbox:environment', name, value => name.set(value, undefined)));
-			service.setDisplayName('cloudsandbox:environment', '  Profile Label  ');
-			const renamed = service.getDisplayNameOverride('cloudsandbox:environment');
-			service.setDisplayName('cloudsandbox:environment', '');
-			const restored = service.getDisplayNameOverride('cloudsandbox:environment');
+			const registration = disposables.add(service.registerDisplayName('devcontainer:environment', name, value => name.set(value, undefined)));
+			service.setDisplayName('devcontainer:environment', '  Profile Label  ');
+			const renamed = service.getDisplayNameOverride('devcontainer:environment');
+			service.setDisplayName('devcontainer:environment', '');
+			const restored = service.getDisplayNameOverride('devcontainer:environment');
 			registration.dispose();
 			assert.deepStrictEqual({
-				renamed, restored, removed: service.getDisplayNameOverride('cloudsandbox:environment'),
+				renamed, restored, removed: service.getDisplayNameOverride('devcontainer:environment'),
 				machineKeys: storageService.keys(StorageScope.APPLICATION, StorageTarget.MACHINE), createdClients: createdClients.length,
 			}, { renamed: 'Profile Label', restored: undefined, removed: undefined, machineKeys: [], createdClients: 0 });
 		});

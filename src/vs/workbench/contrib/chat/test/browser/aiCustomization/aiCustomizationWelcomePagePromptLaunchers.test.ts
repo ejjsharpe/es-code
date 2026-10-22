@@ -6,7 +6,6 @@
 import assert from 'assert';
 import { mainWindow } from '../../../../../../base/browser/window.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../../base/test/common/utils.js';
-import { ICommandService } from '../../../../../../platform/commands/common/commands.js';
 import { IHoverService } from '../../../../../../platform/hover/browser/hover.js';
 import { PromptLaunchersAICustomizationWelcomePage } from '../../../browser/aiCustomization/aiCustomizationWelcomePagePromptLaunchers.js';
 import { ICustomizationMigrationCategorySummary, IWelcomePageCallbacks } from '../../../browser/aiCustomization/aiCustomizationWelcomePage.js';
@@ -33,7 +32,6 @@ suite('aiCustomizationWelcomePagePromptLaunchers', () => {
 			parent,
 			{ showGettingStartedBanner: false },
 			callbacks,
-			{} as ICommandService,
 			{ isSessionsWindow: true, managementSections: [] } as unknown as IAICustomizationWorkspaceService,
 			{} as IHoverService,
 			'Copilot',
@@ -88,7 +86,6 @@ suite('aiCustomizationWelcomePagePromptLaunchers', () => {
 				reviewMigrations() { },
 				prefillChat() { },
 			},
-			{} as ICommandService,
 			{
 				isSessionsWindow: true,
 				managementSections: [

@@ -99,7 +99,7 @@ async function main(buildDir?: string) {
 		// them as arch-unique. Paths here are ASAR-internal (top level, no `node_modules`
 		// prefix). Over-covering is harmless: the allowlist is only consulted for files
 		// that are actually unique to one arch.
-		singleArchFiles: '{**/@github/copilot-sdk-darwin-*,**/@github/copilot-sdk-darwin-*/**,**/@vscode/ripgrep-universal/bin/darwin-*,**/@vscode/ripgrep-universal/bin/darwin-*/**,**/@vscode/os-proxy-resolver-darwin-*,**/@vscode/os-proxy-resolver-darwin-*/**,**/foundry-local-sdk/prebuilds,**/foundry-local-sdk/prebuilds/darwin-arm64,**/foundry-local-sdk/prebuilds/darwin-arm64/**}',
+		singleArchFiles: '{**/@github/copilot-sdk-darwin-*,**/@github/copilot-sdk-darwin-*/**,**/@vscode/ripgrep-universal/bin/darwin-*,**/@vscode/ripgrep-universal/bin/darwin-*/**,**/@vscode/os-proxy-resolver-darwin-*,**/@vscode/os-proxy-resolver-darwin-*/**}',
 		x64ArchFiles: '{*/kerberos.node,**/node_modules/@github/copilot-sdk-darwin-*/**,**/node_modules.asar.unpacked/@github/copilot-sdk-darwin-*/**,**/node_modules/@vscode/ripgrep-universal/bin/darwin-*/*,**/node_modules.asar.unpacked/@vscode/ripgrep-universal/bin/darwin-*/*,**/node_modules/@vscode/os-proxy-resolver-darwin-*/**,**/node_modules.asar.unpacked/@vscode/os-proxy-resolver-darwin-*/**}',
 		filesToSkipComparison: (file: string) => {
 			for (const expected of filesToSkip) {

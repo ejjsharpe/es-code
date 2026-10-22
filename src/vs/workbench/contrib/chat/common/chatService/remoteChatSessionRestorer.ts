@@ -11,10 +11,8 @@ import { Disposable, DisposableStore, IDisposable, toDisposable } from '../../..
 import { equals } from '../../../../../base/common/objects.js';
 import { setTimeout0 } from '../../../../../base/common/platform.js';
 import { autorun } from '../../../../../base/common/observable.js';
-import { clearMarks, mark } from '../../../../../base/common/performance.js';
 import { ILogService } from '../../../../../platform/log/common/log.js';
 import { getChatSessionHistoryContent, IChatSession, IChatSessionHistoryItem, IChatSessionRequestHistoryItem, IChatSessionServerRequest } from '../chatSessionsService.js';
-import { CloudSandboxSessionTrace } from '../cloudSandboxSessionTrace.js';
 import { ChatModeKind } from '../constants.js';
 import { chatEditingSessionIsReady } from '../editing/chatEditingService.js';
 import { ChatModel, ChatRequestModel, getRestoredChatRequestSource, IChatRequestModeInfo } from '../model/chatModel.js';
@@ -62,7 +60,6 @@ export interface IRemoteChatSessionRestoreOptions {
 	readonly chatSessionType: string;
 	/** Cancels restoration before the model is published. */
 	readonly token: CancellationToken;
-	readonly trace: CloudSandboxSessionTrace | undefined;
 	/** Parses a prompt from the history into a request. */
 	parsePrompt(text: string, agent: IChatAgentData | undefined): IParsedChatRequest;
 	/** Publishes the restored model to the model store and returns the first reference to it. */
@@ -131,7 +128,6 @@ export class RemoteChatSessionRestorer extends Disposable {
 	private readonly _session: IChatSession;
 	private readonly _hasProgressStreaming: boolean;
 	private readonly _budget: CooperativeMutationBudget;
-	private readonly _marks = new Set<string>();
 
 	/** The history the model reflects. */
 	private _restoredHistory: readonly IChatSessionHistoryItem[];
@@ -209,9 +205,7 @@ export class RemoteChatSessionRestorer extends Disposable {
 		try {
 			await this._replay();
 			liveHistory = this._detachLiveTurn();
-			this._mark('modelPublishStart');
 			reference = this._options.publishModel(this._model);
-			this._mark('modelPublishEnd');
 		} catch (error) {
 			this.dispose();
 			throw error;
@@ -278,10 +272,6 @@ export class RemoteChatSessionRestorer extends Disposable {
 		const state = this._state;
 		this._state = RestoreState.Disposed;
 		super.dispose();
-		for (const name of this._marks) {
-			clearMarks(name);
-		}
-		this._marks.clear();
 		if (state !== RestoreState.Published) {
 			this._model.dispose();
 		}
@@ -320,11 +310,9 @@ export class RemoteChatSessionRestorer extends Disposable {
 		if (!this._pendingHistory) {
 			return;
 		}
-		this._mark('bufferedHistoryRefreshStart');
 		while (this._pendingHistory) {
 			await this._refreshHistory(true);
 		}
-		this._mark('bufferedHistoryRefreshEnd');
 	}
 
 	private async _completeNonStreamingHistory(): Promise<void> {
@@ -632,13 +620,6 @@ export class RemoteChatSessionRestorer extends Disposable {
 		}
 	}
 
-	private _mark(name: string): void {
-		if (this._options.trace) {
-			const markName = `code/cloudSandbox/${this._options.trace.id}/${name}`;
-			mark(markName);
-			this._marks.add(markName);
-		}
-	}
 }
 
 /**

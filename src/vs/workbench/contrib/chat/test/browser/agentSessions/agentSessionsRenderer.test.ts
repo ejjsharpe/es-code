@@ -16,7 +16,6 @@ import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../../base/
 import { HoverPosition } from '../../../../../../base/browser/ui/hover/hoverWidget.js';
 import { ITreeNode } from '../../../../../../base/browser/ui/tree/tree.js';
 import { IChatSessionsService } from '../../../common/chatSessionsService.js';
-import { IVoicePlaybackService } from '../../../common/voicePlaybackService.js';
 import { AgentSessionChatRenderer, AgentSessionRenderer, AgentSessionSectionRenderer } from '../../../browser/agentSessions/agentSessionsViewer.js';
 import { AgentSessionStatus, IAgentSession } from '../../../browser/agentSessions/agentSessionsModel.js';
 import { workbenchInstantiationService } from '../../../../../test/browser/workbenchTestServices.js';
@@ -52,7 +51,7 @@ suite('AgentSessionsRenderer', () => {
 	test('adds item classes to a normal tree row', () => {
 		const instantiationService = workbenchInstantiationService(undefined, store);
 		instantiationService.stub(IChatSessionsService, new class extends mock<IChatSessionsService>() { });
-		instantiationService.stub(IVoicePlaybackService, new class extends mock<IVoicePlaybackService>() { });
+
 		const renderer = store.add(instantiationService.createInstance(
 			AgentSessionRenderer,
 			{ disableHover: true, getHoverPosition: () => HoverPosition.BELOW },
@@ -94,7 +93,7 @@ suite('AgentSessionsRenderer', () => {
 	test('renders session chats as compact hierarchy rows', () => {
 		const instantiationService = workbenchInstantiationService(undefined, store);
 		instantiationService.stub(IChatSessionsService, new class extends mock<IChatSessionsService>() { });
-		instantiationService.stub(IVoicePlaybackService, new class extends mock<IVoicePlaybackService>() { });
+
 		const sessionRenderer = store.add(instantiationService.createInstance(
 			AgentSessionRenderer,
 			{ disableHover: true, getHoverPosition: () => HoverPosition.BELOW },

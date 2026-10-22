@@ -14,9 +14,7 @@ import { runOnChange } from '../../../../../base/common/observable.js';
 import { URI } from '../../../../../base/common/uri.js';
 import { AccessibilitySignal, IAccessibilitySignalService } from '../../../../../platform/accessibilitySignal/browser/accessibilitySignalService.js';
 import { AccessibilityProgressSignalScheduler } from '../../../../../platform/accessibilitySignal/browser/progressAccessibilitySignalScheduler.js';
-import { IConfigurationService } from '../../../../../platform/configuration/common/configuration.js';
 import { IInstantiationService } from '../../../../../platform/instantiation/common/instantiation.js';
-import { AccessibilityVoiceSettingId } from '../../../accessibility/browser/accessibilityConfiguration.js';
 import { ElicitationState, IChatElicitationRequest, IChatService } from '../../common/chatService/chatService.js';
 import { IChatModel } from '../../common/model/chatModel.js';
 import { IChatResponseViewModel } from '../../common/model/chatViewModel.js';
@@ -31,7 +29,6 @@ export class ChatAccessibilityService extends Disposable implements IChatAccessi
 	constructor(
 		@IAccessibilitySignalService private readonly _accessibilitySignalService: IAccessibilitySignalService,
 		@IInstantiationService private readonly _instantiationService: IInstantiationService,
-		@IConfigurationService private readonly _configurationService: IConfigurationService,
 		@IChatWidgetService private readonly _widgetService: IChatWidgetService,
 		@IChatService private readonly _chatService: IChatService,
 	) {
@@ -85,7 +82,7 @@ export class ChatAccessibilityService extends Disposable implements IChatAccessi
 		this._pendingSignalMap.deleteAndDispose(requestId);
 	}
 
-	acceptResponse(response: IChatResponseViewModel | string | undefined, requestId: URI, isVoiceInput?: boolean): void {
+	acceptResponse(response: IChatResponseViewModel | string | undefined, requestId: URI): void {
 		this._pendingSignalMap.deleteAndDispose(requestId);
 		const isPanelChat = typeof response !== 'string';
 		const responseContent = typeof response === 'string' ? response : response?.response.toString();
@@ -95,9 +92,7 @@ export class ChatAccessibilityService extends Disposable implements IChatAccessi
 		}
 		const plainTextResponse = renderAsPlaintext(new MarkdownString(responseContent));
 		const errorDetails = isPanelChat && response.errorDetails ? ` ${response.errorDetails.message}` : '';
-		if (!isVoiceInput || this._configurationService.getValue(AccessibilityVoiceSettingId.AutoSynthesize) !== 'on') {
-			status(plainTextResponse + errorDetails);
-		}
+		status(plainTextResponse + errorDetails);
 	}
 	acceptElicitation(elicitation: IChatElicitationRequest): void {
 		if (elicitation.state.get() !== ElicitationState.Pending) {

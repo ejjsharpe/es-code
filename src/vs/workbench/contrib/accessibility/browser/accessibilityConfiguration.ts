@@ -746,24 +746,7 @@ const configuration: IConfigurationNode = {
 				'sound': 'on'
 			}
 		},
-		'accessibility.signals.voiceModeStarted': {
-			...signalFeatureBase,
-			'description': localize('accessibility.signals.voiceModeStarted', "Plays a signal - sound (audio cue) and/or announcement (alert) - when voice mode has started."),
-			'properties': {
-				'sound': {
-					'description': localize('accessibility.signals.voiceModeStarted.sound', "Plays a sound when voice mode has started."),
-					...soundFeatureBase,
-				},
-				'announcement': {
-					'description': localize('accessibility.signals.voiceModeStarted.announcement', "Announces when voice mode has started."),
-					...announcementFeatureBase,
-				}
-			},
-			'default': {
-				'sound': 'on',
-				'announcement': 'auto'
-			}
-		},
+
 		'accessibility.signals.voiceRecordingStopped': {
 			...defaultNoAnnouncement,
 			'description': localize('accessibility.signals.voiceRecordingStopped', "Plays a sound / audio cue when the voice recording has stopped."),
@@ -777,24 +760,7 @@ const configuration: IConfigurationNode = {
 				'sound': 'on'
 			}
 		},
-		'accessibility.signals.voiceModeStopped': {
-			...signalFeatureBase,
-			'description': localize('accessibility.signals.voiceModeStopped', "Plays a signal - sound (audio cue) and/or announcement (alert) - when voice mode has stopped."),
-			'properties': {
-				'sound': {
-					'description': localize('accessibility.signals.voiceModeStopped.sound', "Plays a sound when voice mode has stopped."),
-					...soundFeatureBase,
-				},
-				'announcement': {
-					'description': localize('accessibility.signals.voiceModeStopped.announcement', "Announces when voice mode has stopped."),
-					...announcementFeatureBase,
-				}
-			},
-			'default': {
-				'sound': 'on',
-				'announcement': 'auto'
-			}
-		},
+
 		'accessibility.signals.clear': {
 			...signalFeatureBase,
 			'description': localize('accessibility.signals.clear', "Plays a signal - sound (audio cue) and/or announcement (alert) - when a feature is cleared (for example, the terminal, Debug Console, or Output channel)."),
@@ -1015,8 +981,6 @@ export function registerAccessibilityConfiguration() {
 
 export { AccessibilityVoiceSettingId };
 
-export const SpeechTimeoutDefault = 0;
-
 export class DynamicSpeechAccessibilityConfiguration extends Disposable implements IWorkbenchContribution {
 
 	static readonly ID = 'workbench.contrib.dynamicSpeechAccessibilityConfiguration';
@@ -1043,19 +1007,6 @@ export class DynamicSpeechAccessibilityConfiguration extends Disposable implemen
 		registry.registerConfiguration({
 			...accessibilityConfigurationNodeBase,
 			properties: {
-				[AccessibilityVoiceSettingId.SpeechTimeout]: {
-					'markdownDescription': localize('voice.speechTimeout', "The duration in milliseconds that voice speech recognition remains active after you stop speaking. For example in a chat session, the transcribed text is submitted automatically after the timeout is met. Set to `0` to disable this feature."),
-					'type': 'number',
-					'default': SpeechTimeoutDefault,
-					'minimum': 0,
-					'tags': ['accessibility']
-				},
-				[AccessibilityVoiceSettingId.IgnoreCodeBlocks]: {
-					'markdownDescription': localize('voice.ignoreCodeBlocks', "Whether to ignore code snippets in text-to-speech synthesis."),
-					'type': 'boolean',
-					'default': false,
-					'tags': ['accessibility']
-				},
 				[AccessibilityVoiceSettingId.SpeechLanguage]: {
 					'markdownDescription': localize('voice.speechLanguage', "The language that text-to-speech and speech-to-text should use. Select `auto` to use the configured display language if possible. Note that not all display languages maybe supported by speech recognition and synthesizers."),
 					'type': 'string',
@@ -1065,17 +1016,7 @@ export class DynamicSpeechAccessibilityConfiguration extends Disposable implemen
 					'enumDescriptions': languagesSorted.map(key => languages[key].name),
 					'enumItemLabels': languagesSorted.map(key => languages[key].name)
 				},
-				[AccessibilityVoiceSettingId.AutoSynthesize]: {
-					'type': 'string',
-					'enum': ['on', 'off'],
-					'enumDescriptions': [
-						localize('accessibility.voice.autoSynthesize.on', "Enable the feature. When a screen reader is enabled, note that this will disable aria updates."),
-						localize('accessibility.voice.autoSynthesize.off', "Disable the feature."),
-					],
-					'markdownDescription': localize('autoSynthesize', "Whether a textual response should automatically be read out aloud when speech was used as input. For example in a chat session, a response is automatically synthesized when voice was used as chat request."),
-					'default': 'off',
-					'tags': ['accessibility']
-				}
+
 			}
 		});
 	}
@@ -1176,24 +1117,6 @@ function getVolumeFromConfig(accessor: (key: string) => any): string | undefined
 function getDebouncePositionChangesFromConfig(accessor: (key: string) => any): number | undefined {
 	return accessor('accessibility.signalOptions.debouncePositionChanges') || accessor('accessibility.signalOptions')?.debouncePositionChanges || accessor('accessibility.signals.debouncePositionChanges') || accessor('audioCues.debouncePositionChanges');
 }
-
-Registry.as<IConfigurationMigrationRegistry>(WorkbenchExtensions.ConfigurationMigration)
-	.registerConfigurationMigrations([{
-		key: AccessibilityVoiceSettingId.AutoSynthesize,
-		migrateFn: (value: boolean) => {
-			let newValue: string | undefined;
-			if (value === true) {
-				newValue = 'on';
-			} else if (value === false) {
-				newValue = 'off';
-			} else {
-				return [];
-			}
-			return [
-				[AccessibilityVoiceSettingId.AutoSynthesize, { value: newValue }],
-			];
-		}
-	}]);
 
 Registry.as<IConfigurationMigrationRegistry>(WorkbenchExtensions.ConfigurationMigration)
 	.registerConfigurationMigrations([{

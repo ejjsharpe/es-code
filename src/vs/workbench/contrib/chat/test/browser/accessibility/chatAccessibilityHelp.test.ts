@@ -8,27 +8,12 @@ import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../../base/
 import { ChatSessionArchiveActionWording } from '../../../../../../platform/chat/common/sessionArchiveActions.js';
 import { MockKeybindingService } from '../../../../../../platform/keybinding/test/common/mockKeybindingService.js';
 import { getTabbedActionListKeybindingLabels } from '../../../../../../platform/actionWidget/browser/tabbedActionListWidget.js';
-import { getAccessibilityHelpText, getCloudSandboxPreparationAccessibilityHelp } from '../../../browser/actions/chatAccessibilityHelp.js';
+import { getAccessibilityHelpText } from '../../../browser/actions/chatAccessibilityHelp.js';
 import { AGENT_SESSION_RENAME_ACTION_ID } from '../../../browser/agentSessions/agentSessions.js';
 import { isResponseSelectionSupported } from '../../../browser/chat.js';
 
 suite('Chat Accessibility Help', () => {
 	ensureNoDisposablesAreLeakedInTestSuite();
-
-	test('documents private early preparation and the pending Send handoff', () => {
-		const help = getAccessibilityHelpText('agentView', new MockKeybindingService(), false);
-		const preparation = getCloudSandboxPreparationAccessibilityHelp();
-
-		assert.deepStrictEqual({
-			included: help.includes(preparation),
-			setting: preparation.includes('chat.agentHost.cloudSandbox.earlyPreparation'),
-			repositories: preparation.includes('with or without a repository'),
-			private: preparation.includes('no conversation is added to the session list until you press Send'),
-			pending: preparation.includes('Send waits for pending preparation'),
-			fallback: preparation.includes('otherwise it can continue without early preparation'),
-			repositoryChange: preparation.includes('when you change repositories'),
-		}, { included: true, setting: true, repositories: true, private: true, pending: true, fallback: true, repositoryChange: true });
-	});
 
 	test('explains the disabled Local harness only on editor chat surfaces', () => {
 		assert.deepStrictEqual([
@@ -158,15 +143,6 @@ suite('Chat Accessibility Help', () => {
 		);
 	});
 
-	test('documents silent history retrieval and keyboard recovery without restarting or waking compute', () => {
-		const help = getAccessibilityHelpText('agentView', new MockKeybindingService(), true);
-		assert.deepStrictEqual({
-			silent: help.includes('while refreshing silently'),
-			keyboard: help.includes('use Tab to reach Refresh in the banner and press Enter or Space'),
-			apiOnly: help.includes('Refresh retries recorded history without restarting the session, waking its environment, or sending your draft.'),
-		}, { silent: true, keyboard: true, apiOnly: true });
-	});
-
 	test('documents on-device models only while the setting is on', () => {
 		const keybindings = new MockKeybindingService();
 		const describe = (help: string) => ({
@@ -272,39 +248,23 @@ suite('Chat Accessibility Help', () => {
 	test('documents the shared editor artifacts pill and its actions', () => {
 		const help = getAccessibilityHelpText('panelChat', new MockKeybindingService(), true);
 		assert.deepStrictEqual({
-			shared: help.includes('same compact Artifacts pill as the Agents Window'),
-			noLegacyList: help.includes('rather than an expanded list above the input'),
+			compact: help.includes('The editor uses a compact Artifacts pill above the input'),
 			automatic: help.includes('Generated images appear automatically'),
 			subagentArtifacts: help.includes('In a subagent chat, the Artifacts pill shows that chat\'s transcript artifacts without the parent session\'s metadata'),
 			dropdown: help.includes('multiple artifacts open a dropdown with a Generated Images section'),
 			actions: help.includes('to save an artifact or copy its path'),
-		}, { shared: true, noLegacyList: true, automatic: true, subagentArtifacts: true, dropdown: true, actions: true });
+		}, { compact: true, automatic: true, subagentArtifacts: true, dropdown: true, actions: true });
 	});
 
-	test('documents scoped BYOK prompts, deterministic answers, and restarting after input changes', () => {
-		const help = getAccessibilityHelpText('agentView', new MockKeybindingService(), true);
-		assert.deepStrictEqual({
-			scoped: help.includes('only the bound chat input\'s prompts and responses are read'),
-			restart: help.includes('Switching the bound input or discarding a recording stops Voice Mode'),
-			editorInputs: help.includes('including chat editor tabs and the chat sidebar'),
-			approval: help.includes('approval commands must be complete, unqualified English replies'),
-			naturalConsent: help.includes('I approve, or I accept to approve the current prompt'),
-			choices: help.includes('say an exact displayed choice or its number'),
-			custom: help.includes('say other followed by your answer'),
-			clarification: help.includes('Ambiguous replies ask for clarification without approving anything'),
-		}, { scoped: true, restart: true, editorInputs: true, approval: true, naturalConsent: true, choices: true, custom: true, clarification: true });
-	});
 	for (const type of ['panelChat', 'editsView', 'agentView'] as const) {
 		test(`documents skipping MCP startup only on supported surfaces (${type})`, () => {
 			const help = getAccessibilityHelpText(type, new MockKeybindingService(), false);
 			assert.strictEqual(help.includes('When a chat turn is waiting for MCP servers to start, a Skip link may appear. Use Tab to focus Skip and press Enter or Space to continue the turn while those servers start in the background. The current startup message disappears immediately and focus returns to the chat input. New server startups may show another message.'), type !== 'editsView');
 		});
 
-		test(`documents Copilot introduction and Agents Window invitation behavior in ${type}`, () => {
+		test(`documents Copilot introduction and feedback in ${type}`, () => {
 			const help = getAccessibilityHelpText(type, new MockKeybindingService(), false);
 			assert.deepStrictEqual({
-				preserveSessions: help.includes('without changing its active or visible sessions, unless the action explicitly requests a session or New Session'),
-				preserveNewSessionDraft: help.includes('Revealing New Session preserves any unsent draft'),
 				introductionModes: help.includes('when the session starts or after the first request is submitted'),
 				introductionPersists: help.includes('sending messages does not dismiss it'),
 				introductionActions: help.includes('let us know, Learn More, Got it!, or Not Helpful'),
@@ -314,20 +274,8 @@ suite('Chat Accessibility Help', () => {
 				switchSurveyKeyboard: help.includes('Use Up and Down Arrow to choose why you switched, then press Enter or Space to submit'),
 				switchSurveyAcknowledgement: help.includes('a message confirms that your feedback was recorded'),
 				switchSurveyFeedbackLink: help.includes('Use Tab to reach Share it on GitHub to provide specific feedback in a GitHub issue'),
-				agentHostOnly: help.includes('A running Agent Host chat may show an invitation'),
-				handoff: help.includes('opens the Agents Window and highlights this session\'s row'),
-				optionalReveal: help.includes('Disable chat.agentsWindowBanner.revealCurrentSession to open the New Session view instead'),
-				newSessionStep: help.includes('Choose Next to highlight the New Session button, which you can activate to start another task'),
-				tourActions: help.includes('Choose Understood to finish the tour, or press Escape to dismiss it'),
-				singleOwner: help.includes('Only one invitation is shown across editor windows at a time'),
-				preserve: help.includes('Sending another message or completing a task does not dismiss the invitation'),
-				mute: help.includes('Don\'t Show Again turns off all future Agents Window invitations'),
-				dismiss: help.includes('created five more Agent Host sessions in editor windows and at least 24 hours have passed'),
-				input: help.includes('temporarily hidden while the session needs attention'),
-				hiddenInAgents: !getAccessibilityHelpText(type, new MockKeybindingService(), false, true).includes('new Copilot harness chat'),
+				noRemovedInvitation: !help.includes('Agents Window invitation'),
 			}, {
-				preserveSessions: true,
-				preserveNewSessionDraft: true,
 				introductionModes: true,
 				introductionPersists: true,
 				introductionActions: true,
@@ -337,17 +285,7 @@ suite('Chat Accessibility Help', () => {
 				switchSurveyKeyboard: true,
 				switchSurveyAcknowledgement: true,
 				switchSurveyFeedbackLink: true,
-				agentHostOnly: true,
-				handoff: true,
-				optionalReveal: true,
-				newSessionStep: true,
-				tourActions: true,
-				singleOwner: true,
-				preserve: true,
-				mute: true,
-				dismiss: true,
-				input: true,
-				hiddenInAgents: true,
+				noRemovedInvitation: true,
 			});
 		});
 	}
@@ -636,16 +574,13 @@ suite('Chat Accessibility Help', () => {
 		});
 	});
 
-	test('only describes spoken agent progress in agent mode', () => {
+	test('omits removed first-party voice and cloud session help', () => {
 		const keybindingService = new MockKeybindingService();
-
-		assert.deepStrictEqual({
-			agentView: getAccessibilityHelpText('agentView', keybindingService, true).includes('brief progress updates'),
-			panelChat: getAccessibilityHelpText('panelChat', keybindingService, true).includes('brief progress updates'),
-		}, {
-			agentView: true,
-			panelChat: false,
-		});
+		for (const type of ['agentView', 'panelChat'] as const) {
+			const help = getAccessibilityHelpText(type, keybindingService, true);
+			assert.ok(!help.includes('Voice Mode'));
+			assert.ok(!help.includes('cloud session creation or connection fails'));
+		}
 	});
 
 	test('only documents customization migration entry points in panel chat', () => {
@@ -713,7 +648,7 @@ suite('Chat Accessibility Help', () => {
 			filterRecovery: getAccessibilityHelpText('agentView', keybindingService, true).includes('any other pill\'s context menu or the toolbar context menu'),
 			subagentFilter: getAccessibilityHelpText('agentView', keybindingService, true).includes('Subagent Options'),
 			customizations: getAccessibilityHelpText('panelChat', keybindingService, true).includes('Activate an entry to reveal it in the Customizations editor'),
-			sharedPills: getAccessibilityHelpText('agentView', keybindingService, true, true).includes('available in both the Agents Window and editor window'),
+			noRemovedWindowReference: !getAccessibilityHelpText('agentView', keybindingService, true).includes('available in both the Agents Window and editor window'),
 			hiddenByDefault: getAccessibilityHelpText('agentView', keybindingService, true).includes('hidden by default'),
 			progressiveCollapse: getAccessibilityHelpText('agentView', keybindingService, true).includes('one at a time from right to left'),
 			compactAccessibility: getAccessibilityHelpText('panelChat', keybindingService, true).includes('full labels remain available to screen readers and in tooltips'),
@@ -732,7 +667,7 @@ suite('Chat Accessibility Help', () => {
 			filterRecovery: true,
 			subagentFilter: true,
 			customizations: true,
-			sharedPills: true,
+			noRemovedWindowReference: true,
 			hiddenByDefault: true,
 			progressiveCollapse: true,
 			compactAccessibility: true,

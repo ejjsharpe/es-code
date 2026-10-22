@@ -3,8 +3,6 @@ FROM mcr.microsoft.com/devcontainers/typescript-node:24-bookworm
 ADD install-vscode.sh /root/
 RUN /root/install-vscode.sh
 
-RUN git config --system codespaces-theme.hide-status 1
-
 USER node
 RUN npm install -g node-gyp
 RUN NPM_CACHE="$(npm config get cache)" && rm -rf "$NPM_CACHE" && ln -s /vscode-dev/npm-cache "$NPM_CACHE"
