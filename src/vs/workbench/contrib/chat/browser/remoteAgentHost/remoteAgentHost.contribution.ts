@@ -18,9 +18,6 @@ import { CloudSandboxModelCatalogService, ICloudSandboxModelCatalogService } fro
 import { CloudSandboxTelemetryService, ICloudSandboxTelemetryService } from './cloudSandboxTelemetry.js';
 import { EditorCloudSandboxContribution } from './editorCloudSandboxContribution.js';
 import { RemoteAgentHostContribution } from './remoteAgentHostChatContribution.js';
-import './missionControlEnvironmentActions.js';
-import { IMissionControlEnvironmentService } from '../../../../../platform/agentHost/common/missionControlEnvironment.js';
-import { MissionControlEnvironmentService } from './missionControlEnvironmentService.js';
 import { IRemoteAgentHostConnectionCustomizationService, RemoteAgentHostConnectionCustomizationService } from './remoteAgentHostConnectionCustomization.js';
 import { IAgentHostAdvertisedAuthenticationResolver } from '../../../../../platform/agentHost/common/agentHostAdvertisedAuthentication.js';
 import { RemoteAgentHostAuthenticationResolver } from './remoteAgentHostAuthenticationResolver.js';
@@ -40,7 +37,6 @@ registerSingleton(ICloudSandboxApiService, CloudSandboxApiService, Instantiation
 registerSingleton(ICloudSandboxDraftPreparationService, CloudSandboxDraftPreparationService, InstantiationType.Delayed);
 registerSingleton(ICloudSandboxModelCatalogService, CloudSandboxModelCatalogService, InstantiationType.Delayed);
 registerSingleton(ICloudSandboxAgentHostService, CloudSandboxAgentHostService, InstantiationType.Delayed);
-registerSingleton(IMissionControlEnvironmentService, MissionControlEnvironmentService, InstantiationType.Delayed);
 registerSingleton(IRemoteAgentHostConnectionCustomizationService, RemoteAgentHostConnectionCustomizationService, InstantiationType.Delayed);
 registerSingleton(IAgentHostAdvertisedAuthenticationResolver, RemoteAgentHostAuthenticationResolver, InstantiationType.Delayed);
 

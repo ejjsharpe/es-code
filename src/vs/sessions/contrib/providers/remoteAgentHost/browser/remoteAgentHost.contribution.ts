@@ -7,14 +7,12 @@ import * as nls from '../../../../../nls.js';
 import { registerAction2 } from '../../../../../platform/actions/common/actions.js';
 import { AgentHostLocalFilePermissionsSettingId } from '../../../../../platform/agentHost/common/agentHostResourceService.js';
 import { RemoteAgentHostAutoConnectSettingId, RemoteAgentHostsSettingId } from '../../../../../platform/agentHost/common/remoteAgentHostService.js';
-import { TunnelAgentHostsSettingId } from '../../../../../platform/agentHost/common/tunnelAgentHost.js';
 import { WslAutoStartSettingId } from '../../../../../platform/agentHost/common/wslRemoteAgentHost.js';
 import { ConfigurationScope, Extensions as ConfigurationExtensions, IConfigurationRegistry } from '../../../../../platform/configuration/common/configurationRegistry.js';
 import { Registry } from '../../../../../platform/registry/common/platform.js';
 import { OpenAgentHostStateFileAction } from '../../agentHost/browser/openAgentHostStateFileAction.js';
 import '../../../../../workbench/contrib/chat/browser/remoteAgentHost/remoteAgentHost.contribution.js';
 import './remoteAgentHostActions.js';
-import './missionControlAgentHostContribution.js';
 import './manageRemoteAgentHosts.js';
 import '../../agentHost/browser/agentHostAgentPicker.js';
 
@@ -24,7 +22,7 @@ Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Configuration).regis
 	properties: {
 		[RemoteAgentHostAutoConnectSettingId]: {
 			type: 'boolean',
-			description: nls.localize('chat.remoteAgentHosts.autoConnect', "Automatically connect to online dev tunnel, SSH, and WSL remote agent hosts on startup, and to online GitHub environments in the web Agents window. When disabled, cached sessions are still shown but connections are established only on demand."),
+			description: nls.localize('chat.remoteAgentHosts.autoConnect', "Automatically connect to configured SSH and WSL remote agent hosts on startup. When disabled, cached sessions are still shown but connections are established only on demand."),
 			default: true,
 			scope: ConfigurationScope.APPLICATION,
 			tags: ['experimental', 'advanced'],
@@ -72,14 +70,6 @@ Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Configuration).regis
 			default: [],
 			scope: ConfigurationScope.APPLICATION,
 			restricted: true,
-			tags: ['experimental', 'advanced'],
-		},
-		[TunnelAgentHostsSettingId]: {
-			type: 'array',
-			items: { type: 'string' },
-			description: nls.localize('chat.remoteAgentTunnels', "Additional dev tunnel names to look for when connecting to remote agent hosts. These are looked up in addition to tunnels automatically enumerated from your account."),
-			default: [],
-			scope: ConfigurationScope.APPLICATION,
 			tags: ['experimental', 'advanced'],
 		},
 		[AgentHostLocalFilePermissionsSettingId]: {

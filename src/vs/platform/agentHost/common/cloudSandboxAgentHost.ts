@@ -7,7 +7,7 @@
 // `copilot-developer-cli`), which run the Copilot agent runtime (`copilotd`) inside a Mission
 // Control managed sandbox and speak the Agent Host Protocol over an Azure Web PubSub relay.
 //
-// Like `tunnelAgentHost.ts` / `sshRemoteAgentHost.ts` / `wslRemoteAgentHost.ts`, this describes how
+// Like `sshRemoteAgentHost.ts` / `wslRemoteAgentHost.ts`, this describes how
 // to reach an agent host over one transport; it does not define a new kind of agent host.
 
 import { CancellationToken } from '../../../base/common/cancellation.js';
@@ -319,15 +319,6 @@ export interface ICloudSandboxEnvironment {
 	readonly encryption_keys?: readonly IHostEncryptionKey[];
 }
 
-/** Credential-free discovery metadata for a Mission Control environment. */
-export interface IMissionControlEnvironment {
-	readonly id: string;
-	/** Open vocabulary; only online permits attachment without a warning. */
-	readonly status: string;
-	readonly kind: string;
-	readonly name: string;
-}
-
 /** Identifies which sandbox environment/session credentials are being minted for. */
 export interface ICloudSandboxConnectionRequest {
 	/** Stable environment identifier (`env_<uuid>`) of the sandbox. */
@@ -419,10 +410,6 @@ export interface ICloudSandboxApiService {
 	 * Control only discovers by attempting the resume behind `/connect`.
 	 */
 	getEnvironment(environmentId: string, token: CancellationToken): Promise<ICloudSandboxEnvironment>;
-	/** Lists the authenticated account's environments without attaching or provisioning compute. */
-	listEnvironments(token: CancellationToken, options?: { readonly refresh?: boolean }): Promise<readonly IMissionControlEnvironment[]>;
-	/** Returns fresh credential-free inventory for the current account without issuing a request. */
-	getCachedEnvironments(): readonly IMissionControlEnvironment[] | undefined;
 
 	/** Enumerate sandbox sessions, or refresh only the tasks named by feed notifications. */
 	listSessions(token: CancellationToken, options?: { readonly incremental?: boolean; readonly taskIds?: readonly string[] }): Promise<ICloudSandboxDiscoveryResult>;
@@ -515,16 +502,12 @@ export const ICloudSandboxAgentHostService = createDecorator<ICloudSandboxAgentH
 
 /** Options for establishing a live AHP relay to a cloud sandbox environment. */
 export interface ICloudSandboxConnectOptions {
-	/** Selects the generic native-host path rather than sandbox checkout preparation. */
-	readonly environmentKind?: 'user-local';
 	/** Stable Mission Control environment identifier (`env_<uuid>`). */
 	readonly environmentId: string;
 	/** The cloud session/task id this connection is for, used for token minting. */
 	readonly sessionId?: string;
 	/** Human-readable display name for the connection. */
 	readonly name: string;
-	/** Local identity that owns this staged user-local connection; never sent to MC. */
-	readonly accountKey?: string;
 	/** Caller provenance, not a claim about warm or cold compute. */
 	readonly connectionSource?: 'created' | 'existing';
 	/** Local task-creation start time for end-to-end provisioning telemetry; never persisted or sent to MC. */

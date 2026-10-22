@@ -86,8 +86,6 @@ import { DEV_CONTAINER_AGENT_HOST_CHANNEL, IDevContainerAgentHostMainService } f
 import { DevContainerAgentHostMainService } from '../../../platform/agentHost/node/devContainerAgentHostService.js';
 import { IWSLRemoteAgentHostMainService, WSL_REMOTE_AGENT_HOST_CHANNEL } from '../../../platform/agentHost/common/wslRemoteAgentHost.js';
 import { WSLRemoteAgentHostMainService } from '../../../platform/agentHost/node/wslRemoteAgentHostService.js';
-import { ITunnelAgentHostMainService, TUNNEL_AGENT_HOST_CHANNEL } from '../../../platform/agentHost/common/tunnelAgentHost.js';
-import { TunnelAgentHostMainService } from '../../../platform/agentHost/node/tunnelAgentHostService.js';
 import { IUserDataProfilesService } from '../../../platform/userDataProfile/common/userDataProfile.js';
 import { IExtensionsProfileScannerService } from '../../../platform/extensionManagement/common/extensionsProfileScannerService.js';
 import { PolicyChannelClient } from '../../../platform/policy/common/policyIpc.js';
@@ -95,13 +93,10 @@ import { IPolicyService, NullPolicyService } from '../../../platform/policy/comm
 import { UserDataProfilesService } from '../../../platform/userDataProfile/common/userDataProfileIpc.js';
 import { OneDataSystemAppender } from '../../../platform/telemetry/node/1dsAppender.js';
 import { UserDataProfilesCleaner } from './contrib/userDataProfilesCleaner.js';
-import { IRemoteTunnelService } from '../../../platform/remoteTunnel/common/remoteTunnel.js';
 import { ExtensionsContributions } from './contrib/extensions.js';
 import { localize } from '../../../nls.js';
 import { LogService } from '../../../platform/log/common/logService.js';
 import { ISharedProcessLifecycleService, SharedProcessLifecycleService } from '../../../platform/lifecycle/node/sharedProcessLifecycleService.js';
-import { RemoteTunnelService } from '../../../platform/remoteTunnel/node/remoteTunnelService.js';
-import { ITunnelProcessCoordinator, TunnelProcessCoordinator } from '../../../platform/remoteTunnel/node/tunnelProcessCoordinator.js';
 import { ExtensionsProfileScannerService } from '../../../platform/extensionManagement/node/extensionsProfileScannerService.js';
 import { ExtensionRecommendationNotificationServiceChannelClient } from '../../../platform/extensionRecommendations/common/extensionRecommendationsIpc.js';
 import { INativeHostService } from '../../../platform/native/common/native.js';
@@ -109,6 +104,7 @@ import { NativeHostService } from '../../../platform/native/common/nativeHostSer
 import { ExtensionTipsService } from '../../../platform/extensionManagement/node/extensionTipsService.js';
 import { IMainProcessService, MainProcessService } from '../../../platform/ipc/common/mainProcessService.js';
 import { RemoteStorageService } from '../../../platform/storage/common/storageService.js';
+import { withdrawLegacyRemoteTunnel } from '../../../platform/remoteTunnel/node/legacyRemoteTunnelCleanup.js';
 import { IRemoteSocketFactoryService, RemoteSocketFactoryService } from '../../../platform/remote/common/remoteSocketFactoryService.js';
 import { RemoteConnectionType } from '../../../platform/remote/common/remoteAuthorityResolver.js';
 import { nodeSocketFactory } from '../../../platform/remote/node/nodeSocketFactory.js';
@@ -287,6 +283,8 @@ class SharedProcessMain extends Disposable implements IClientConnectionFilter {
 			storageService.initialize()
 		]);
 
+		void withdrawLegacyRemoteTunnel(storageService, environmentService, productService, logService);
+
 		// Request
 		const networkLogger = this._register(loggerService.createLogger(`network-shared`, { name: localize('networkk', "Network"), group: sharedLogGroup }));
 		const requestService = new RequestService(configurationService, environmentService, this._register(new LogService(networkLogger)));
@@ -391,9 +389,6 @@ class SharedProcessMain extends Disposable implements IClientConnectionFilter {
 		services.set(ISharedTunnelsService, new SyncDescriptor(SharedTunnelsService));
 		services.set(ISharedProcessTunnelService, new SyncDescriptor(SharedProcessTunnelService));
 
-		// Remote Tunnel
-		services.set(ITunnelProcessCoordinator, new SyncDescriptor(TunnelProcessCoordinator, [undefined], true));
-		services.set(IRemoteTunnelService, new SyncDescriptor(RemoteTunnelService));
 
 		// Web Content Extractor
 		services.set(ISharedWebContentExtractorService, new SyncDescriptor(SharedWebContentExtractorService));
@@ -410,8 +405,6 @@ class SharedProcessMain extends Disposable implements IClientConnectionFilter {
 		// WSL Remote Agent Host
 		services.set(IWSLRemoteAgentHostMainService, new SyncDescriptor(WSLRemoteAgentHostMainService, undefined, true));
 
-		// Tunnel Agent Host
-		services.set(ITunnelAgentHostMainService, new SyncDescriptor(TunnelAgentHostMainService, undefined, true));
 
 		return new InstantiationService(services);
 	}
@@ -458,10 +451,6 @@ class SharedProcessMain extends Disposable implements IClientConnectionFilter {
 		const sharedProcessTunnelChannel = ProxyChannel.fromService(accessor.get(ISharedProcessTunnelService), this._store);
 		this.server.registerChannel(ipcSharedProcessTunnelChannelName, sharedProcessTunnelChannel);
 
-		// Remote Tunnel
-		const remoteTunnelChannel = ProxyChannel.fromService(accessor.get(IRemoteTunnelService), this._store);
-		this.server.registerChannel('remoteTunnel', remoteTunnelChannel);
-
 		// Web Content Extractor
 		const webContentExtractorChannel = ProxyChannel.fromService(accessor.get(ISharedWebContentExtractorService), this._store);
 		this.server.registerChannel('sharedWebContentExtractor', webContentExtractorChannel);
@@ -489,10 +478,6 @@ class SharedProcessMain extends Disposable implements IClientConnectionFilter {
 		// WSL Remote Agent Host
 		const wslRemoteAgentHostChannel = ProxyChannel.fromService(accessor.get(IWSLRemoteAgentHostMainService), this._store);
 		this.server.registerChannel(WSL_REMOTE_AGENT_HOST_CHANNEL, wslRemoteAgentHostChannel);
-
-		// Tunnel Agent Host
-		const tunnelAgentHostChannel = ProxyChannel.fromService(accessor.get(ITunnelAgentHostMainService), this._store);
-		this.server.registerChannel(TUNNEL_AGENT_HOST_CHANNEL, tunnelAgentHostChannel);
 
 	}
 

@@ -35,7 +35,7 @@ export function resolveDevContainerSourceWorkspace(provider: ISessionsProvider |
 
 /**
  * Resolves the VS Code remote authority for the given session provider,
- * e.g. `ssh-remote+myhost` or `tunnel+myTunnel`.
+ * e.g. `ssh-remote+myhost`.
  *
  * Returns `undefined` for local or WebSocket-only providers where no
  * VS Code remote extension can handle the connection.
@@ -65,8 +65,6 @@ export function resolveRemoteAgentHostEntryAuthority(entry: IRemoteAgentHostEntr
 				return `ssh-remote+${entry.connection.sshConfigHost}`;
 			}
 			return `ssh-remote+${sshAuthorityString(entry.connection)}`;
-		case RemoteAgentHostEntryType.Tunnel:
-			return `tunnel+${entry.connection.label ?? `${entry.connection.tunnelId}.${entry.connection.clusterId}`}`;
 		case RemoteAgentHostEntryType.WSL:
 			return `wsl+${entry.connection.distro}`;
 		case RemoteAgentHostEntryType.DevContainer: {

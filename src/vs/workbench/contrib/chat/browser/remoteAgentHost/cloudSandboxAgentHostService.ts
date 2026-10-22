@@ -63,7 +63,6 @@ const SANDBOX_RECONNECT_POLICY = {
 	maxElapsedTimeMs: MAX_CONSECUTIVE_CREDENTIAL_REFRESH_FAILURES * MIN_CREDENTIAL_REFRESH_DELAY_MS,
 	jitter: true,
 };
-const USER_LOCAL_RECONNECT_POLICY = { ...SANDBOX_RECONNECT_POLICY, maxElapsedTimeMs: 120_000 };
 
 interface IStagedCloudSandboxConnection {
 	readonly entry: IRemoteAgentHostEntry;
@@ -259,10 +258,9 @@ class CloudSandboxConnectionFactory extends Disposable implements IRemoteAgentHo
 				}
 			});
 			await prepareCredentials(false);
-			const ahpLoggingEnabled = staged.options.environmentKind !== 'user-local'
-				&& !!this._configurationService.getValue<boolean>(AgentHostAhpJsonlLoggingSettingId);
+			const ahpLoggingEnabled = !!this._configurationService.getValue<boolean>(AgentHostAhpJsonlLoggingSettingId);
 			const transportFactory = (): IProtocolTransport => this._instantiationService.createInstance(WebPubSubRelayTransport, {
-				clientConnectionKind: staged.options.environmentKind === 'user-local' ? AgentHostClientConnectionKind.MissionControl : AgentHostClientConnectionKind.WebPubSub,
+				clientConnectionKind: AgentHostClientConnectionKind.WebPubSub,
 				clientId: staged.clientId,
 				url: buildWpsUrl(staged.creds.token),
 				toHostGroup: staged.creds.token.groups.to_host,
@@ -285,11 +283,11 @@ class CloudSandboxConnectionFactory extends Disposable implements IRemoteAgentHo
 				{
 					clientId: staged.clientId,
 					clientInfo: this._environmentService.isSessionsWindow ? agentsWindowAgentHostClientInfo : editorWindowAgentHostClientInfo,
-					reconnectPolicy: staged.options.environmentKind === 'user-local' ? USER_LOCAL_RECONNECT_POLICY : SANDBOX_RECONNECT_POLICY,
+					reconnectPolicy: SANDBOX_RECONNECT_POLICY,
 					onDidSuspend: this._powerService.onDidSuspend,
 					onDidResume: this._powerService.onDidResume,
 					prepareReconnect: async () => {
-						await prepareCredentials(staged.reconnectRequiresRefresh || staged.options.environmentKind === 'user-local');
+						await prepareCredentials(staged.reconnectRequiresRefresh);
 						staged.reconnectRequiresRefresh = true;
 					},
 					prepareAuthentication: async () => {
@@ -333,9 +331,7 @@ class CloudSandboxConnectionFactory extends Disposable implements IRemoteAgentHo
 		this._entries.set([...this._stagedConnections.values()].map(connection => connection.entry), undefined);
 	}
 
-	getUserLocalEnvironmentIds(account: string | undefined): readonly string[] {
-		return [...this._stagedConnections.values()].filter(connection => connection.options.environmentKind === 'user-local' && connection.options.accountKey !== account).map(connection => connection.options.environmentId);
-	}
+
 }
 
 /** Renderer-side coordinator for Copilot cloud sandbox connections. */
@@ -343,7 +339,6 @@ export class CloudSandboxAgentHostService extends Disposable implements ICloudSa
 	declare readonly _serviceBrand: undefined;
 
 	private readonly _connectionFactory: CloudSandboxConnectionFactory;
-	private _accountGeneration = 0;
 
 	/** Overridable so tests can exercise the re-mint loop without waiting on real delays. */
 	protected readonly sealedTokenRetryDelayMs: number = SEALED_TOKEN_RETRY_DELAY_MS;
@@ -354,17 +349,11 @@ export class CloudSandboxAgentHostService extends Disposable implements ICloudSa
 		@IConfigurationService private readonly _configurationService: IConfigurationService,
 		@IInstantiationService private readonly _instantiationService: IInstantiationService,
 		@ILogService private readonly _logService: ILogService,
-		@IAgentHostService private readonly _localAgentHostService: IAgentHostService,
 	) {
 		super();
 		this._connectionFactory = this._register(this._instantiationService.createInstance(CloudSandboxConnectionFactory));
 		this._register(this._remoteAgentHostService.registerConnectionFactory(this._connectionFactory));
-		this._register(this._apiService.onDidChangeAccount(account => {
-			this._accountGeneration++;
-			for (const id of this._connectionFactory.getUserLocalEnvironmentIds(account)) {
-				void this.disconnect(id).catch(error => this._logService.error('Failed to withdraw user-local MC connection', error));
-			}
-		}));
+
 	}
 
 	getSealedGitHubToken(environmentId: string): string | undefined {
@@ -383,26 +372,11 @@ export class CloudSandboxAgentHostService extends Disposable implements ICloudSa
 	}
 
 	async connect(options: ICloudSandboxConnectOptions, token: CancellationToken): Promise<string> {
-		if (options.environmentKind !== 'user-local' && !this._configurationService.getValue<boolean>(CloudSandboxEnabledSettingId)) {
+		if (!this._configurationService.getValue<boolean>(CloudSandboxEnabledSettingId)) {
 			throw new Error('Copilot cloud sandbox connections are not enabled.');
 		}
 		if (!this._configurationService.getValue<boolean>(RemoteAgentHostsEnabledSettingId)) {
 			throw new Error('Remote agent host connections are not enabled.');
-		}
-		let userLocalAccount: string | undefined;
-		const accountGeneration = this._accountGeneration;
-		if (options.environmentKind === 'user-local') {
-			if (await this._localAgentHostService.getMissionControlEnvironmentId?.() === options.environmentId) {
-				throw new Error('Use local IPC for this window\'s own Agent Host, not its Mission Control relay.');
-			}
-			const account = await this._apiService.getAccountKey();
-			if (!account) {
-				throw new Error('User-local Mission Control connections require a signed-in account.');
-			}
-			userLocalAccount = account;
-			for (const id of this._connectionFactory.getUserLocalEnvironmentIds(account)) {
-				await this.disconnect(id);
-			}
 		}
 
 		const address = cloudSandboxAddress(options.environmentId);
@@ -440,12 +414,6 @@ export class CloudSandboxAgentHostService extends Disposable implements ICloudSa
 				'credentials',
 				() => raceCancellationError(this._mintWithWaking(options, source.token, requestTelemetry), source.token),
 			);
-			if (userLocalAccount !== undefined) {
-				const verifiedAccount = await this._apiService.getAccountKey();
-				if (accountGeneration !== this._accountGeneration || verifiedAccount !== userLocalAccount) {
-					throw new CancellationError();
-				}
-			}
 
 			// A token only means Mission Control believes the environment is online — a sandbox deleted
 			// minutes ago still has a fresh heartbeat, so one is minted for a host that is already gone.
@@ -454,7 +422,7 @@ export class CloudSandboxAgentHostService extends Disposable implements ICloudSa
 			clientId = clientToken.client_id;
 			this._logService.info(`${LOG_PREFIX} Credentials ready: environmentId=${options.environmentId} sessionId=${options.sessionId ?? 'none'} clientId=${clientId} durationMs=${watch.elapsed()}`);
 			requestTelemetry?.setConnectStage('connection');
-			const result = await this._establish(userLocalAccount === undefined ? options : { ...options, accountKey: userLocalAccount }, address, clientToken, source.token);
+			const result = await this._establish(options, address, clientToken, source.token);
 			telemetry?.completeConnect(token.isCancellationRequested ? 'cancelled' : 'success');
 			return result;
 		} catch (error) {

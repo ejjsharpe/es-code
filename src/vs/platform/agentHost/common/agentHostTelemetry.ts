@@ -19,26 +19,22 @@ export const AgentHostLaunchKindEnvVar = 'VSCODE_AGENT_HOST_LAUNCH_KIND';
 export const enum AgentHostClientConnectionKind {
 	Local = 'local',
 	DirectWebSocket = 'direct_websocket',
-	DevTunnel = 'dev_tunnel',
 	DevContainer = 'dev_container',
 	SSH = 'ssh',
 	WSL = 'wsl',
 	RemoteExtensionHost = 'remote_extension_host',
 	WebPubSub = 'web_pub_sub',
-	MissionControl = 'mission_control',
 	Unknown = 'unknown',
 }
 
 export const agentHostClientConnectionKindValidator = vEnum(
 	AgentHostClientConnectionKind.Local,
 	AgentHostClientConnectionKind.DirectWebSocket,
-	AgentHostClientConnectionKind.DevTunnel,
 	AgentHostClientConnectionKind.DevContainer,
 	AgentHostClientConnectionKind.SSH,
 	AgentHostClientConnectionKind.WSL,
 	AgentHostClientConnectionKind.RemoteExtensionHost,
 	AgentHostClientConnectionKind.WebPubSub,
-	AgentHostClientConnectionKind.MissionControl,
 	AgentHostClientConnectionKind.Unknown,
 );
 

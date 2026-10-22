@@ -71,7 +71,6 @@ import {
 	IAgentPluginInstallRequest,
 	IAgentManagedPluginRetryEntry,
 	IAgentPluginUninstallRequest,
-	type IMissionControlOptions,
 	type IMissionControlCredentialSealingRequest,
 	IAgentResolveSessionConfigParams,
 	IAgentSessionConfigCompletionsParams,
@@ -786,18 +785,9 @@ export class LocalAgentHostServiceClient extends Disposable implements IAgentHos
 		);
 	}
 
-	configureMissionControl(options: IMissionControlOptions | undefined, withdrawingAccountId?: string): Promise<void> {
-		return this._getManagementService().configureMissionControl(options, withdrawingAccountId);
-	}
-
 	sealMissionControlCredential(request: IMissionControlCredentialSealingRequest): Promise<string> {
 		return this._getManagementService().sealMissionControlCredential(request);
 	}
-
-	getMissionControlEnvironmentId(): Promise<string | undefined> {
-		return this._getManagementService().getMissionControlEnvironmentId();
-	}
-
 }
 
 function hasSessionExtensions(config: IAgentCreateSessionConfig): boolean {

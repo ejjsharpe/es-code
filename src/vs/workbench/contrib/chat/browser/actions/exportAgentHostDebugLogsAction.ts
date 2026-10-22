@@ -44,9 +44,7 @@ import { ChatConfiguration } from '../../common/constants.js';
 import { getCopilotCliSessionRawId } from '../copilotCliEventsUri.js';
 import { getRemoteConnectionForSession, isAgentHostSession } from '../chatDebug/agentHostLogSources.js';
 import { buildAgentHostCustomizationsUri, buildAgentHostUsageUri } from '../chatDebug/agentHostUsageSidecar.js';
-import { MISSION_CONTROL_AHP_LOG_ID } from '../../../../../platform/agentHost/common/missionControlEnvironment.js';
 import { isAgentHostDebugLogsProgress } from '../../../../../platform/agentHost/common/meta/agentHostDebugLogsMeta.js';
-import { AgentHostClientConnectionKind } from '../../../../../platform/agentHost/common/agentHostTelemetry.js';
 
 const SHARED_PROCESS_LOG_FILE_NAME = 'sharedprocess.log';
 const OUTPUT_LOG_FOLDER_PREFIX = 'output_';
@@ -365,7 +363,7 @@ export async function collectAgentHostDebugLogs(
 	let hostCollectionError: string | undefined;
 	const token = options?.token ?? CancellationToken.None;
 	throwIfExportCancelled(token);
-	if (connection && connection.clientConnectionKind !== AgentHostClientConnectionKind.MissionControl) {
+	if (connection) {
 		const listeners = new DisposableStore();
 		try {
 			const progressToken = generateUuid();
@@ -497,8 +495,7 @@ export async function collectAgentHostDebugLogs(
 		const stat = await fileService.resolve(ahpDir, { resolveMetadata: true });
 		const candidates = (stat.children ?? [])
 			.filter(child => child.isFile && !child.isSymbolicLink && child.name.endsWith('.jsonl') && (!activeSession
-				|| ahpLogId && isAhpLogFileFor(ahpLogId, child.name)
-				|| activeSession.isLocal && isAhpLogFileFor(MISSION_CONTROL_AHP_LOG_ID, child.name)))
+				|| ahpLogId && isAhpLogFileFor(ahpLogId, child.name)))
 			.sort((a, b) => (b.mtime ?? 0) - (a.mtime ?? 0) || b.name.localeCompare(a.name));
 		const filesPerHost = new Map<string, number>();
 		for (const child of candidates) {

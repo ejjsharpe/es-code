@@ -87,7 +87,6 @@ import '../workbench/services/tunnel/electron-browser/tunnelService.js';
 import '../platform/diagnostics/electron-browser/diagnosticsService.js';
 import '../platform/profiling/electron-browser/profilingService.js';
 import '../platform/telemetry/electron-browser/customEndpointTelemetryService.js';
-import '../platform/remoteTunnel/electron-browser/remoteTunnelService.js';
 import '../workbench/services/files/electron-browser/elevatedFileService.js';
 import '../workbench/services/search/electron-browser/searchService.js';
 import '../workbench/services/workingCopy/electron-browser/workingCopyHistoryService.js';
@@ -234,10 +233,8 @@ import './contrib/openAgentsWindow/electron-browser/openAgentsWindow.contributio
 import '../workbench/services/agentHost/electron-browser/agentHostService.js';
 import '../platform/agentHost/electron-browser/sshRemoteAgentHostService.js';
 import '../platform/agentHost/electron-browser/wslRemoteAgentHostService.js';
-import './contrib/providers/remoteAgentHost/electron-browser/tunnelAgentHostService.js';
 import './contrib/providers/remoteAgentHost/browser/remoteAgentHost.contribution.js';
 import './contrib/providers/remoteAgentHost/browser/remoteAgentHostTerminal.contribution.js';
-import './contrib/providers/remoteAgentHost/browser/tunnelAgentHost.contribution.js';
 import './contrib/providers/remoteAgentHost/browser/wslAgentHost.contribution.js';
 import './contrib/providers/remoteAgentHost/browser/sshAgentHost.contribution.js';
 import './contrib/providers/remoteAgentHost/browser/webSocketAgentHost.contribution.js';

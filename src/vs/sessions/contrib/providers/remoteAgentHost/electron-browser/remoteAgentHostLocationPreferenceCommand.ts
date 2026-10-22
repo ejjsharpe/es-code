@@ -20,7 +20,6 @@ import {
 	RemoteAgentHostsEnabledSettingId,
 } from '../../../../../platform/agentHost/common/remoteAgentHostService.js';
 import { computeSSHConnectionKey } from '../../../../../platform/agentHost/common/sshRemoteAgentHost.js';
-import { ICachedTunnel, ITunnelAgentHostService, TUNNEL_ADDRESS_PREFIX } from '../../../../../platform/agentHost/common/tunnelAgentHost.js';
 import { IRemoteAgentHostLocationPreferenceService } from '../../../../../platform/agentHost/common/remoteAgentHostLocationPreference.js';
 import { ChangeRemoteAgentHostLocationPreferenceCommandId } from '../../../../../platform/agentHost/common/remoteAgentHostLocationPreferenceDialog.js';
 import { CHAT_CATEGORY } from '../../../../../workbench/contrib/chat/browser/actions/chatActions.js';
@@ -34,30 +33,27 @@ import { changeRemoteAgentHostLocationPreference } from '../browser/remoteHostOp
 export interface IRemoteAgentHostLocationTarget {
 	/**
 	 * Stable key persisted via {@link IRemoteAgentHostLocationPreferenceService}
-	 * and read back by `SSHRemoteAgentHostService`/`TunnelAgentHostService`
-	 * (e.g. `ssh:<alias>` from {@link computeSSHConnectionKey}, or
-	 * `tunnel:<tunnelId>`). Distinct from {@link address}, which is the
+	 * and read back by `SSHRemoteAgentHostService`
+	 * (e.g. `ssh:<alias>` from {@link computeSSHConnectionKey}). Distinct from {@link address}, which is the
 	 * live, connection-specific endpoint.
 	 */
 	readonly preferenceKey: string;
 	/**
 	 * The live provider/connection address used to resolve the currently
 	 * registered {@link IAgentHostSessionsProvider} (e.g. an SSH host's
-	 * forwarded `localhost:<port>` endpoint, or the same value as
-	 * {@link preferenceKey} for tunnels).
+	 * forwarded `localhost:<port>` endpoint).
 	 */
 	readonly address: string;
 	readonly label: string;
 }
 
 /**
- * Enumerate the known SSH and tunnel remote hosts as preference targets,
+ * Enumerate the known SSH remote hosts as preference targets,
  * deduplicated by stable preference key. WebSocket/WSL/cloud-sandbox entries
  * are not yet supported preference targets.
  */
 export function collectRemoteAgentHostLocationTargets(
 	sshEntries: readonly IRemoteAgentHostEntry[],
-	cachedTunnels: readonly ICachedTunnel[],
 ): IRemoteAgentHostLocationTarget[] {
 	const targets = new Map<string, IRemoteAgentHostLocationTarget>();
 
@@ -76,12 +72,6 @@ export function collectRemoteAgentHostLocationTargets(
 		}
 	}
 
-	for (const tunnel of cachedTunnels) {
-		const preferenceKey = `${TUNNEL_ADDRESS_PREFIX}${tunnel.tunnelId}`;
-		if (!targets.has(preferenceKey)) {
-			targets.set(preferenceKey, { preferenceKey, address: preferenceKey, label: tunnel.name });
-		}
-	}
 
 	return [...targets.values()];
 }
@@ -148,7 +138,6 @@ registerAction2(class extends Action2 {
 
 	override async run(accessor: ServicesAccessor): Promise<void> {
 		const remoteAgentHostService = accessor.get(IRemoteAgentHostService);
-		const tunnelAgentHostService = accessor.get(ITunnelAgentHostService);
 		const locationPreferenceService = accessor.get(IRemoteAgentHostLocationPreferenceService);
 		const quickInputService = accessor.get(IQuickInputService);
 		const dialogService = accessor.get(IDialogService);
@@ -157,7 +146,7 @@ registerAction2(class extends Action2 {
 		const progressService = accessor.get(IProgressService);
 		const sessionsProvidersService = accessor.get(ISessionsProvidersService);
 
-		const targets = collectRemoteAgentHostLocationTargets(remoteAgentHostService.configuredEntries, tunnelAgentHostService.getCachedTunnels());
+		const targets = collectRemoteAgentHostLocationTargets(remoteAgentHostService.configuredEntries);
 		if (targets.length === 0) {
 			notificationService.info(localize('remoteAgentHostLocation.noHosts', "No remote agent hosts are configured yet. Connect to one first, then change its preferred agent run location."));
 			return;

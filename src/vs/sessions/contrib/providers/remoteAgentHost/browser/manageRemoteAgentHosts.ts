@@ -16,7 +16,6 @@ import { ServicesAccessor, IInstantiationService } from '../../../../../platform
 import { IRemoteAgentHostService, RemoteAgentHostsEnabledSettingId } from '../../../../../platform/agentHost/common/remoteAgentHostService.js';
 import { IConfigurationService } from '../../../../../platform/configuration/common/configuration.js';
 import { INotificationService } from '../../../../../platform/notification/common/notification.js';
-import { TUNNEL_ADDRESS_PREFIX } from '../../../../../platform/agentHost/common/tunnelAgentHost.js';
 import { IQuickInputButton, IQuickInputService, IQuickPickItem, IQuickPickSeparator } from '../../../../../platform/quickinput/common/quickInput.js';
 import { Menus } from '../../../../browser/menus.js';
 import { SessionsCategories } from '../../../../common/categories.js';
@@ -76,12 +75,11 @@ registerAction2(class extends Action2 {
 				.filter((p: IAgentHostSessionsProvider) => !p.hostGroup);
 
 			const remoteItems: IRemoteHostQuickPickItem[] = remoteProviders.map((p: IAgentHostSessionsProvider) => {
-				const isTunnel = p.remoteAddress?.startsWith(TUNNEL_ADDRESS_PREFIX);
 				const status = p.connectionStatus?.get();
 				const item: IRemoteHostQuickPickItem = {
 					kind: 'remote',
 					provider: p,
-					label: `$(${isTunnel ? 'cloud' : 'remote'}) ${p.label}`,
+					label: `$(remote) ${p.label}`,
 					description: status !== undefined ? p.hostDescription
 						? localize('manageHosts.connectionStatus', "Connection: {0}", getStatusLabel(status))
 						: getStatusLabel(status) : undefined,

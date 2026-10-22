@@ -8,9 +8,8 @@ import { URI } from '../../../base/common/uri.js';
 import { ILogService } from '../../log/common/log.js';
 import type { IMcpServerConfiguration } from '../../mcp/common/mcpPlatformTypes.js';
 import { type AgentCanvasDefinitionSnapshot, type AgentProvider, type IAgentCanvasCloseRequest, type IAgentCanvasOpenRequest, IAgentCreateChatRequestOptions, IAgentCreateSessionConfig, type IAgentCustomizationInstallation, type IAgentCustomizationInstallationApplyResult, type IAgentCustomizationInstallationRequest, type IAgentCustomizationInstallationReview, type IAgentCustomizationMarketplaceSearchRequest, type IAgentCustomizationMarketplaceSearchResult, type IAgentManagedPluginRetryEntry, type IAgentPluginInstallRequest, type IAgentPluginUninstallRequest } from '../common/agent.js';
-import { IAgentHostInspectInfo, IAgentHostManagedSettingsDiagnostics, IAgentHostManagementService, IAgentHostNetworkDiagnosticsInfo, IAgentHostNetworkFetchResult, IAgentHostSocketInfo, IAgentService, IConnectionTrackerService, type AgentHostDebugLogsArtifactKind, type IAgentHostDebugLogsArtifact, type IAgentHostDebugLogsChunk, type IMissionControlOptions, type IMissionControlCredentialSealingRequest } from '../common/agentService.js';
+import { IAgentHostInspectInfo, IAgentHostManagedSettingsDiagnostics, IAgentHostManagementService, IAgentHostNetworkDiagnosticsInfo, IAgentHostNetworkFetchResult, IAgentHostSocketInfo, IAgentService, IConnectionTrackerService, type AgentHostDebugLogsArtifactKind, type IAgentHostDebugLogsArtifact, type IAgentHostDebugLogsChunk, type IMissionControlCredentialSealingRequest } from '../common/agentService.js';
 import { sealMissionControlCredential } from './missionControl/missionControlAuthentication.js';
-import { MissionControlEnvironment } from './missionControl/missionControlEnvironment.js';
 import { ISessionDataService } from '../common/sessionDataService.js';
 import { IAgentHostSystemWakeService } from './agentHostSystemWakeService.js';
 
@@ -20,7 +19,6 @@ const SHUTDOWN_FLUSH_TIMEOUT_MS = 2500;
 
 export class AgentHostManagementService implements IAgentHostManagementService {
 	declare readonly _serviceBrand: undefined;
-	private _missionControl: MissionControlEnvironment | undefined;
 
 	private _shutdownPromise: Promise<void> | undefined;
 	private _shuttingDown = false;
@@ -35,26 +33,11 @@ export class AgentHostManagementService implements IAgentHostManagementService {
 		@IAgentHostSystemWakeService private readonly _systemWake: IAgentHostSystemWakeService,
 	) { }
 
-	setMissionControl(service: MissionControlEnvironment | undefined): void {
-		this._missionControl = service;
-	}
-
-	configureMissionControl(options: IMissionControlOptions | undefined, withdrawingAccountId?: string): Promise<void> {
-		if (!this._missionControl) {
-			throw new Error('Mission Control is unavailable in this Agent Host');
-		}
-		return this._missionControl.configure(options, withdrawingAccountId);
-	}
-
 	sealMissionControlCredential(request: IMissionControlCredentialSealingRequest): Promise<string> {
-		if (!this._missionControl || this._shuttingDown) {
-			throw new Error('Local Mission Control sealing is unavailable');
+		if (this._shuttingDown) {
+			throw new Error('Local credential sealing is unavailable');
 		}
 		return sealMissionControlCredential(request);
-	}
-
-	async getMissionControlEnvironmentId(): Promise<string | undefined> {
-		return this._missionControl?.environmentId;
 	}
 
 	createSessionWithExtensions(config: IAgentCreateSessionConfig): Promise<URI> {

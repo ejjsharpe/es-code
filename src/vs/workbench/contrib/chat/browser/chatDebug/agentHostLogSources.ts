@@ -13,9 +13,6 @@ import { findRemoteAgentHostSessionTypeAuthority, isRemoteAgentHostSessionType }
 import { localize } from '../../../../../nls.js';
 import { agentHostAuthority, toAgentHostUri } from '../../../../../platform/agentHost/common/agentHostUri.js';
 import { IAgentConnection, IAgentHostService } from '../../../../../platform/agentHost/common/agentService.js';
-import { AgentHostClientConnectionKind } from '../../../../../platform/agentHost/common/agentHostTelemetry.js';
-import { MISSION_CONTROL_AHP_LOG_ID } from '../../../../../platform/agentHost/common/missionControlEnvironment.js';
-import { readAgentHostAhpLogDirectory } from '../../../../../platform/agentHost/common/meta/agentHostDebugLogsMeta.js';
 import { AGENT_HOST_LOG_OUTPUT_CHANNEL_ID, IRemoteAgentHostConnectionInfo, IRemoteAgentHostService, remoteAgentHostLogOutputChannelId } from '../../../../../platform/agentHost/common/remoteAgentHostService.js';
 import { IConfigurationService } from '../../../../../platform/configuration/common/configuration.js';
 import { IEnvironmentService } from '../../../../../platform/environment/common/environment.js';
@@ -167,11 +164,8 @@ export async function enumerateAgentHostLogSources(
 	}
 
 	// 2. Existing AHP wire log(s). The setting controls logger creation, not whether historical files remain discoverable.
-	const connection = remoteAddress ? remoteAgentHostService.getConnection(remoteAddress) : undefined;
-	const hostWireDirectory = connection?.clientConnectionKind === AgentHostClientConnectionKind.MissionControl
-		? getAgentHostWireLogDirectory(connection) : undefined;
-	const ahpLogId = hostWireDirectory ? MISSION_CONTROL_AHP_LOG_ID : isLocal ? agentHostService.clientId : remoteAddress;
-	const wireFiles = await listAgentHostWireLogFiles(fileService, hostWireDirectory ?? joinPath(environmentService.logsHome, 'ahp'), ahpLogId, services.logService);
+	const ahpLogId = isLocal ? agentHostService.clientId : remoteAddress;
+	const wireFiles = await listAgentHostWireLogFiles(fileService, joinPath(environmentService.logsHome, 'ahp'), ahpLogId, services.logService);
 	wireFiles.forEach((file, index) => {
 		sources.push({
 			id: `wire:${file.resource.toString()}`,
@@ -292,11 +286,6 @@ export async function readAgentHostLogSourceContent(
 			return tailString(combined, capBytes);
 		}
 	}
-}
-
-export function getAgentHostWireLogDirectory(connection: IAgentConnection): URI | undefined {
-	const directory = readAgentHostAhpLogDirectory(connection.initializeResult.get());
-	return directory ? connection.resourceUris.fromAgentHost(directory) : undefined;
 }
 
 export async function listAgentHostWireLogFiles(

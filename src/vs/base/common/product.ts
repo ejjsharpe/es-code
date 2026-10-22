@@ -229,7 +229,6 @@ export interface IProductConfiguration {
 	readonly serverDataFolderName?: string;
 
 	readonly tunnelApplicationName?: string;
-	readonly tunnelApplicationConfig?: ITunnelApplicationConfig;
 
 	readonly checksums?: { [path: string]: string };
 	readonly checksumFailMoreInfoUrl?: string;

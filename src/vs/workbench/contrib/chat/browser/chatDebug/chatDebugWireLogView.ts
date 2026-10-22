@@ -36,7 +36,6 @@ import { IChatService } from '../../common/chatService/chatService.js';
 import { LocalChatSessionUri } from '../../common/model/chatUri.js';
 import { AgentHostLogSourceKind, enumerateAgentHostLogSources, IAgentHostLogSource, IAgentHostLogSourceServices, isAgentHostSession, readAgentHostLogSourceContent } from './agentHostLogSources.js';
 import { setupBreadcrumbKeyboardNavigation, TextBreadcrumbItem } from './chatDebugTypes.js';
-import { AgentHostClientConnectionKind } from '../../../../../platform/agentHost/common/agentHostTelemetry.js';
 
 const $ = DOM.$;
 
@@ -302,16 +301,12 @@ export class ChatDebugWireLogView extends Disposable {
 		DOM.clearNode(this.selectHost);
 		this.selectBox = undefined;
 
-		const connection = this.currentSessionResource ? this.agentHostConnectionsService.resolveSessionResource(this.currentSessionResource)?.connection : undefined;
-		const missionControl = connection?.clientConnectionKind === AgentHostClientConnectionKind.MissionControl;
-		const wireLoggingEnabled = missionControl || this.configurationService.getValue<boolean>(AgentHostAhpJsonlLoggingSettingId);
+		const wireLoggingEnabled = this.configurationService.getValue<boolean>(AgentHostAhpJsonlLoggingSettingId);
 		DOM.clearNode(this.hintBar);
-		if (missionControl || !wireLoggingEnabled) {
+		if (!wireLoggingEnabled) {
 			DOM.show(this.hintBar);
 			DOM.append(this.hintBar, $(`span${ThemeIcon.asCSSSelector(Codicon.info)}`));
-			DOM.append(this.hintBar, $('span', undefined, missionControl
-				? localize('chatDebug.wireLog.hostCaptureHint', "Mission Control AHP logs are captured on the host. Configure {0} in the host's owning VS Code window.", AgentHostAhpJsonlLoggingSettingId)
-				: localize('chatDebug.wireLog.disabledHint', "AHP logging is disabled — enable {0} and reproduce to capture client↔host protocol frames.", AgentHostAhpJsonlLoggingSettingId)));
+			DOM.append(this.hintBar, $('span', undefined, localize('chatDebug.wireLog.disabledHint', "AHP logging is disabled — enable {0} and reproduce to capture client↔host protocol frames.", AgentHostAhpJsonlLoggingSettingId)));
 		} else {
 			DOM.hide(this.hintBar);
 		}

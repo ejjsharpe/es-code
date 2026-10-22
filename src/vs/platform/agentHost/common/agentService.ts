@@ -849,23 +849,6 @@ export interface IConnectionTrackerService {
  * Narrow renderer-to-local-agent-host control surface. All stateful agent
  * operations travel over {@link AgentHostIpcChannels.Protocol}.
  */
-export interface IMissionControlOptions {
-	readonly baseUrl: string;
-	readonly name?: string;
-	readonly accountId: string;
-	readonly credential: string;
-	readonly roots: readonly string[];
-	/** Catalogue entries, separate from filesystem grants. Defaults to the granted roots when omitted. */
-	readonly projects?: readonly string[];
-	readonly defaultDirectory?: string;
-	readonly live?: boolean;
-	readonly requireConnectionBinding?: boolean;
-	/** Explicit host-owner opt-in to use local Copilot credentials for same-owner relay clients. */
-	readonly useLocalCredentials?: boolean;
-	/** Explicit host-owner testing override; omit device remote-control policy from Mission Control registration. */
-	readonly ignoreRemoteControlPolicy?: boolean;
-}
-
 /** Stateless sealing on trusted local IPC; this surface is not exposed through AHP. */
 export interface IMissionControlCredentialSealingRequest {
 	readonly token: string;
@@ -876,10 +859,7 @@ export interface IMissionControlCredentialSealingRequest {
 
 export interface IAgentHostManagementService {
 	readonly _serviceBrand: undefined;
-	/** Opt-in Mission Control ingress configured through trusted local IPC. */
-	configureMissionControl(options: IMissionControlOptions | undefined, withdrawingAccountId?: string): Promise<void>;
 	sealMissionControlCredential(request: IMissionControlCredentialSealingRequest): Promise<string>;
-	getMissionControlEnvironmentId(): Promise<string | undefined>;
 
 	/**
 	 * Local-only compatibility path for session fields not yet represented by
@@ -1519,9 +1499,7 @@ export interface IAgentHostService extends IAgentConnection {
 
 	readonly _serviceBrand: undefined;
 	/** Available only through the local native Agent Host management connection. */
-	configureMissionControl?(options: IMissionControlOptions | undefined, withdrawingAccountId?: string): Promise<void>;
 	sealMissionControlCredential?(request: IMissionControlCredentialSealingRequest): Promise<string>;
-	getMissionControlEnvironmentId?(): Promise<string | undefined>;
 	/**
 	 * Whether {@link createSession} can seed `importConversation` history. AHP
 	 * cannot carry it, so only the local native Agent Host management connection

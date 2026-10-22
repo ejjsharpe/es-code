@@ -41,7 +41,6 @@ import {
 	ICloudSandboxSealedToken,
 	ICloudSandboxSealTokenRequest,
 	IHostEncryptionKey,
-	IMissionControlEnvironment,
 	ICloudSandboxModelCatalog,
 	ICloudSandboxSessionFeedConnection,
 } from '../../../../../platform/agentHost/common/cloudSandboxAgentHost.js';
@@ -234,7 +233,6 @@ export class CloudSandboxApiService extends Disposable implements ICloudSandboxA
 	private _accountGeneration = 0;
 	private _historyRequestId = 0;
 	private readonly _historyCache = this._register(new CloudSandboxHistoryCache());
-	private _environments: { readonly generation: number; readonly fetchedAt: number; readonly values: readonly IMissionControlEnvironment[] } | undefined;
 	private readonly _onDidChangeAccount = this._register(new Emitter<string | undefined>());
 	readonly onDidChangeAccount = this._onDidChangeAccount.event;
 
@@ -499,49 +497,6 @@ export class CloudSandboxApiService extends Disposable implements ICloudSandboxA
 		// can block for its whole budget.
 		this._logService.trace(`${LOG_PREFIX} Environment ${environmentId}: status=${environment.status}, ahp=${environment.capabilities?.ahp_version ?? 'unknown'}`);
 		return environment;
-	}
-
-	getCachedEnvironments(): readonly IMissionControlEnvironment[] | undefined {
-		return this._environments?.generation === this._discoveryGeneration && Date.now() - this._environments.fetchedAt < 60_000
-			? this._environments.values : undefined;
-	}
-
-	async listEnvironments(token: CancellationToken, options?: { readonly refresh?: boolean }): Promise<readonly IMissionControlEnvironment[]> {
-		const generation = this._discoveryGeneration;
-		const cached = this.getCachedEnvironments();
-		if (!options?.refresh && cached) {
-			return cached;
-		}
-		const context = await this._request(`${GITHUB_DOT_COM_COPILOT_API_BASE_URI}/agents/environments`, 'mc.environmentClient.list', 'listEnvironments', {
-			'Copilot-Integration-Id': COPILOT_INTEGRATION_ID,
-		}, token);
-		if (!isSuccess(context)) {
-			await this._throwForStatus('list environments', context);
-		}
-		const response = await this._readJson<unknown>(context);
-		if (!Array.isArray(response)) {
-			throw new Error('Mission Control returned invalid environment discovery metadata');
-		}
-		const values: IMissionControlEnvironment[] = [];
-		for (const value of response as readonly unknown[]) {
-			if (!isObject(value)) {
-				this._logService.warn('Ignoring malformed Mission Control environment metadata');
-				continue;
-			}
-			const environment = value as Partial<IMissionControlEnvironment>;
-			if (typeof environment.id !== 'string' || !/^[A-Za-z0-9_-]+$/.test(environment.id)
-				|| typeof environment.name !== 'string' || !environment.name.trim() || typeof environment.kind !== 'string'
-				|| typeof environment.status !== 'string' || !environment.status) {
-				this._logService.warn('Ignoring incomplete Mission Control environment metadata');
-				continue;
-			}
-			values.push({ id: environment.id, name: environment.name, kind: environment.kind, status: environment.status });
-		}
-		if (generation !== this._discoveryGeneration) {
-			throw new CancellationError();
-		}
-		this._environments = { generation, fetchedAt: Date.now(), values };
-		return values;
 	}
 
 	/** Incremental scans preserve absent tasks; full scans also find tasks without environment-kind metadata. */

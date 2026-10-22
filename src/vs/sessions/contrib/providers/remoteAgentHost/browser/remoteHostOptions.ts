@@ -13,7 +13,6 @@ import { toAction } from '../../../../../base/common/actions.js';
 import Severity from '../../../../../base/common/severity.js';
 import { IRemoteAgentHostService, removeWebSocketRemoteAgentHostEntry, RemoteAgentHostConnectionStatus } from '../../../../../platform/agentHost/common/remoteAgentHostService.js';
 import { IConfigurationService } from '../../../../../platform/configuration/common/configuration.js';
-import { TUNNEL_ADDRESS_PREFIX } from '../../../../../platform/agentHost/common/tunnelAgentHost.js';
 import { IRemoteAgentHostLocationPreferenceService } from '../../../../../platform/agentHost/common/remoteAgentHostLocationPreference.js';
 import { promptRemoteAgentHostLocationPreference } from '../../../../../platform/agentHost/common/remoteAgentHostLocationPreferenceDialog.js';
 import { IClipboardService } from '../../../../../platform/clipboard/common/clipboardService.js';
@@ -288,7 +287,7 @@ export function supportsRemoteAgentHostLocationPreference(preferenceKey: string,
 	if (isWebPlatform) {
 		return false;
 	}
-	return preferenceKey.startsWith(SSH_ADDRESS_PREFIX) || preferenceKey.startsWith(TUNNEL_ADDRESS_PREFIX);
+	return preferenceKey.startsWith(SSH_ADDRESS_PREFIX);
 }
 
 /**

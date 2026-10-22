@@ -16,7 +16,6 @@ import type { UnsupportedProtocolVersionErrorData } from './state/protocol/error
 import { AHP_UNSUPPORTED_PROTOCOL_VERSION, ProtocolError } from './state/sessionProtocol.js';
 import { AgentHostTransportFailureReason } from './state/sessionTransport.js';
 import { readUnsupportedProtocolVersionErrorMeta, type IVscodeUpgradeResult } from './state/protocolUpgrade.js';
-import { TUNNEL_ADDRESS_PREFIX } from './tunnelAgentHost.js';
 import { DEFAULT_RECONNECT_POLICY, type IRemoteAgentHostReconnectPolicy } from './reconnectPolicy.js';
 import { normalizeRemoteAgentHostAddress } from './agentHostUri.js';
 import { getGlobalConfigurationValue } from './agentHostConfigurationSync.js';
@@ -135,14 +134,13 @@ export const RemoteAgentHostsSettingId = 'chat.remoteAgentHosts';
 /** Configuration key to enable remote agent host connections. */
 export const RemoteAgentHostsEnabledSettingId = 'chat.remoteAgentHostsEnabled';
 
-/** Configuration key that controls whether online dev tunnels, configured SSH remote agent hosts, and WSL remote agent hosts are auto-connected at startup. */
+/** Configuration key that controls whether configured SSH and WSL remote agent hosts are auto-connected at startup. */
 export const RemoteAgentHostAutoConnectSettingId = 'chat.remoteAgentHostsAutoConnect';
 
 export const enum RemoteAgentHostEntryType {
 	WebSocket = 'websocket',
 	SSH = 'ssh',
 	WSL = 'wsl',
-	Tunnel = 'tunnel',
 	CloudSandbox = 'cloudSandbox',
 	DevContainer = 'devContainer',
 }
@@ -189,22 +187,6 @@ export interface IRemoteAgentHostSSHConnection {
 	readonly lifecycle?: SSHAgentHostLifecycle;
 }
 
-export interface IRemoteAgentHostTunnelConnection {
-	readonly type: RemoteAgentHostEntryType.Tunnel;
-	/** Dev tunnel ID. */
-	readonly tunnelId: string;
-	/** Dev tunnel cluster region. */
-	readonly clusterId: string;
-	/**
-	 * User-defined display name for this tunnel (derived from tunnel tags).
-	 * Used as the tunnel name in the VS Code Remote Tunnels authority
-	 * (e.g. `tunnel+<label>`). Falls back to {@link tunnelId} if not set.
-	 */
-	readonly label?: string;
-	/** Auth provider used to connect to this tunnel. */
-	readonly authProvider?: 'github' | 'microsoft';
-}
-
 export interface IRemoteAgentHostWSLConnection {
 	readonly type: RemoteAgentHostEntryType.WSL;
 	/** Display address: `wsl:<distro>`. */
@@ -243,7 +225,7 @@ export type IRemoteAgentHostDevContainerConnection = {
 	readonly hostAuthority?: string;
 } & ({ readonly hostPath: string; readonly repository?: never } | { readonly repository: IDevContainerRepository; readonly hostPath?: never });
 
-export type RemoteAgentHostConnection = IRemoteAgentHostWebSocketConnection | IRemoteAgentHostSSHConnection | IRemoteAgentHostWSLConnection | IRemoteAgentHostTunnelConnection | IRemoteAgentHostCloudSandboxConnection | IRemoteAgentHostDevContainerConnection;
+export type RemoteAgentHostConnection = IRemoteAgentHostWebSocketConnection | IRemoteAgentHostSSHConnection | IRemoteAgentHostWSLConnection | IRemoteAgentHostCloudSandboxConnection | IRemoteAgentHostDevContainerConnection;
 
 /** A configured remote agent host entry. WebSocket entries are persisted in {@link RemoteAgentHostsSettingId}; SSH entries are persisted in storage. */
 export interface IRemoteAgentHostEntry {
@@ -634,11 +616,6 @@ const WSL_ENTRY_TYPE_CONFIG: IRemoteAgentHostEntryTypeConfig<IRemoteAgentHostWSL
 	dialedFromEntries: true,
 	autoConnectGated: true,
 };
-const TUNNEL_ENTRY_TYPE_CONFIG: IRemoteAgentHostEntryTypeConfig<IRemoteAgentHostTunnelConnection> = {
-	...runtimeEntryTypeConfig<IRemoteAgentHostTunnelConnection>(RemoteAgentHostEntryType.Tunnel, false, connection => `${TUNNEL_ADDRESS_PREFIX}${connection.tunnelId}`),
-	dialedFromEntries: true,
-	autoConnectGated: true,
-};
 const CLOUD_SANDBOX_ENTRY_TYPE_CONFIG = runtimeEntryTypeConfig<IRemoteAgentHostCloudSandboxConnection>(RemoteAgentHostEntryType.CloudSandbox, true, connection => connection.address);
 // Relay failures are cheap, but a cold container can make `devcontainer up` rebuild Docker for minutes; retry slower and favor explicit recovery.
 const DEV_CONTAINER_RECONNECT_POLICY: IRemoteAgentHostReconnectPolicy = {
@@ -653,7 +630,6 @@ const ENTRY_TYPE_CONFIGS: { readonly [K in RemoteAgentHostEntryType]: IRemoteAge
 	[RemoteAgentHostEntryType.WebSocket]: WEBSOCKET_ENTRY_TYPE_CONFIG,
 	[RemoteAgentHostEntryType.SSH]: SSH_ENTRY_TYPE_CONFIG,
 	[RemoteAgentHostEntryType.WSL]: WSL_ENTRY_TYPE_CONFIG,
-	[RemoteAgentHostEntryType.Tunnel]: TUNNEL_ENTRY_TYPE_CONFIG,
 	[RemoteAgentHostEntryType.CloudSandbox]: CLOUD_SANDBOX_ENTRY_TYPE_CONFIG,
 	[RemoteAgentHostEntryType.DevContainer]: DEV_CONTAINER_ENTRY_TYPE_CONFIG,
 };

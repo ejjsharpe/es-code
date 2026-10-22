@@ -1906,10 +1906,8 @@ export class NewChatWidget extends Disposable {
 
 		// If no discovery cycle is in flight or has completed yet, kick one
 		// off so the empty state can resolve in a bounded time. The
-		// `tunnelAgentHost.contribution` already triggers a startup
-		// rediscover, but in the (rare) case the view mounts before the
-		// contribution gets a chance, this prevents the user from being
-		// stuck on a picker that never gets populated.
+		// Rediscover on first mount so the picker resolves even if no other
+		// contribution has requested host discovery yet.
 		if (!hasCompletedDiscovery && !filter.isDiscovering) {
 			filter.rediscover();
 		}

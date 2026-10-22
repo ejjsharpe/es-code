@@ -3145,8 +3145,7 @@ export class AgentHostProtocolClient extends Disposable implements IAgentConnect
 	}
 
 	private _isWebPubSubRelay(): boolean {
-		return this._transport.clientConnectionKind === AgentHostClientConnectionKind.WebPubSub
-			|| this._transport.clientConnectionKind === AgentHostClientConnectionKind.MissionControl;
+		return this._transport.clientConnectionKind === AgentHostClientConnectionKind.WebPubSub;
 	}
 
 	private _cancelLivenessTimers(): void {

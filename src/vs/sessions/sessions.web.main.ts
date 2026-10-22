@@ -77,7 +77,6 @@ import '../workbench/services/auxiliaryWindow/browser/auxiliaryWindowService.js'
 import '../workbench/services/power/browser/powerService.js';
 import '../workbench/services/localTranscription/browser/localTranscriptionService.js';
 import '../platform/sandbox/browser/sandboxHelperService.js';
-import '../platform/remoteTunnel/browser/remoteTunnelService.js';
 
 import { InstantiationType, registerSingleton } from '../platform/instantiation/common/extensions.js';
 import { IAccessibilityService } from '../platform/accessibility/common/accessibility.js';
@@ -142,10 +141,8 @@ import '../workbench/contrib/debug/browser/extensionHostDebugService.js';
 import '../workbench/contrib/welcomeBanner/browser/welcomeBanner.contribution.js';
 
 // Web tunnel agent host — discovers tunnels via Dev Tunnels REST API and connects via relay
-import './contrib/providers/remoteAgentHost/browser/webTunnelAgentHostService.contribution.js';
 
 // Tunnel agent host — reconciles discovered tunnels into session providers
-import './contrib/providers/remoteAgentHost/browser/tunnelAgentHost.contribution.js';
 
 // WSL agent host — reconciles cached WSL distros into session providers
 import './contrib/providers/remoteAgentHost/browser/wslAgentHost.contribution.js';

@@ -79,7 +79,7 @@ function frameDataToString(data: unknown): string {
 }
 
 export interface IWebPubSubRelayTransportOptions {
-	readonly clientConnectionKind?: AgentHostClientConnectionKind.MissionControl | AgentHostClientConnectionKind.WebPubSub;
+	readonly clientConnectionKind?: AgentHostClientConnectionKind.WebPubSub;
 	/** Mission Control's logical client ID, shared with the AHP initialize request. */
 	readonly clientId: string;
 	/** Full WebSocket URL (including the `access_token` and `clientId` query params). */

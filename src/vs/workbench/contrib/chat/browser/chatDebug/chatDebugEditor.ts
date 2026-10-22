@@ -305,7 +305,7 @@ export class ChatDebugEditor extends EditorPane {
 			&& !isChatDebugLoggingEnabledForSession(this.configurationService, session);
 		const wireLogDisabled = state === ViewState.WireLog
 			&& isAgentHostSession(session)
-			&& !isWireLogLoggingEnabled(this.configurationService, session ? this.agentHostConnectionsService.resolveSessionResource(session)?.connection : undefined);
+			&& !isWireLogLoggingEnabled(this.configurationService);
 
 		if (state === ViewState.Home) {
 			this.homeView?.show();
