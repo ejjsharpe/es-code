@@ -11,8 +11,7 @@
  *
  * Two variants are provided to cover the different tool names advertised by
  * each surface:
- *   - {@link shellEchoScenario} matches SDK-based sessions (Copilot CLI,
- *     Claude, AgentHost), which expose `bash` / `pwsh` / `powershell` tools.
+ *   - {@link shellEchoScenario} matches SDK-based sessions (Claude and Agent Host), which expose `bash` / `pwsh` / `powershell` tools.
  *   - {@link runInTerminalScenario} matches the VS Code built-in chat agent
  *     (used by the "Local" session), which exposes the `run_in_terminal`
  *     tool.
@@ -73,15 +72,13 @@ export function runInTerminalScenario(reply: string): unknown {
  * Matcher for the assistant text produced by {@link shellEchoScenario} or
  * {@link runInTerminalScenario}. The final response renders the tool result
  * as a ```json block; the exact format varies by surface:
- *   - Copilot CLI (responses-API):     `{ "output": "<reply>" }`
  *   - Local `run_in_terminal`:         `{ "output": "<reply>..." }`
  *   - Claude SDK Bash (messages-API):  `{ "content": "<reply>" }`
  *   - AgentHost custom terminal tool:  `{ "output": "ShellID: ...\nExitcode: 0\n<reply>" }`
  *
  * Anchoring on a JSON double-quote OR newline immediately preceding the reply
  * matches:
- *   - the value side of any `"<key>": "<reply>..."` pair (Copilot CLI, Claude,
- *     Local `run_in_terminal`), AND
+ *   - the value side of any `"<key>": "<reply>..."` pair (Claude and Local `run_in_terminal`), AND
  *   - the AgentHost custom-terminal format where the reply is preceded by
  *     `\n` inside a larger `"output"` string.
  *

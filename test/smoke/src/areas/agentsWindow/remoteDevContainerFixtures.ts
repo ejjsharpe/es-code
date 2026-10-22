@@ -400,17 +400,15 @@ interface IHostRuntime {
 function createAppEnvironment(options: IRemoteDevContainerFixtureOptions, resources: FixtureResources): Record<string, string | undefined> {
 	const home = path.join(resources.root, 'app-home');
 	const state = path.join(resources.root, 'app-state');
-	const copilotHome = path.join(state, '.copilot');
-	for (const directory of [home, state, copilotHome, path.join(home, '.config'), path.join(home, '.cache'), path.join(home, '.ssh')]) {
+	for (const directory of [home, state, path.join(home, '.config'), path.join(home, '.cache'), path.join(home, '.ssh')]) {
 		fs.mkdirSync(directory, { recursive: true, mode: 0o700 });
 	}
-	resources.add(async () => resources.preserveLogs(path.join(copilotHome, 'logs'), path.join(options.logsPath, 'remote-devcontainer-app-copilot-runtime')));
 	return {
 		// The real SSH UI saves its host entries in ~/.ssh/config. Isolate the
 		// workbench's home as well as the source host, not just user-data-dir.
 		HOME: home, USERPROFILE: home, APPDATA: path.join(home, 'AppData', 'Roaming'), LOCALAPPDATA: path.join(home, 'AppData', 'Local'),
 		XDG_STATE_HOME: state, XDG_CONFIG_HOME: path.join(home, '.config'), XDG_CACHE_HOME: path.join(home, '.cache'),
-		COPILOT_HOME: copilotHome, CODEX_HOME: path.join(state, '.codex'), SSH_AUTH_SOCK: undefined,
+		CODEX_HOME: path.join(state, '.codex'), SSH_AUTH_SOCK: undefined,
 		VSCODE_CLI_DATA_DIR: path.join(resources.root, 'app-cli'), VSCODE_CLI_USE_FILE_KEYCHAIN: '1',
 		[tunnelTokenEnvironmentKey]: undefined, VSCODE_CLI_ACCESS_TOKEN: undefined, VSCODE_CLI_REFRESH_TOKEN: undefined,
 		GH_TOKEN: undefined, GITHUB_TOKEN: undefined, GITHUB_PAT: 'smoketest-fake-pat',
@@ -440,7 +438,7 @@ function createHostRuntime(options: IRemoteDevContainerFixtureOptions, resources
 	fs.writeFileSync(tokenFile, token, { mode: 0o600 });
 	const home = path.join(resources.root, 'home');
 	const state = path.join(resources.root, 'state');
-	for (const directory of [home, state, path.join(home, '.copilot'), path.join(home, '.config'), path.join(home, '.cache')]) {
+	for (const directory of [home, state, path.join(home, '.config'), path.join(home, '.cache')]) {
 		fs.mkdirSync(directory, { recursive: true, mode: 0o700 });
 	}
 	const env: NodeJS.ProcessEnv = {
@@ -449,7 +447,7 @@ function createHostRuntime(options: IRemoteDevContainerFixtureOptions, resources
 		VSCODE_DEV: options.appOptions.codePath ? undefined : '1',
 		HOME: home, USERPROFILE: home,
 		XDG_STATE_HOME: state, XDG_CONFIG_HOME: path.join(home, '.config'), XDG_CACHE_HOME: path.join(home, '.cache'),
-		COPILOT_HOME: path.join(home, '.copilot'), CODEX_HOME: path.join(home, '.codex'),
+		CODEX_HOME: path.join(home, '.codex'),
 		VSCODE_CLI_DATA_DIR: path.join(resources.root, 'host-cli'), VSCODE_CLI_USE_FILE_KEYCHAIN: '1',
 		// Retain the selected Docker context without moving/writing the user's
 		// Docker configuration into the isolated HOME.
@@ -466,7 +464,6 @@ function createHostRuntime(options: IRemoteDevContainerFixtureOptions, resources
 	};
 	resources.add(async () => {
 		resources.preserveLogs(path.join(resources.root, 'host-user-data', 'logs'), path.join(options.logsPath, 'remote-devcontainer-host-runtime'));
-		resources.preserveLogs(path.join(home, '.copilot', 'logs'), path.join(options.logsPath, 'remote-devcontainer-copilot-runtime'));
 	});
 	return {
 		executable, env, token,
@@ -642,7 +639,7 @@ async function createSshFixture(options: IRemoteDevContainerFixtureOptions, reso
 	// Reassert isolation inside the login shell used by the real SSH client.
 	// No real credential is present in this command or in settings.json.
 	const environment = Object.entries(runtime.env).filter((entry): entry is [string, string] => entry[1] !== undefined &&
-		['HOME', 'USERPROFILE', 'XDG_STATE_HOME', 'XDG_CONFIG_HOME', 'XDG_CACHE_HOME', 'COPILOT_HOME', 'CODEX_HOME', 'ELECTRON_RUN_AS_NODE', 'VSCODE_DEV',
+		['HOME', 'USERPROFILE', 'XDG_STATE_HOME', 'XDG_CONFIG_HOME', 'XDG_CACHE_HOME', 'CODEX_HOME', 'ELECTRON_RUN_AS_NODE', 'VSCODE_DEV',
 			'PATH', 'DOCKER_CONFIG', 'COPILOT_API_URL', 'COPILOT_DEBUG_GITHUB_API_URL', 'VSCODE_AGENT_HOST_CAPI_URL_OVERRIDE',
 			'GITHUB_COPILOT_API_TOKEN', 'GITHUB_PAT', 'IS_SCENARIO_AUTOMATION', 'VSCODE_AGENT_HOST_CLAUDE_AGENT_ENABLED',
 			'VSCODE_AGENT_HOST_CODEX_AGENT_ENABLED', 'VSCODE_AGENT_HOST_TELEMETRY_LEVEL', 'VSCODE_CLI_DATA_DIR', 'VSCODE_CLI_USE_FILE_KEYCHAIN'].includes(entry[0]));
@@ -921,7 +918,6 @@ async function createWslFixture(options: IRemoteDevContainerFixtureOptions, reso
 				`ids=$(docker ps -aq --filter ${shellQuote(`label=devcontainer.local_folder=${workspacePath}`)})`,
 				'if [ -n "$ids" ]; then docker rm --force $ids; fi',
 				`if [ -d ${shellQuote(`${root}/user-data/logs`)} ]; then cp -r ${shellQuote(`${root}/user-data/logs`)} ${shellQuote(`${windowsRoot}/wsl-logs/host`)}; fi`,
-				`if [ -d ${shellQuote(`${root}/home/.copilot/logs`)} ]; then cp -r ${shellQuote(`${root}/home/.copilot/logs`)} ${shellQuote(`${windowsRoot}/wsl-logs/copilot`)}; fi`,
 			].join(' && '));
 			resources.preserveLogs(copiedLogs, path.join(options.logsPath, 'remote-devcontainer-wsl'));
 		} finally {
@@ -938,7 +934,7 @@ async function createWslFixture(options: IRemoteDevContainerFixtureOptions, reso
 		`cp ${shellQuote(`${windowsRoot}/host-token`)} ${shellQuote(`${root}/host-token`)}`,
 		`cp ${shellQuote(`${windowsRoot}/packagedAgentHost.cjs`)} ${shellQuote(`${root}/packagedAgentHost.cjs`)}`,
 		`chmod 600 ${shellQuote(`${root}/host-token`)}`,
-		`mkdir -p ${shellQuote(`${root}/home/.copilot`)} ${shellQuote(`${root}/home/.config`)} ${shellQuote(`${root}/home/.cache`)}`,
+		`mkdir -p ${shellQuote(`${root}/home/.config`)} ${shellQuote(`${root}/home/.cache`)}`,
 	].join(' && '));
 	const hostAddress = await run('if [ "$(wslinfo --networking-mode 2>/dev/null)" = mirrored ]; then printf 127.0.0.1; else ip route show default | awk \'{ print $3; exit }\'; fi');
 	if (!/^[0-9.]+$/.test(hostAddress)) {
@@ -953,7 +949,7 @@ async function createWslFixture(options: IRemoteDevContainerFixtureOptions, reso
 	const environment: Record<string, string> = {
 		HOME: `${root}/home`, XDG_STATE_HOME: `${root}/state`, XDG_CONFIG_HOME: `${root}/home/.config`, XDG_CACHE_HOME: `${root}/home/.cache`,
 		PATH: `${serverPath}:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin`,
-		COPILOT_HOME: `${root}/home/.copilot`, CODEX_HOME: `${root}/home/.codex`,
+		CODEX_HOME: `${root}/home/.codex`,
 		VSCODE_CLI_DATA_DIR: `${root}/cli`, VSCODE_CLI_USE_FILE_KEYCHAIN: '1',
 		VSCODE_SMOKE_TEST_WSL_MOCK_UPSTREAM: mockServerUrl.href,
 		VSCODE_SMOKE_TEST_PROXY_HEADER: process.env.VSCODE_SMOKE_TEST_PROXY_HEADER ?? 'dev-container',
