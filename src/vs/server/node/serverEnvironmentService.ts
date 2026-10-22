@@ -70,7 +70,6 @@ export const serverOptions: OptionDescriptions<Required<ServerParsedArgs>> = {
 	'default-folder': { type: 'string', description: nls.localize('default-folder', 'The workspace folder to open when no input is specified in the browser URL. A relative or absolute path resolved against the current working directory.') },
 	'default-workspace': { type: 'string', description: nls.localize('default-workspace', 'The workspace to open when no input is specified in the browser URL. A relative or absolute path resolved against the current working directory.') },
 
-	'enable-sync': { type: 'boolean' },
 	'github-auth': { type: 'string' },
 	'use-test-resolver': { type: 'boolean' },
 
@@ -207,7 +206,6 @@ export interface ServerParsedArgs {
 	folder: string;
 
 
-	'enable-sync'?: boolean;
 	'github-auth'?: string;
 	'use-test-resolver'?: boolean;
 

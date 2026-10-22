@@ -137,7 +137,6 @@ export interface NativeParsedArgs {
 	'preserve-env'?: boolean;
 	'force-user-env'?: boolean;
 	'force-disable-user-env'?: boolean;
-	'sync'?: 'on' | 'off';
 	'logsPath'?: string;
 	'__enable-file-policy'?: boolean;
 	'locate-shell-integration-path'?: string;

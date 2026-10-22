@@ -127,19 +127,6 @@ export class BrowserWorkbenchEnvironmentService implements IBrowserWorkbenchEnvi
 	@memoize
 	get stateResource(): URI { return joinPath(this.userRoamingDataHome, 'State', 'storage.json'); }
 
-	/**
-	 * In Web every workspace can potentially have scoped user-data
-	 * and/or extensions and if Sync state is shared then it can make
-	 * Sync error prone - say removing extensions from another workspace.
-	 * Hence scope Sync state per workspace. Sync scoped to a workspace
-	 * is capable of handling opening same workspace in multiple windows.
-	 */
-	@memoize
-	get userDataSyncHome(): URI { return joinPath(this.userRoamingDataHome, 'sync', this.workspaceId); }
-
-	@memoize
-	get sync(): 'on' | 'off' | undefined { return undefined; }
-
 	@memoize
 	get keyboardLayoutResource(): URI { return joinPath(this.userRoamingDataHome, 'keyboardLayout.json'); }
 

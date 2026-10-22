@@ -68,8 +68,6 @@ export abstract class AbstractNativeEnvironmentService implements INativeEnviron
 	get userRoamingDataHome(): URI { return this.appSettingsHome.with({ scheme: Schemas.vscodeUserData }); }
 
 	@memoize
-	get userDataSyncHome(): URI { return joinPath(this.appSettingsHome, 'sync'); }
-
 	get logsHome(): URI {
 		if (!this.args.logsPath) {
 			const key = toLocalISOString(new Date()).replace(/-|:|\.\d+Z$/g, '');
@@ -78,9 +76,6 @@ export abstract class AbstractNativeEnvironmentService implements INativeEnviron
 
 		return URI.file(this.args.logsPath);
 	}
-
-	@memoize
-	get sync(): 'on' | 'off' | undefined { return this.args.sync; }
 
 	@memoize
 	get workspaceStorageHome(): URI { return joinPath(this.appSettingsHome, 'workspaceStorage'); }

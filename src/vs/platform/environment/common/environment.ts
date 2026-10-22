@@ -60,10 +60,6 @@ export interface IEnvironmentService {
 	cacheHome: URI;
 	appSharedDataHome: URI;
 
-	// --- settings sync
-	userDataSyncHome: URI;
-	sync: 'on' | 'off' | undefined;
-
 	// --- extension development
 	debugExtensionHost: IExtensionHostDebugParams;
 	isExtensionDevelopment: boolean;

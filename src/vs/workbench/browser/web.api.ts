@@ -231,11 +231,6 @@ export interface IWorkbenchConstructionOptions {
 	readonly workspaceProvider?: IWorkspaceProvider;
 
 	/**
-	 * Settings sync options
-	 */
-	readonly settingsSyncOptions?: ISettingsSyncOptions;
-
-	/**
 	 * The secret storage provider to store and retrieve secrets.
 	 */
 	readonly secretStorageProvider?: ISecretStorageProvider;
@@ -813,45 +808,6 @@ export interface IProductQualityChangeHandler {
 	 * `insider` or `stable` product qualities.
 	 */
 	(newQuality: 'insider' | 'stable'): void;
-}
-
-/**
- * Settings sync options
- */
-export interface ISettingsSyncOptions {
-
-	/**
-	 * Is settings sync enabled
-	 */
-	readonly enabled: boolean;
-
-	/**
-	 * Version of extensions sync state.
-	 * Extensions sync state will be reset if version is provided and different from previous version.
-	 */
-	readonly extensionsSyncStateVersion?: string;
-
-	/**
-	 * Handler is being called when the user changes Settings Sync enablement.
-	 */
-	enablementHandler?(enablement: boolean, authenticationProvider: string): void;
-
-	/**
-	 * Authentication provider
-	 */
-	readonly authenticationProvider?: {
-
-		/**
-		 * Unique identifier of the authentication provider.
-		 */
-		readonly id: string;
-
-		/**
-		 * Called when the user wants to signin to Settings Sync using the given authentication provider.
-		 * The returned promise should resolve to the authentication session id.
-		 */
-		signIn(): Promise<string>;
-	};
 }
 
 export interface IDevelopmentOptions {
