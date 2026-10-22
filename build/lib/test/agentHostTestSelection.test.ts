@@ -64,7 +64,6 @@ suite('Agent Host PR test selection', () => {
 			'src/vs/platform/agentHost/test/node/e2e/suites/newSuite.ts',
 			'src/vs/platform/agentHost/test/node/e2e/captures/new.yaml',
 			'src/vs/platform/agentHost/test/node/e2e/providers/__snapshots__/new.prompt.md',
-			'src/vs/platform/agentHost/test/node/providerIntegration/copilotOtel.integrationTest.ts',
 			'src/vs/platform/agentHost/test/node/agentHostTestProfile.ts',
 			'src/vs/platform/agentHost/test/common/agent.test.ts',
 			'test/integration/agentHost/runner.ts',
@@ -81,7 +80,6 @@ suite('Agent Host PR test selection', () => {
 			'package-lock.json',
 			'remote/package.json',
 			'remote/package-lock.json',
-			'extensions/copilot/package.json',
 			'.npmrc',
 			'.nvmrc',
 			'product.json',
@@ -296,8 +294,6 @@ suite('Agent Host test profile registration', () => {
 		for (const relativePath of [
 			'src/vs/platform/agentHost/test/node/e2e/suites/fileOperationsSuite.ts',
 			'src/vs/platform/agentHost/test/node/e2e/suites/multiChatSuite.ts',
-			'src/vs/platform/agentHost/test/node/e2e/suites/copilotCoverageSuite.ts',
-			'src/vs/platform/agentHost/test/node/providerIntegration/copilotOtel.integrationTest.ts',
 		]) {
 			const source = ts.createSourceFile(relativePath, readFileSync(path.join(repositoryRoot, relativePath), 'utf8'), ts.ScriptTarget.Latest, true);
 			const visit = (node: ts.Node): void => {
@@ -323,10 +319,6 @@ suite('Agent Host test profile registration', () => {
 			'inspects git status',
 			'peer chat reads a file from a nested directory',
 			'peer chat creates a file in a nested directory',
-			'view range returns only the requested workspace lines',
-			'grep searches workspace content through the provider tool',
-			'glob finds a nested workspace file through the provider tool',
-			'shell tools and concurrent session events complete with OTel ',
 		].sort());
 	});
 });

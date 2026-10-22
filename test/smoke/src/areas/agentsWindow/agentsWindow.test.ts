@@ -139,7 +139,9 @@ function installDockerPrerequisite(logger: Logger, required: boolean): void {
 
 export function setup(logger: Logger, quality: Quality) {
 
-	describe('Agents Window (local AgentHost)', () => {
+	// These suites select the removed Copilot provider. Keep the fixtures until
+	// equivalent Claude/Codex coverage can exercise the same remote paths.
+	describe.skip('Agents Window (local AgentHost)', () => {
 
 		const agentHost = setupAgentHostSuite(logger, {
 			serverLabel: 'AgentHost',
@@ -228,7 +230,7 @@ export function setup(logger: Logger, quality: Quality) {
 	if (!runDevContainerSuite) {
 		logger.log('Skipping Agents Window (Dev Container AgentHost) on Exploration builds');
 	}
-	(runDevContainerSuite ? describe : describe.skip)('Agents Window (Dev Container AgentHost)', () => {
+	describe.skip('Agents Window (Dev Container AgentHost)', () => {
 		installDockerPrerequisite(logger, process.platform === 'linux');
 
 		const devContainer = setupAgentHostSuite(logger, {
@@ -319,7 +321,7 @@ export function setup(logger: Logger, quality: Quality) {
 		if (!enabled) {
 			logger.log(`Skipping Agents Window (${label} Dev Container AgentHost): ${!runDevContainerSuite ? 'not supported on Exploration builds' : !supportedPlatform ? 'unsupported platform' : transport === 'wsl' ? 'set VSCODE_SMOKE_TEST_WSL_DISTRO to enable the WSL fixture' : 'set VSCODE_SMOKE_TEST_TUNNEL_TOKEN to enable the real tunnel fixture'}`);
 		}
-		(enabled ? describe : describe.skip)(`Agents Window (${label} Dev Container AgentHost)`, () => {
+		describe.skip(`Agents Window (${label} Dev Container AgentHost)`, () => {
 			if (transport !== 'wsl') {
 				installDockerPrerequisite(logger, process.platform === 'linux' || transport === 'tunnel');
 			}
@@ -405,7 +407,7 @@ export function setup(logger: Logger, quality: Quality) {
 		});
 	}
 
-	describe('Agents Window (local AgentHost, SDK sandbox)', () => {
+	describe.skip('Agents Window (local AgentHost, SDK sandbox)', () => {
 
 		// Variant of the AgentHost suite that leaves
 		// `chat.agentHost.customTerminalTool.enabled` at its default (false), so
