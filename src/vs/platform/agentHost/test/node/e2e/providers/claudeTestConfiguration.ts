@@ -72,4 +72,3 @@ export const CLAUDE_CONFIG: IAgentHostE2EProviderConfig = {
 	// so a provider fork silently starts with fresh context.
 	supportsChatForkE2E: false,
 };
-
