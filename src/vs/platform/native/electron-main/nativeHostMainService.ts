@@ -734,7 +734,7 @@ export class NativeHostMainService extends Disposable implements INativeHostMain
 	}
 
 	private async openExternalBrowser(windowId: number | undefined, url: string, defaultApplication?: string): Promise<void> {
-		const configuredBrowser = defaultApplication ?? this.configurationService.getValue<string>('workbench.externalBrowser');
+		const configuredBrowser = isMacintosh ? undefined : defaultApplication ?? this.configurationService.getValue<string>('workbench.externalBrowser');
 		if (!configuredBrowser) {
 			return this.doOpenShellExternal(windowId, url);
 		}

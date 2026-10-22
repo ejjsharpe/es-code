@@ -351,10 +351,6 @@
 			"project": "vscode-workbench"
 		},
 		{
-			"name": "vs/workbench/contrib/userDataSync",
-			"project": "vscode-workbench"
-		},
-		{
 			"name": "vs/workbench/contrib/editSessions",
 			"project": "vscode-workbench"
 		},
@@ -577,10 +573,6 @@
 		{
 			"name": "vs/workbench/services/host",
 			"project": "vscode-workbench"
-		},
-		{
-			"name": "vs/workbench/contrib/userDataProfile",
-			"project": "vscode-profiles"
 		},
 		{
 			"name": "vs/workbench/services/userDataProfile",

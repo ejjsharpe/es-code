@@ -40,8 +40,6 @@ function code() {
 	export NODE_ENV=development
 	export VSCODE_DEV=1
 	export VSCODE_CLI=1
-	# The upstream source tree still contains Copilot, but ES Code does not load it.
-	export VSCODE_SKIP_BUILTIN_EXTENSIONS="${VSCODE_SKIP_BUILTIN_EXTENSIONS:+$VSCODE_SKIP_BUILTIN_EXTENSIONS,}GitHub.copilot-chat"
 	export ELECTRON_ENABLE_STACK_DUMPING=1
 	export ELECTRON_ENABLE_LOGGING=1
 

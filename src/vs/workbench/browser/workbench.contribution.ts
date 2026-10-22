@@ -36,7 +36,7 @@ const registry = Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Con
 			'workbench.externalBrowser': {
 				type: 'string',
 				markdownDescription: localize('browser', "Configure the browser to use for opening http or https links externally. This can either be the name of the browser (`edge`, `chrome`, `firefox`) or an absolute path to the browser's executable. Will use the system default if not set."),
-				included: isNative,
+				included: isNative && !isMacintosh,
 				restricted: true
 			},
 			'workbench.editor.titleScrollbarSizing': {

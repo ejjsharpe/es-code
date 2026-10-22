@@ -790,7 +790,7 @@ function printQueueUsage(): void {
 	console.log('Examples:');
 	console.log(`  ${scriptName}                                    # Queue build on current branch`);
 	console.log(`  ${scriptName} --branch my-feature                # Queue build on specific branch`);
-	console.log(`  ${scriptName} --parameter "VSCODE_BUILD_WEB=false" --parameter "VSCODE_PUBLISH=false"`);
+	console.log(`  ${scriptName} --parameter "VSCODE_PUBLISH=false"`);
 	console.log(`  ${scriptName} --parameter "VSCODE_BUILD_TYPE=Product Build"  # Parameter values with spaces`);
 }
 

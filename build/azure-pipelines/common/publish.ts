@@ -827,9 +827,6 @@ function getPlatform(product: string, os: string, arch: string, type: string): s
 						case 'server':
 							return `server-linux-${arch}`;
 						case 'web':
-							if (arch === 'standalone') {
-								return 'web-standalone';
-							}
 							return `server-linux-${arch}-web`;
 						default:
 							throw new Error(`Unrecognized: ${product} ${os} ${arch} ${type}`);
@@ -1045,7 +1042,6 @@ async function main() {
 	if (e('VSCODE_BUILD_STAGE_MACOS_X64') === 'True') { stages.add('macOSX64'); }
 	if (e('VSCODE_BUILD_STAGE_MACOS_ARM64') === 'True') { stages.add('macOSARM64'); }
 	if (e('VSCODE_BUILD_STAGE_MACOS_UNIVERSAL') === 'True') { stages.add('macOSUniversal'); }
-	if (e('VSCODE_BUILD_STAGE_WEB') === 'True') { stages.add('Web'); }
 
 	let timeline: Timeline;
 	let artifacts: Artifact[];

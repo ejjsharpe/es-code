@@ -59,8 +59,8 @@ if defined SHOW_HELP (
 	echo   --help, -h                    show this help
 	echo.
 	echo Available suites:
-	echo   api-folder, api-workspace, colorize, terminal-suggest, typescript,
-	echo   markdown, emmet, git, git-base, ipynb, notebook-renderers,
+	echo   api-folder, api-workspace, colorize, typescript,
+	echo   markdown, emmet, git, git-base,
 	echo   configuration-editing, github-authentication, copilot, css, html, json
 	echo.
 	echo All other options are forwarded to the node.js test runner ^(see scripts\test.bat --help^).
@@ -111,12 +111,12 @@ echo Storing log files into '%VSCODELOGSDIR%'.
 :: Validate --suite filter matches at least one known suite
 if defined SUITE_FILTER (
 	set "_any_match="
-	for %%s in (api-folder api-workspace colorize terminal-suggest typescript markdown emmet git git-base ipynb notebook-renderers configuration-editing github-authentication copilot css html json) do (
+	for %%s in (api-folder api-workspace colorize typescript markdown emmet git git-base configuration-editing github-authentication copilot css html json) do (
 		call :should_run_suite %%s && set "_any_match=1"
 	)
 	if not defined _any_match (
 		echo Error: no suites match filter '%SUITE_FILTER%'
-		echo Available suites: api-folder api-workspace colorize terminal-suggest typescript markdown emmet git git-base ipynb notebook-renderers configuration-editing github-authentication copilot css html json
+		echo Available suites: api-folder api-workspace colorize typescript markdown emmet git git-base configuration-editing github-authentication copilot css html json
 		goto :failed
 	)
 )
@@ -181,17 +181,6 @@ if defined GREP_PATTERN (
 if %errorlevel% neq 0 exit /b %errorlevel%
 :skip_colorize
 
-call :should_run_suite terminal-suggest || goto skip_terminal_suggest
-echo.
-echo ### Terminal Suggest tests
-if defined GREP_PATTERN (
-	call npm run test-extension -- -l terminal-suggest --enable-proposed-api=vscode.vscode-api-tests --grep "%GREP_PATTERN%"
-) else (
-	call npm run test-extension -- -l terminal-suggest --enable-proposed-api=vscode.vscode-api-tests
-)
-if %errorlevel% neq 0 exit /b %errorlevel%
-:skip_terminal_suggest
-
 call :should_run_suite typescript || goto skip_typescript
 echo.
 echo ### TypeScript tests
@@ -237,28 +226,6 @@ if defined GREP_PATTERN (
 )
 if %errorlevel% neq 0 exit /b %errorlevel%
 :skip_git_base
-
-call :should_run_suite ipynb || goto skip_ipynb
-echo.
-echo ### Ipynb tests
-if defined GREP_PATTERN (
-	call npm run test-extension -- -l ipynb --grep "%GREP_PATTERN%"
-) else (
-	call npm run test-extension -- -l ipynb
-)
-if %errorlevel% neq 0 exit /b %errorlevel%
-:skip_ipynb
-
-call :should_run_suite notebook-renderers || goto skip_notebook_renderers
-echo.
-echo ### Notebook Output tests
-if defined GREP_PATTERN (
-	call npm run test-extension -- -l notebook-renderers --grep "%GREP_PATTERN%"
-) else (
-	call npm run test-extension -- -l notebook-renderers
-)
-if %errorlevel% neq 0 exit /b %errorlevel%
-:skip_notebook_renderers
 
 call :should_run_suite configuration-editing || goto skip_configuration_editing
 echo.

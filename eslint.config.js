@@ -313,7 +313,6 @@ export default defineConfig(
 			'extensions/emmet/src/updateImageSize.ts',
 			'extensions/emmet/src/util.ts',
 			'extensions/github-authentication/src/node/fetch.ts',
-			'extensions/tunnel-forwarding/src/extension.ts',
 			'extensions/typescript-language-features/src/utils/platform.ts',
 			'extensions/typescript-language-features/web/src/webServer.ts',
 			'src/vs/base/browser/broadcast.ts',
@@ -2635,7 +2634,6 @@ export default defineConfig(
 			'extensions/markdown-language-features/preview-src/**/*.ts',
 			'extensions/mermaid-markdown-features/preview-src/chat/**/*.ts',
 			'extensions/mermaid-markdown-features/src/**/*.ts',
-			'extensions/simple-browser/**/*.ts',
 			'extensions/typescript-language-features/**/*.ts',
 		],
 		languageOptions: {
@@ -2647,9 +2645,6 @@ export default defineConfig(
 					'extensions/markdown-language-features/notebook/tsconfig.json',
 					'extensions/markdown-language-features/preview-src/tsconfig.json',
 
-					// Simple browser
-					'extensions/simple-browser/tsconfig.json',
-					'extensions/simple-browser/preview-src/tsconfig.json',
 
 					// Mermaid markdown features
 					'extensions/mermaid-markdown-features/tsconfig.json',

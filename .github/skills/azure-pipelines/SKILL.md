@@ -72,7 +72,7 @@ node .github/skills/azure-pipelines/azure-pipeline.ts queue
 node .github/skills/azure-pipelines/azure-pipeline.ts queue --branch my-feature-branch
 
 # Queue with custom parameters
-node .github/skills/azure-pipelines/azure-pipeline.ts queue --parameter "VSCODE_BUILD_WEB=false" --parameter "VSCODE_PUBLISH=false"
+node .github/skills/azure-pipelines/azure-pipeline.ts queue --parameter "VSCODE_PUBLISH=false"
 
 # Parameter value with spaces
 node .github/skills/azure-pipelines/azure-pipeline.ts queue --parameter "VSCODE_BUILD_TYPE=Product Build"
@@ -115,7 +115,6 @@ node .github/skills/azure-pipelines/azure-pipeline.ts queue --parameter "VSCODE_
 | `VSCODE_BUILD_MACOS` | boolean | `true` | `true`, `false` | Build macOS x64 |
 | `VSCODE_BUILD_MACOS_ARM64` | boolean | `true` | `true`, `false` | Build macOS arm64 |
 | `VSCODE_BUILD_MACOS_UNIVERSAL` | boolean | `true` | `true`, `false` | Build macOS universal (requires both macOS arches) |
-| `VSCODE_BUILD_WEB` | boolean | `true` | `true`, `false` | Build Web artifacts |
 | `VSCODE_PUBLISH` | boolean | `true` | `true`, `false` | Publish to builds.code.visualstudio.com |
 | `VSCODE_RELEASE` | boolean | `false` | `true`, `false` | Trigger release flow if successful |
 | `VSCODE_STEP_ON_IT` | boolean | `false` | `true`, `false` | Skip tests |
@@ -262,7 +261,6 @@ node .github/skills/azure-pipelines/azure-pipeline.ts status --build-id 123456 -
 # Customize build matrix for quicker validation
 node .github/skills/azure-pipelines/azure-pipeline.ts queue \
    --parameter "VSCODE_BUILD_TYPE=CI Build" \
-   --parameter "VSCODE_BUILD_WEB=false" \
    --parameter "VSCODE_BUILD_ALPINE=false" \
    --parameter "VSCODE_BUILD_ALPINE_ARM64=false" \
    --parameter "VSCODE_PUBLISH=false"

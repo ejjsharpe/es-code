@@ -75,11 +75,10 @@ suite('build-fast planning', () => {
 		);
 	});
 
-	test('routes client and extension changes while ignoring Copilot sources', () => {
+	test('routes client and extension changes', () => {
 		assert.deepStrictEqual(
 			createBuildPlan(savedState(), environment, changes([
 				'extensions/configuration-editing/src/configurationEditingMain.ts',
-				'extensions/copilot/src/extension.ts',
 				'src/main.ts',
 			]), outputsPresent, false),
 			{

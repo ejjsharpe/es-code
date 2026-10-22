@@ -203,7 +203,6 @@ export const config = {
 			'Makefile': ['makefile', 'mk'],
 			'Lua script': 'lua',
 			'Pug document': 'pug',
-			'Jupyter': 'ipynb',
 			'Lockfile': 'lock',
 			'Log file': 'log',
 			'Plain Text File': 'txt',

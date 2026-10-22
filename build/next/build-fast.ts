@@ -367,7 +367,7 @@ function affectsLane(filePath: string, lane: BuildLane): boolean {
 	}
 	switch (lane) {
 		case 'client': return filePath.startsWith('src/');
-		case 'extensions': return (filePath.startsWith('extensions/') && !filePath.startsWith('extensions/copilot/')) || filePath.startsWith('.vscode/extensions/');
+		case 'extensions': return filePath.startsWith('extensions/') || filePath.startsWith('.vscode/extensions/');
 	}
 }
 
