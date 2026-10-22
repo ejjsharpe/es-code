@@ -8,8 +8,7 @@ import { generateKeyPairSync, sign } from 'crypto';
 import { promises as fs } from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { VSBuffer } from '../../../../base/common/buffer.js';
-import { bufferToStream } from '../../../../base/common/stream.js';
+import { VSBuffer, bufferToStream } from '../../../../base/common/buffer.js';
 import { IRequestContext, IRequestOptions } from '../../../../base/parts/request/common/request.js';
 import { zip } from '../../../../base/node/zip.js';
 import { TargetPlatform } from '../../../extensions/common/extensions.js';
@@ -52,7 +51,7 @@ function requestService(doc: object, publicKey: string, requested: IRequestOptio
 			const body = options.url === publicKeyUrl ? publicKey : JSON.stringify(doc);
 			return { res: { statusCode: 200 }, stream: bufferToStream(VSBuffer.fromString(body)) } as IRequestContext;
 		}
-	} as IRequestService;
+	} as unknown as IRequestService;
 }
 
 suite('Open VSX signature verification', () => {
@@ -124,7 +123,7 @@ suite('Open VSX signature verification', () => {
 				}
 				return { res: { statusCode: 200 }, stream: bufferToStream(VSBuffer.fromString(JSON.stringify(metadata()))) } as IRequestContext;
 			}
-		} as IRequestService;
+		} as unknown as IRequestService;
 		await assert.rejects(verifyOpenVSXSignature(extension(), vsixPath, signaturePath, service), /returned 302/);
 	});
 });
