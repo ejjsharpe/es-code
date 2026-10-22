@@ -21,7 +21,7 @@ import { INACTIVE_TUNNEL_MODE, IRemoteTunnelService, TunnelMode, TunnelStatus } 
 import { IsSessionsWindowContext, RemoteNameContext } from '../../../common/contextkeys.js';
 import { IWorkbenchContribution, registerWorkbenchContribution2, WorkbenchPhase } from '../../../common/contributions.js';
 import { ChatContextKeyExprs, ChatContextKeys } from '../common/actions/chatContextKeys.js';
-import { IRemoteTunnelStartOptions, RemoteTunnelCommandIds } from '../../remoteTunnel/electron-browser/remoteTunnel.contribution.js';
+import { IRemoteTunnelStartOptions, RemoteTunnelCommandIds } from './remoteTunnelCommands.js';
 import { getRemoteTunnelAccessState, RemoteConnectionsActionViewItem } from './toggleRemoteConnectionsActionViewItem.js';
 
 export const TUNNEL_HOST_SHARING_KEY = 'tunnelHostSharing';

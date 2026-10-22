@@ -207,9 +207,6 @@ import '../workbench/contrib/mergeEditor/electron-browser/mergeEditor.contributi
 // Multi Diff Editor
 import '../workbench/contrib/multiDiffEditor/browser/multiDiffEditor.contribution.js';
 
-// Remote Tunnel
-import '../workbench/contrib/remoteTunnel/electron-browser/remoteTunnel.contribution.js';
-
 // Encryption
 import '../workbench/contrib/encryption/electron-browser/encryption.contribution.js';
 

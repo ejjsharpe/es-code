@@ -174,9 +174,6 @@ import './contrib/mergeEditor/electron-browser/mergeEditor.contribution.js';
 // Multi Diff Editor
 import './contrib/multiDiffEditor/browser/multiDiffEditor.contribution.js';
 
-// Remote Tunnel
-import './contrib/remoteTunnel/electron-browser/remoteTunnel.contribution.js';
-
 
 // Encryption
 import './contrib/encryption/electron-browser/encryption.contribution.js';
