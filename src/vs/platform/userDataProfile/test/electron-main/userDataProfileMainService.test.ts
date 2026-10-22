@@ -41,11 +41,11 @@ suite('UserDataProfileMainService', () => {
 
 	const disposables = ensureNoDisposablesAreLeakedInTestSuite();
 	let testObject: UserDataProfilesMainService;
-	let environmentService: TestEnvironmentService, stateService: StateService;
+	let environmentService: TestEnvironmentService, stateService: StateService, fileService: FileService;
 
 	setup(async () => {
 		const logService = new NullLogService();
-		const fileService = disposables.add(new FileService(logService));
+		fileService = disposables.add(new FileService(logService));
 		const fileSystemProvider = disposables.add(new InMemoryFileSystemProvider());
 		disposables.add(fileService.registerProvider(Schemas.vscodeUserData, fileSystemProvider));
 
@@ -66,50 +66,38 @@ suite('UserDataProfileMainService', () => {
 		assert.deepStrictEqual(testObject.profiles[0].isDefault, true);
 	});
 
-	test('default profile when there are profiles', async () => {
-		await testObject.createNamedProfile('test');
-		assert.strictEqual(testObject.defaultProfile.isDefault, true);
+	test('ordinary named and temporary profiles cannot be created', async () => {
+		await assert.rejects(testObject.createNamedProfile('Other'), /Additional user profiles are not supported/);
+		await assert.rejects(testObject.createTransientProfile(), /Additional user profiles are not supported/);
+		assert.deepStrictEqual(testObject.profiles.map(profile => profile.id), [testObject.defaultProfile.id]);
 	});
 
-	test('default profile when profiles are removed', async () => {
-		const profile = await testObject.createNamedProfile('test');
-		await testObject.removeProfile(profile);
-		assert.strictEqual(testObject.defaultProfile.isDefault, true);
+	test('Agents profile cannot be assigned to a workspace or removed', async () => {
+		const agentsProfile = await testObject.createAgentsWindowProfile();
+		await assert.rejects(testObject.setProfileForWorkspace({ id: 'ordinary-window' }, agentsProfile), /Only the default profile is supported/);
+		await assert.rejects(testObject.removeProfile(agentsProfile), /Agents profile is internal/);
+		assert.deepStrictEqual(testObject.profiles.map(profile => profile.id), [testObject.defaultProfile.id, agentsProfile.id]);
 	});
 
-	test('when no profile is set', async () => {
-		await testObject.createNamedProfile('profile1');
+	test('legacy profile metadata and files are preserved but not loaded', async () => {
+		const legacyFolder = joinPath(testObject.profilesHome, 'legacy-id');
+		await fileService.createFolder(legacyFolder);
+		stateService.setItem('userDataProfiles', [{ name: 'Legacy', location: 'legacy-id' }]);
+		stateService.setItem('profileAssociations', { workspaces: { 'file:///project': 'legacy-id' }, emptyWindows: { 'window-id': 'legacy-id' } });
+		testObject.init();
 
-		assert.equal(testObject.getProfileForWorkspace({ id: 'id' }), undefined);
-		assert.equal(testObject.getProfileForWorkspace({ id: 'id', configPath: environmentService.userRoamingDataHome }), undefined);
-		assert.equal(testObject.getProfileForWorkspace({ id: 'id', uri: environmentService.userRoamingDataHome }), undefined);
-	});
-
-	test('set profile to a workspace', async () => {
-		const workspace = { id: 'id', configPath: environmentService.userRoamingDataHome };
-		const profile = await testObject.createNamedProfile('profile1');
-
-		testObject.setProfileForWorkspace(workspace, profile);
-
-		assert.strictEqual(testObject.getProfileForWorkspace(workspace)?.id, profile.id);
-	});
-
-	test('set profile to a folder', async () => {
-		const workspace = { id: 'id', uri: environmentService.userRoamingDataHome };
-		const profile = await testObject.createNamedProfile('profile1');
-
-		testObject.setProfileForWorkspace(workspace, profile);
-
-		assert.strictEqual(testObject.getProfileForWorkspace(workspace)?.id, profile.id);
-	});
-
-	test('set profile to a window', async () => {
-		const workspace = { id: 'id' };
-		const profile = await testObject.createNamedProfile('profile1');
-
-		testObject.setProfileForWorkspace(workspace, profile);
-
-		assert.strictEqual(testObject.getProfileForWorkspace(workspace)?.id, profile.id);
+		assert.deepStrictEqual(testObject.profiles.map(profile => profile.id), [testObject.defaultProfile.id]);
+		await testObject.createAgentsWindowProfile();
+		await testObject.cleanUp();
+		assert.deepStrictEqual({
+			legacyFolderExists: await fileService.exists(legacyFolder),
+			storedNames: stateService.getItem<{ name: string }[]>('userDataProfiles', []).map(profile => profile.name),
+			associations: stateService.getItem('profileAssociations', {}),
+		}, {
+			legacyFolderExists: true,
+			storedNames: ['Legacy', 'Agents'],
+			associations: { workspaces: { 'file:///project': 'legacy-id' }, emptyWindows: { 'window-id': 'legacy-id' } },
+		});
 	});
 
 	test('creating agents window profile should return profile with agent window default flags', async () => {

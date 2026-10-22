@@ -22,7 +22,6 @@ import { EditorExtensions } from '../../../common/editor.js';
 import { SyncDescriptor } from '../../../../platform/instantiation/common/descriptors.js';
 import { LifecyclePhase } from '../../../services/lifecycle/common/lifecycle.js';
 import { IssueQuickAccess } from '../browser/issueQuickAccess.js';
-import '../browser/issueTroubleshoot.js';
 import './issueReporterKeybindings.js';
 import { BaseIssueContribution } from '../common/issue.contribution.js';
 import { IIssueFormService, IWorkbenchIssueService, IssueType } from '../common/issue.js';

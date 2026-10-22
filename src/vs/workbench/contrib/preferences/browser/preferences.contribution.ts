@@ -210,7 +210,6 @@ class PreferencesActionsContribution extends Disposable implements IWorkbenchCon
 		@IWorkspaceContextService private readonly workspaceContextService: IWorkspaceContextService,
 		@ILabelService private readonly labelService: ILabelService,
 		@IExtensionService private readonly extensionService: IExtensionService,
-		@IUserDataProfilesService private readonly userDataProfilesService: IUserDataProfilesService,
 	) {
 		super();
 

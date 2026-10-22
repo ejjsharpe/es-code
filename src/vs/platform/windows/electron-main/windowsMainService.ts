@@ -43,7 +43,7 @@ import { IOpenConfiguration, IOpenEmptyConfiguration, IWindowsCountChangedEvent,
 import { findWindowOnExtensionDevelopmentPath, findWindowOnFile, findWindowOnWorkspaceOrFolder } from './windowsFinder.js';
 import { IWindowState, WindowsStateHandler } from './windowsStateHandler.js';
 import { IRecent } from '../../workspaces/common/workspaces.js';
-import { hasWorkspaceFileExtension, IAnyWorkspaceIdentifier, ISingleFolderWorkspaceIdentifier, isSingleFolderWorkspaceIdentifier, isWorkspaceIdentifier, IWorkspaceIdentifier, toWorkspaceIdentifier } from '../../workspace/common/workspace.js';
+import { hasWorkspaceFileExtension, ISingleFolderWorkspaceIdentifier, isSingleFolderWorkspaceIdentifier, isWorkspaceIdentifier, IWorkspaceIdentifier } from '../../workspace/common/workspace.js';
 import { createEmptyWorkspaceIdentifier, getSingleFolderWorkspaceIdentifier, getWorkspaceIdentifier } from '../../workspaces/node/workspaces.js';
 import { IWorkspacesHistoryMainService } from '../../workspaces/electron-main/workspacesHistoryMainService.js';
 import { IWorkspacesManagementMainService } from '../../workspaces/electron-main/workspacesManagementMainService.js';
@@ -1682,37 +1682,14 @@ export class WindowsMainService extends Disposable implements IWindowsMainServic
 			}
 		}
 
-		const workspace = configuration.workspace ?? toWorkspaceIdentifier(configuration.backupPath, false);
-
 		if (configuration.isSessionsWindow) {
 			configuration.profiles.profile = this.userDataProfilesMainService.profiles.find(p => p.isAgentsWindowProfile) ?? await this.userDataProfilesMainService.createAgentsWindowProfile();
 		} else {
-			const profilePromise = this.resolveProfileForBrowserWindow(options, workspace, defaultProfile);
-			const profile = profilePromise instanceof Promise ? await profilePromise : profilePromise;
-			configuration.profiles.profile = profile;
-
-			if (!configuration.extensionDevelopmentPath) {
-				// Associate the configured profile to the workspace
-				// unless the window is for extension development,
-				// where we do not persist the associations
-				await this.userDataProfilesMainService.setProfileForWorkspace(workspace, profile);
-			}
+			configuration.profiles.profile = defaultProfile;
 		}
 
 		// Load it
 		window.load(configuration);
-	}
-
-	private resolveProfileForBrowserWindow(options: IOpenBrowserWindowOptions, workspace: IAnyWorkspaceIdentifier, defaultProfile: IUserDataProfile): Promise<IUserDataProfile> | IUserDataProfile {
-		if (options.forceProfile) {
-			return this.userDataProfilesMainService.profiles.find(p => p.name === options.forceProfile) ?? this.userDataProfilesMainService.createNamedProfile(options.forceProfile);
-		}
-
-		if (options.forceTempProfile) {
-			return this.userDataProfilesMainService.createTransientProfile();
-		}
-
-		return this.userDataProfilesMainService.getProfileForWorkspace(workspace) ?? defaultProfile;
 	}
 
 	private onWindowClosed(window: ICodeWindow, disposables: IDisposable): void {
