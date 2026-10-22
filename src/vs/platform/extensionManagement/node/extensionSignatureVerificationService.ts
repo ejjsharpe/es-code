@@ -8,8 +8,11 @@ import { isDefined } from '../../../base/common/types.js';
 import { TargetPlatform } from '../../extensions/common/extensions.js';
 import { createDecorator } from '../../instantiation/common/instantiation.js';
 import { ILogService, LogLevel } from '../../log/common/log.js';
+import { IProductService } from '../../product/common/productService.js';
+import { IRequestService } from '../../request/common/request.js';
 import { ITelemetryService } from '../../telemetry/common/telemetry.js';
-import { ExtensionSignatureVerificationCode } from '../common/extensionManagement.js';
+import { ExtensionSignatureVerificationCode, IGalleryExtension } from '../common/extensionManagement.js';
+import { OPEN_VSX_GALLERY_URL, verifyOpenVSXSignature } from './openVSXSignatureVerification.js';
 
 export const IExtensionSignatureVerificationService = createDecorator<IExtensionSignatureVerificationService>('IExtensionSignatureVerificationService');
 
@@ -31,7 +34,7 @@ export interface IExtensionSignatureVerificationService {
 	 * @param signatureArchiveFilePath The signature archive file path.
 	 * @returns returns the verification result or undefined if the verification was not executed.
 	 */
-	verify(extensionId: string, version: string, vsixFilePath: string, signatureArchiveFilePath: string, clientTargetPlatform?: TargetPlatform): Promise<IExtensionSignatureVerificationResult | undefined>;
+	verify(extension: IGalleryExtension, vsixFilePath: string, signatureArchiveFilePath: string, clientTargetPlatform?: TargetPlatform): Promise<IExtensionSignatureVerificationResult | undefined>;
 }
 
 declare namespace vsceSign {
@@ -56,6 +59,8 @@ export class ExtensionSignatureVerificationService implements IExtensionSignatur
 	constructor(
 		@ILogService private readonly logService: ILogService,
 		@ITelemetryService private readonly telemetryService: ITelemetryService,
+		@IProductService private readonly productService: IProductService,
+		@IRequestService private readonly requestService: IRequestService,
 	) { }
 
 	private vsceSign(): Promise<typeof vsceSign> {
@@ -71,29 +76,35 @@ export class ExtensionSignatureVerificationService implements IExtensionSignatur
 		return import(mod);
 	}
 
-	public async verify(extensionId: string, version: string, vsixFilePath: string, signatureArchiveFilePath: string, clientTargetPlatform?: TargetPlatform): Promise<IExtensionSignatureVerificationResult | undefined> {
-		let module: typeof vsceSign;
-
-		try {
-			module = await this.vsceSign();
-		} catch (error) {
-			this.logService.error('Could not load vsce-sign module', getErrorMessage(error));
-			this.logService.info(`Extension signature verification is not done: ${extensionId}`);
-			return undefined;
-		}
-
+	public async verify(extension: IGalleryExtension, vsixFilePath: string, signatureArchiveFilePath: string, clientTargetPlatform?: TargetPlatform): Promise<IExtensionSignatureVerificationResult | undefined> {
+		const extensionId = extension.identifier.id;
+		const version = extension.version;
 		const startTime = new Date().getTime();
 		let result: ExtensionSignatureVerificationResult;
 
-		try {
-			this.logService.trace(`Verifying extension signature for ${extensionId}...`);
-			result = await module.verify(vsixFilePath, signatureArchiveFilePath, this.logService.getLevel() === LogLevel.Trace);
-		} catch (e) {
-			result = {
-				code: ExtensionSignatureVerificationCode.UnknownError,
-				didExecute: false,
-				output: getErrorMessage(e)
-			};
+		if (this.productService.extensionsGallery?.serviceUrl === OPEN_VSX_GALLERY_URL) {
+			try {
+				this.logService.trace(`Verifying Open VSX extension signature for ${extensionId}...`);
+				const valid = await verifyOpenVSXSignature(extension, vsixFilePath, signatureArchiveFilePath, this.requestService);
+				result = { code: valid ? ExtensionSignatureVerificationCode.Success : ExtensionSignatureVerificationCode.SignatureIsInvalid, didExecute: true };
+			} catch (error) {
+				result = { code: ExtensionSignatureVerificationCode.SignatureIsInvalid, didExecute: false, output: getErrorMessage(error) };
+			}
+		} else {
+			let module: typeof vsceSign;
+			try {
+				module = await this.vsceSign();
+			} catch (error) {
+				this.logService.error('Could not load vsce-sign module', getErrorMessage(error));
+				this.logService.info(`Extension signature verification is not done: ${extensionId}`);
+				return undefined;
+			}
+			try {
+				this.logService.trace(`Verifying extension signature for ${extensionId}...`);
+				result = await module.verify(vsixFilePath, signatureArchiveFilePath, this.logService.getLevel() === LogLevel.Trace);
+			} catch (error) {
+				result = { code: ExtensionSignatureVerificationCode.UnknownError, didExecute: false, output: getErrorMessage(error) };
+			}
 		}
 
 		const duration = new Date().getTime() - startTime;
