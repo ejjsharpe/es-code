@@ -1,5 +1,7 @@
 # ES Code removal plan
 
+The [second removal pass](ES_CODE_REMOVAL_ROUND_2.md) tracks survey, Remote Tunnel workbench UI, and Cloud Changes removals from baseline `12ec2e3e44ea`. Its implementation and acceptance status are recorded there; the native issue reporter remains in place by the owner's decision.
+
 **Status:** Independent tracks integrated on 22 October 2026 from baseline commit `95a444f5c569d1da939b11812c4578215e398c71`. Follow-up Settings Sync/profiles and Copilot backend audits were integrated on the same date as `f29e03e31dd`, `49a658f5c98`, `f7a5e41950c`, `a4d0aa55c28`, and `e992a42ffb2`. Their source package from `e992a42ffb2` passed a temporary macOS arm64 build but has not been installed. A later settings registration repair `a309398df33` passed focused checks but has not been packaged. The macOS arm64 app built from `bcb6ec194ec4b0836995abd1879baf3e13631e7e` remains installed in Applications. Installed-app acceptance results and remaining gaps are recorded below. The starting `main` worktree had a pre-existing edit to `AGENTS.md`; it has been preserved without staging it.
 
 ES Code is a personal, installed desktop editor. The goal is to make the fork easier to maintain and extend, and to reduce its packaged size where that does not compromise the owner's workflow. A faster startup is a goal to measure, not an assumed result of deleting dormant extensions.
