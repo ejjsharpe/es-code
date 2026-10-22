@@ -13,8 +13,6 @@ steps:
         mkdir -p $(Build.ArtifactStagingDirectory)/out/server
         mv $(SERVER_PATH) $(Build.ArtifactStagingDirectory)/out/server/$(basename $(SERVER_PATH))
 
-        mkdir -p $(Build.ArtifactStagingDirectory)/out/web
-        mv $(WEB_PATH) $(Build.ArtifactStagingDirectory)/out/web/$(basename $(WEB_PATH))
       fi
 
       mkdir -p $(Build.ArtifactStagingDirectory)/out/deb

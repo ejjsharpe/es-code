@@ -21,18 +21,6 @@ export function setup(context: TestContext) {
 		await testServer(entryPoint);
 	});
 
-	context.test('wsl-server-web-arm64', ['windows', 'arm64', 'wsl', 'browser'], async () => {
-		const dir = await context.downloadAndUnpack('server-linux-arm64-web');
-		const entryPoint = context.getServerEntryPoint(dir, true);
-		await testServerWeb(entryPoint);
-	});
-
-	context.test('wsl-server-web-x64', ['windows', 'x64', 'wsl', 'browser'], async () => {
-		const dir = await context.downloadAndUnpack('server-linux-x64-web');
-		const entryPoint = context.getServerEntryPoint(dir, true);
-		await testServerWeb(entryPoint);
-	});
-
 	context.test('wsl-desktop-arm64', ['windows', 'arm64', 'wsl', 'desktop'], async () => {
 		const dir = await context.downloadAndUnpack('win32-arm64-archive');
 		context.validateAllAuthenticodeSignatures(dir);

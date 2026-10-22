@@ -293,35 +293,3 @@ task.task(compileAllExtensionsBuildTask);
 
 
 //#endregion
-
-export const compileWebExtensionsTask = task.define('compile-web', () => buildWebExtensions(false));
-task.task(compileWebExtensionsTask);
-
-export const watchWebExtensionsTask = task.define('watch-web', () => buildWebExtensions(true));
-task.task(watchWebExtensionsTask);
-
-async function buildWebExtensions(isWatch: boolean): Promise<void> {
-	const extensionsPath = path.join(root, 'extensions');
-
-	// Find all esbuild.browser.mts files
-	const esbuildConfigLocations = await nodeUtil.promisify(glob)(
-		path.join(extensionsPath, '**', 'esbuild.browser.mts'),
-		{ ignore: ['**/node_modules'] }
-	);
-
-	const promises: Promise<unknown>[] = [];
-
-	// Esbuild for extensions
-	if (esbuildConfigLocations.length > 0) {
-		promises.push(
-			ext.esbuildExtensions('packaging web extension (esbuild)', isWatch, esbuildConfigLocations.map(script => ({ script }))),
-			// Also run type check on extensions
-			...esbuildConfigLocations.flatMap(script => {
-				const roots = ext.getBuildRootsForExtension(path.dirname(script));
-				return roots.map(root => ext.typeCheckExtension(root, true));
-			})
-		);
-	}
-
-	await Promise.all(promises);
-}

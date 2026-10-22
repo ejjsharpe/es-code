@@ -19,8 +19,8 @@ import { applyIncrementalClientChanges, copyFile } from '../transpile.ts';
 const repoRoot = path.resolve(import.meta.dirname, '../../..');
 const preDirectory = 'vs/workbench/contrib/webview/browser/pre';
 const serviceWorkerPath = `${preDirectory}/service-worker.js`;
-const targets: BuildTarget[] = ['desktop', 'server', 'server-web', 'web'];
-const webviewTargets: BuildTarget[] = ['desktop', 'server-web', 'web'];
+const targets: BuildTarget[] = ['desktop', 'server'];
+const webviewTargets: BuildTarget[] = ['desktop'];
 const sourceMapBaseUrl = 'https://example.test/sourcemaps/commit/core';
 const script = `// This explanatory comment and the long local name should not be emitted in a minified production resource.
 function calculateAnswer(longParameterName) {
@@ -38,8 +38,6 @@ suite('production resources', () => {
 		assert.deepStrictEqual(inventory, [
 			{ target: 'desktop', javascript: [serviceWorkerPath] },
 			{ target: 'server', javascript: [] },
-			{ target: 'server-web', javascript: [serviceWorkerPath] },
-			{ target: 'web', javascript: [serviceWorkerPath] },
 		]);
 	});
 
@@ -87,7 +85,7 @@ suite('production resources', () => {
 			}, {
 				html: target === 'server' ? false : html,
 				svg: target === 'server' ? false : svg,
-				shell: target !== 'web',
+				shell: true,
 				devHtml: false,
 			});
 		});
@@ -181,7 +179,7 @@ export const url = import.meta.url;
 		await writeFile(srcDir, serviceWorkerPath, source);
 		// The dependency exists only in the output. Resource processing must not resolve or bundle it.
 		await writeFile(outDir, `${preDirectory}/dependency.mjs`, 'export const externalValue = 41, increment = 1;\n');
-		await copyResources(srcDir, outDir, 'web', true);
+		await copyResources(srcDir, outDir, 'desktop', true);
 		const url = pathToFileURL(path.join(outDir, serviceWorkerPath)).href;
 		const result: { answer: number; reexported: number; moduleThis: boolean; url: string } = await import(url);
 		assert.deepStrictEqual({ ...result }, { answer: 42, reexported: 41, moduleThis: true, url });
@@ -193,7 +191,7 @@ export const url = import.meta.url;
 		const legalComment = '/*! @license Example dependency */';
 		const source = `${header}\n${legalComment}\nglobalThis.recordValue(Date.now());\n`;
 		await writeFile(srcDir, serviceWorkerPath, source);
-		await copyResources(srcDir, outDir, 'web', true, `${sourceMapBaseUrl}/`);
+		await copyResources(srcDir, outDir, 'desktop', true, `${sourceMapBaseUrl}/`);
 		const output = await fs.promises.readFile(path.join(outDir, serviceWorkerPath), 'utf8');
 		const map: RawSourceMap = JSON.parse(await fs.promises.readFile(path.join(outDir, `${serviceWorkerPath}.map`), 'utf8'));
 		const consumer = new SourceMapConsumer(map);
@@ -229,7 +227,7 @@ export const url = import.meta.url;
 			if (mapKind === 'external') {
 				await writeFile(srcDir, `${preDirectory}/maps/input.map`, JSON.stringify(inputMap));
 			}
-			await copyResources(srcDir, outDir, 'server-web', true);
+			await copyResources(srcDir, outDir, 'desktop', true);
 			const output = await fs.promises.readFile(path.join(outDir, serviceWorkerPath), 'utf8');
 			const map: RawSourceMap = JSON.parse(await fs.promises.readFile(path.join(outDir, `${serviceWorkerPath}.map`), 'utf8'));
 			const consumer = new SourceMapConsumer(map);

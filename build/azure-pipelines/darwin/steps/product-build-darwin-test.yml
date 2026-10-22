@@ -133,17 +133,6 @@ steps:
           displayName: 🧪 Run integration tests (Electron)
           timeoutInMinutes: 30
 
-  - ${{ if containsValue(parameters.VSCODE_TEST_IDS, 'integration-browser-webkit') }}:
-    - template: ../../common/run-test-with-checkpoint.yml@self
-      parameters:
-        testId: integration-browser-webkit
-        testStep:
-          script: ./scripts/test-web-integration.sh --browser webkit
-          env:
-            VSCODE_REMOTE_SERVER_PATH: $(agent.builddirectory)/vscode-server-darwin-$(VSCODE_ARCH)-web
-          displayName: 🧪 Run integration tests (Browser, Webkit)
-          timeoutInMinutes: 30
-
   - ${{ if containsValue(parameters.VSCODE_TEST_IDS, 'integration-remote') }}:
     - template: ../../common/run-test-with-checkpoint.yml@self
       parameters:
@@ -163,7 +152,7 @@ steps:
           displayName: 🧪 Run integration tests (Remote)
           timeoutInMinutes: 30
 
-  - ${{ if or(containsValue(parameters.VSCODE_TEST_IDS, 'smoke-electron'), containsValue(parameters.VSCODE_TEST_IDS, 'smoke-agents-pac-proxy'), containsValue(parameters.VSCODE_TEST_IDS, 'smoke-agents-kerberos-pac-proxy'), containsValue(parameters.VSCODE_TEST_IDS, 'smoke-browser-chromium'), containsValue(parameters.VSCODE_TEST_IDS, 'smoke-remote')) }}:
+  - ${{ if or(containsValue(parameters.VSCODE_TEST_IDS, 'smoke-electron'), containsValue(parameters.VSCODE_TEST_IDS, 'smoke-agents-pac-proxy'), containsValue(parameters.VSCODE_TEST_IDS, 'smoke-agents-kerberos-pac-proxy'), containsValue(parameters.VSCODE_TEST_IDS, 'smoke-remote')) }}:
     - script: ps -ef
       displayName: Diagnostics before smoke test run
       continueOnError: true
@@ -214,17 +203,6 @@ steps:
           timeoutInMinutes: 40
           displayName: 🧪 Run Agents Window smoke tests through Kerberos-authenticated macOS PAC proxy
 
-  - ${{ if containsValue(parameters.VSCODE_TEST_IDS, 'smoke-browser-chromium') }}:
-    - template: ../../common/run-test-with-checkpoint.yml@self
-      parameters:
-        testId: smoke-browser-chromium
-        testStep:
-          script: npm run smoketest-no-compile -- --web --tracing --headless
-          env:
-            VSCODE_REMOTE_SERVER_PATH: $(agent.builddirectory)/vscode-server-darwin-$(VSCODE_ARCH)-web
-          timeoutInMinutes: 30
-          displayName: 🧪 Run smoke tests (Browser, Chromium)
-
   - ${{ if containsValue(parameters.VSCODE_TEST_IDS, 'smoke-remote') }}:
     - template: ../../common/run-test-with-checkpoint.yml@self
       parameters:
@@ -241,7 +219,7 @@ steps:
           timeoutInMinutes: 30
           displayName: 🧪 Run smoke tests (Remote)
 
-  - ${{ if or(containsValue(parameters.VSCODE_TEST_IDS, 'smoke-electron'), containsValue(parameters.VSCODE_TEST_IDS, 'smoke-agents-pac-proxy'), containsValue(parameters.VSCODE_TEST_IDS, 'smoke-agents-kerberos-pac-proxy'), containsValue(parameters.VSCODE_TEST_IDS, 'smoke-browser-chromium'), containsValue(parameters.VSCODE_TEST_IDS, 'smoke-remote')) }}:
+  - ${{ if or(containsValue(parameters.VSCODE_TEST_IDS, 'smoke-electron'), containsValue(parameters.VSCODE_TEST_IDS, 'smoke-agents-pac-proxy'), containsValue(parameters.VSCODE_TEST_IDS, 'smoke-agents-kerberos-pac-proxy'), containsValue(parameters.VSCODE_TEST_IDS, 'smoke-remote')) }}:
     - script: ps -ef
       displayName: Diagnostics after smoke test run
       continueOnError: true

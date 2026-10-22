@@ -94,7 +94,6 @@ steps:
       New-Item -ItemType Directory -Path $TestDir -Force
       Copy-Item -Path "$(agent.builddirectory)\VSCode-win32-$(VSCODE_ARCH)" -Destination "$TestDir\VSCode-win32-$(VSCODE_ARCH)" -Recurse -Force
       Copy-Item -Path "$(agent.builddirectory)\vscode-server-win32-$(VSCODE_ARCH)" -Destination "$TestDir\vscode-server-win32-$(VSCODE_ARCH)" -Recurse -Force
-      Copy-Item -Path "$(agent.builddirectory)\vscode-server-win32-$(VSCODE_ARCH)-web" -Destination "$TestDir\vscode-server-win32-$(VSCODE_ARCH)-web" -Recurse -Force
     displayName: Copy builds to test directory
 
   - ${{ if containsValue(parameters.VSCODE_TEST_IDS, 'integration-agent-host-e2e') }}:
@@ -143,19 +142,6 @@ steps:
           displayName: 🧪 Run integration tests (Electron)
           timeoutInMinutes: 30
 
-  - ${{ if containsValue(parameters.VSCODE_TEST_IDS, 'integration-browser-firefox') }}:
-    - template: ../../common/run-test-with-checkpoint.yml@self
-      parameters:
-        testId: integration-browser-firefox
-        testStep:
-          powershell: |
-            . build/azure-pipelines/win32/exec.ps1
-            $ErrorActionPreference = "Stop"
-            $env:VSCODE_REMOTE_SERVER_PATH = "$(agent.builddirectory)\test\vscode-server-win32-$(VSCODE_ARCH)-web"
-            exec { .\scripts\test-web-integration.bat --browser firefox }
-          displayName: 🧪 Run integration tests (Browser, Firefox)
-          timeoutInMinutes: 30
-
   - ${{ if containsValue(parameters.VSCODE_TEST_IDS, 'integration-remote') }}:
     - template: ../../common/run-test-with-checkpoint.yml@self
       parameters:
@@ -181,7 +167,7 @@ steps:
     continueOnError: true
     condition: succeededOrFailed()
 
-  - ${{ if or(containsValue(parameters.VSCODE_TEST_IDS, 'smoke-electron'), containsValue(parameters.VSCODE_TEST_IDS, 'smoke-browser-chromium'), containsValue(parameters.VSCODE_TEST_IDS, 'smoke-remote')) }}:
+  - ${{ if or(containsValue(parameters.VSCODE_TEST_IDS, 'smoke-electron'), containsValue(parameters.VSCODE_TEST_IDS, 'smoke-remote')) }}:
     - powershell: .\build\azure-pipelines\win32\listprocesses.bat
       displayName: Diagnostics before smoke test run
       continueOnError: true
@@ -229,17 +215,6 @@ steps:
           WSL_SMOKE_DISTRO: $(WSL_SMOKE_DISTRO)
           WSL_SMOKE_ROOT: $(WSL_SMOKE_ROOT)
 
-  - ${{ if containsValue(parameters.VSCODE_TEST_IDS, 'smoke-browser-chromium') }}:
-    - template: ../../common/run-test-with-checkpoint.yml@self
-      parameters:
-        testId: smoke-browser-chromium
-        testStep:
-          powershell: npm run smoketest-no-compile -- --web --tracing --headless
-          env:
-            VSCODE_REMOTE_SERVER_PATH: $(agent.builddirectory)\test\vscode-server-win32-$(VSCODE_ARCH)-web
-          displayName: 🧪 Run smoke tests (Browser, Chromium)
-          timeoutInMinutes: 30
-
   - ${{ if containsValue(parameters.VSCODE_TEST_IDS, 'smoke-remote') }}:
     - template: ../../common/run-test-with-checkpoint.yml@self
       parameters:
@@ -251,7 +226,7 @@ steps:
           displayName: 🧪 Run smoke tests (Remote)
           timeoutInMinutes: 30
 
-  - ${{ if or(containsValue(parameters.VSCODE_TEST_IDS, 'smoke-electron'), containsValue(parameters.VSCODE_TEST_IDS, 'smoke-browser-chromium'), containsValue(parameters.VSCODE_TEST_IDS, 'smoke-remote')) }}:
+  - ${{ if or(containsValue(parameters.VSCODE_TEST_IDS, 'smoke-electron'), containsValue(parameters.VSCODE_TEST_IDS, 'smoke-remote')) }}:
     - powershell: .\build\azure-pipelines\win32\listprocesses.bat
       displayName: Diagnostics after smoke test run
       continueOnError: true

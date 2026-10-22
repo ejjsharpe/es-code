@@ -377,9 +377,7 @@ extends:
                   VSCODE_JOB_NAME: BrowserRemote
                   VSCODE_JOB_DISPLAY_NAME: Browser & Remote Tests
                   VSCODE_TEST_IDS:
-                    - integration-browser-firefox
                     - integration-remote
-                    - smoke-browser-chromium
                     - smoke-remote
               - template: build/azure-pipelines/win32/product-build-win32-ci.yml@self
                 parameters:
@@ -440,9 +438,7 @@ extends:
                     VSCODE_JOB_NAME: BrowserRemote
                     VSCODE_JOB_DISPLAY_NAME: Browser & Remote Tests
                     VSCODE_TEST_IDS:
-                      - integration-browser-firefox
                       - integration-remote
-                      - smoke-browser-chromium
                       - smoke-remote
                 - template: build/azure-pipelines/win32/product-build-win32-test.yml@self
                   parameters:
@@ -537,9 +533,7 @@ extends:
                   VSCODE_JOB_NAME: BrowserRemote
                   VSCODE_JOB_DISPLAY_NAME: Browser & Remote Tests
                   VSCODE_TEST_IDS:
-                    - integration-browser-chromium
                     - integration-remote
-                    - smoke-browser-chromium
                     - smoke-remote
               - template: build/azure-pipelines/linux/product-build-linux-test.yml@self
                 parameters:
@@ -648,9 +642,7 @@ extends:
                   VSCODE_JOB_NAME: BrowserRemote
                   VSCODE_JOB_DISPLAY_NAME: Browser & Remote Tests
                   VSCODE_TEST_IDS:
-                    - integration-browser-chromium
                     - integration-remote
-                    - smoke-browser-chromium
                     - smoke-remote
               - template: build/azure-pipelines/linux/product-build-linux-ci.yml@self
                 parameters:
@@ -743,9 +735,7 @@ extends:
                 VSCODE_JOB_NAME: BrowserRemote
                 VSCODE_JOB_DISPLAY_NAME: Browser & Remote Tests
                 VSCODE_TEST_IDS:
-                  - integration-browser-webkit
                   - integration-remote
-                  - smoke-browser-chromium
                   - smoke-remote
             - template: build/azure-pipelines/darwin/product-build-darwin-ci.yml@self
               parameters:
@@ -843,9 +833,7 @@ extends:
                   VSCODE_JOB_NAME: BrowserRemote
                   VSCODE_JOB_DISPLAY_NAME: Browser & Remote Tests
                   VSCODE_TEST_IDS:
-                    - integration-browser-webkit
                     - integration-remote
-                    - smoke-browser-chromium
                     - smoke-remote
               - template: build/azure-pipelines/darwin/product-build-darwin-test.yml@self
                 parameters:
@@ -1239,7 +1227,6 @@ extends:
                     - vscode_client_darwin_x64_archive
                     - vscode_client_darwin_x64_dmg
                     - vscode_server_darwin_x64_archive
-                    - vscode_web_darwin_x64_archive
 
             - ${{ if eq(parameters.VSCODE_BUILD_MACOS_ARM64, true) }}:
               - template: build/azure-pipelines/common/sanity-tests.yml@self
@@ -1255,7 +1242,6 @@ extends:
                     - vscode_client_darwin_arm64_archive
                     - vscode_client_darwin_arm64_dmg
                     - vscode_server_darwin_arm64_archive
-                    - vscode_web_darwin_arm64_archive
 
             - ${{ if eq(variables['VSCODE_BUILD_MACOS_UNIVERSAL'], true) }}:
               - template: build/azure-pipelines/common/sanity-tests.yml@self
@@ -1299,7 +1285,6 @@ extends:
                     - vscode_client_win32_x64_setup
                     - vscode_client_win32_x64_user-setup
                     - vscode_server_win32_x64_archive
-                    - vscode_web_win32_x64_archive
 
             - ${{ if eq(parameters.VSCODE_BUILD_WIN32_ARM64, true) }}:
               - template: build/azure-pipelines/common/sanity-tests.yml@self
@@ -1319,7 +1304,6 @@ extends:
                     - vscode_client_win32_arm64_setup
                     - vscode_client_win32_arm64_user-setup
                     - vscode_server_win32_arm64_archive
-                    - vscode_web_win32_arm64_archive
 
       # The SDK ships linuxmusl prebuilds that only the Alpine jobs exercise.
       - ${{ if and(eq(parameters.VSCODE_RUN_ARTIFACT_SANITY_TESTS, true), eq(variables['VSCODE_BUILD_STAGE_ALPINE'], true)) }}:
@@ -1346,7 +1330,6 @@ extends:
                   artifacts:
                     - vscode_cli_alpine_x64_cli
                     - vscode_server_linux_alpine_archive-unsigned
-                    - vscode_web_linux_alpine_archive-unsigned
 
             - ${{ if eq(parameters.VSCODE_BUILD_ALPINE_ARM64, true) }}:
               - template: build/azure-pipelines/common/sanity-tests.yml@self
@@ -1361,7 +1344,6 @@ extends:
                   artifacts:
                     - vscode_cli_alpine_arm64_cli
                     - vscode_server_alpine_arm64_archive-unsigned
-                    - vscode_web_alpine_arm64_archive-unsigned
 
       - ${{ if and(eq(parameters.VSCODE_RUN_ARTIFACT_SANITY_TESTS, true), eq(variables['VSCODE_BUILD_STAGE_LINUX'], true)) }}:
         - stage: ArtifactSanityTestsLinux
@@ -1396,7 +1378,6 @@ extends:
                     - vscode_client_linux_x64_deb-package
                     - vscode_client_linux_x64_snap
                     - vscode_server_linux_x64_archive-unsigned
-                    - vscode_web_linux_x64_archive-unsigned
 
               - template: build/azure-pipelines/common/sanity-tests.yml@self
                 parameters:
@@ -1435,7 +1416,6 @@ extends:
                     - vscode_client_linux_arm64_archive-unsigned
                     - vscode_client_linux_arm64_deb-package
                     - vscode_server_linux_arm64_archive-unsigned
-                    - vscode_web_linux_arm64_archive-unsigned
 
               - template: build/azure-pipelines/common/sanity-tests.yml@self
                 parameters:

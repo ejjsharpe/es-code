@@ -283,10 +283,6 @@ function packageTask(type: string, platform: string, arch: string, sourceFolderN
 		};
 		const localWorkspaceExtensions = glob.sync('extensions/*/package.json')
 			.filter((extensionPath) => {
-				if (type === 'reh-web') {
-					return true; // web: ship all extensions for now
-				}
-
 				// Skip shipping UI extensions because the client side will have them anyways
 				// and they'd just increase the download without being used
 				const manifest = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, extensionPath)).toString());
@@ -357,24 +353,13 @@ function packageTask(type: string, platform: string, arch: string, sourceFolderN
 		const nodePath = `.build/node/v${nodeVersion}/${platform}-${arch}`;
 		const node = gulp.src(`${nodePath}/**`, { base: nodePath, dot: true });
 
-		let web: NodeJS.ReadWriteStream[] = [];
-		if (type === 'reh-web') {
-			web = [
-				'resources/server/favicon.ico',
-				'resources/server/code-192.png',
-				'resources/server/code-512.png',
-				'resources/server/manifest.json'
-			].map(resource => gulp.src(resource, { base: '.' }).pipe(rename(resource)));
-		}
-
 		const all = es.merge(
 			packageJsonStream,
 			productJsonStream,
 			license,
 			sources,
 			deps,
-			node,
-			...web
+			node
 		);
 
 		let result = all
@@ -425,7 +410,7 @@ function packageTask(type: string, platform: string, arch: string, sourceFolderN
 		}
 
 		result = inlineMeta(result, {
-			targetPaths: getBootstrapEntryPointsForTarget(type === 'reh' ? 'server' : 'server-web').map(entry => `${entry}.js`),
+			targetPaths: getBootstrapEntryPointsForTarget('server').map(entry => `${entry}.js`),
 			packageJsonFn: () => packageJsonContents,
 			productJsonFn: () => productJsonContents
 		});
@@ -505,8 +490,8 @@ function patchWin32DependenciesTask(destinationFolderName: string) {
 	};
 }
 
-['reh', 'reh-web'].forEach(type => {
-	const target = type === 'reh' ? 'server' : 'server-web';
+['reh'].forEach(type => {
+	const target = 'server';
 	const esbuildBundleTask = task.define(`esbuild-vscode-${type}`, () => runEsbuildBundle(`out-vscode-${type}`, false, true, target));
 	const esbuildBundleMinTask = task.define(`esbuild-vscode-${type}-min`, () => runEsbuildBundle(`out-vscode-${type}-min`, true, true, target, `https://main.vscode-cdn.net/sourcemaps/${commit}/core`));
 

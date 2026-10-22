@@ -13,7 +13,7 @@ parameters:
 
 # The product is built by the following jobs, so that retrying a failed job
 # never repeats the work of the jobs that already succeeded:
-#   1. Compile: compiles the client, server and web server builds and
+#   1. Compile: compiles the client and server builds and
 #      publishes them as the compilation_win32_<arch> artifact.
 #   2. Sign: code signs the builds of the compilation artifact together with
 #      the CLI and the Copilot shim, packages them and publishes the product
@@ -66,11 +66,11 @@ jobs:
           New-Item -ItemType Directory -Path $ArtifactPath -Force | Out-Null
           Push-Location "$(Agent.BuildDirectory)"
           try {
-            exec { 7z.exe a -mx1 "$ArtifactPath\builds.7z" "VSCode-win32-$(VSCODE_ARCH)" "vscode-server-win32-$(VSCODE_ARCH)" "vscode-server-win32-$(VSCODE_ARCH)-web" }
+            exec { 7z.exe a -mx1 "$ArtifactPath\builds.7z" "VSCode-win32-$(VSCODE_ARCH)" "vscode-server-win32-$(VSCODE_ARCH)" }
           } finally {
             Pop-Location
           }
-        displayName: Archive client, server and web server builds
+        displayName: Archive client and server builds
 
       # The unit and node.js integration tests run from out-build
       - ${{ if eq(parameters.VSCODE_RUN_TESTS, true) }}:
@@ -126,14 +126,6 @@ jobs:
           sbomPackageName: "VS Code Windows $(VSCODE_ARCH) Server"
           sbomPackageVersion: $(Build.SourceVersion)
         - output: pipelineArtifact
-          targetPath: $(Build.ArtifactStagingDirectory)/out/web/vscode-server-win32-$(VSCODE_ARCH)-web.zip
-          artifactName: vscode_web_win32_$(VSCODE_ARCH)_archive
-          condition: and(succeeded(), ne(variables['WEB_ARCHIVE_PUBLISHED'], 'true'))
-          displayName: Publish web server archive
-          sbomBuildDropPath: $(Agent.BuildDirectory)/vscode-server-win32-$(VSCODE_ARCH)-web
-          sbomPackageName: "VS Code Windows $(VSCODE_ARCH) Web"
-          sbomPackageVersion: $(Build.SourceVersion)
-        - output: pipelineArtifact
           targetPath: $(Build.ArtifactStagingDirectory)/out/cli/vscode_cli_win32_$(VSCODE_ARCH)_cli.zip
           artifactName: vscode_cli_win32_$(VSCODE_ARCH)_cli
           condition: and(succeeded(), ne(variables['CLI_PUBLISHED'], 'true'))
@@ -163,7 +155,6 @@ jobs:
           USER_SETUP_PUBLISHED vscode_client_win32_$(VSCODE_ARCH)_user-setup
           ARCHIVE_PUBLISHED vscode_client_win32_$(VSCODE_ARCH)_archive
           SERVER_ARCHIVE_PUBLISHED vscode_server_win32_$(VSCODE_ARCH)_archive
-          WEB_ARCHIVE_PUBLISHED vscode_web_win32_$(VSCODE_ARCH)_archive
           CLI_PUBLISHED vscode_cli_win32_$(VSCODE_ARCH)_cli
         env:
           SYSTEM_ACCESSTOKEN: $(System.AccessToken)

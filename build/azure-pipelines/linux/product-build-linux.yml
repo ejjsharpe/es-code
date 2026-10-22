@@ -33,7 +33,7 @@ jobs:
           ${{ if eq(parameters.VSCODE_ARCH, 'armhf') }}:
             analyzeTargetGlob: '$(Agent.BuildDirectory)/VSCode-linux-$(VSCODE_ARCH)/**/*.node'
           ${{ else }}:
-            analyzeTargetGlob: '$(Agent.BuildDirectory)/VSCode-linux-$(VSCODE_ARCH)/**/*.node;$(Agent.BuildDirectory)/vscode-server-linux-$(VSCODE_ARCH)/**/*.node;$(Agent.BuildDirectory)/vscode-server-linux-$(VSCODE_ARCH)-web/**/*.node'
+            analyzeTargetGlob: '$(Agent.BuildDirectory)/VSCode-linux-$(VSCODE_ARCH)/**/*.node;$(Agent.BuildDirectory)/vscode-server-linux-$(VSCODE_ARCH)/**/*.node'
           preReleaseVersion: '4.3.1'
       outputs:
         - output: pipelineArtifact
@@ -71,9 +71,8 @@ jobs:
             tar -czf $(Build.ArtifactStagingDirectory)/compilation/builds.tar.gz \
               -C $(Agent.BuildDirectory) \
               VSCode-linux-$(VSCODE_ARCH) \
-              vscode-server-linux-$(VSCODE_ARCH) \
-              vscode-server-linux-$(VSCODE_ARCH)-web
-          displayName: Archive client, server and web server builds
+              vscode-server-linux-$(VSCODE_ARCH)
+          displayName: Archive client and server builds
 
       - ${{ if eq(parameters.VSCODE_RUN_TESTS, true) }}:
         - script: |
@@ -114,14 +113,6 @@ jobs:
             displayName: Publish server archive
             sbomBuildDropPath: $(Agent.BuildDirectory)/vscode-server-linux-$(VSCODE_ARCH)
             sbomPackageName: "VS Code Linux $(VSCODE_ARCH) Server"
-            sbomPackageVersion: $(Build.SourceVersion)
-          - output: pipelineArtifact
-            targetPath: $(Build.ArtifactStagingDirectory)/out/web/vscode-server-linux-$(VSCODE_ARCH)-web.tar.gz
-            artifactName: vscode_web_linux_$(VSCODE_ARCH)_archive-unsigned
-            condition: and(succeeded(), ne(variables['WEB_ARCHIVE_PUBLISHED'], 'true'))
-            displayName: Publish web server archive
-            sbomBuildDropPath: $(Agent.BuildDirectory)/vscode-server-linux-$(VSCODE_ARCH)-web
-            sbomPackageName: "VS Code Linux $(VSCODE_ARCH) Web"
             sbomPackageVersion: $(Build.SourceVersion)
         - output: pipelineArtifact
           targetPath: $(Build.ArtifactStagingDirectory)/out/deb/$(DEB_PACKAGE_NAME)
@@ -170,7 +161,6 @@ jobs:
           node build/azure-pipelines/common/checkForArtifact.ts
           CLIENT_ARCHIVE_PUBLISHED vscode_client_linux_$(VSCODE_ARCH)_archive-unsigned
           SERVER_ARCHIVE_PUBLISHED vscode_server_linux_$(VSCODE_ARCH)_archive-unsigned
-          WEB_ARCHIVE_PUBLISHED vscode_web_linux_$(VSCODE_ARCH)_archive-unsigned
           DEB_PACKAGE_PUBLISHED vscode_client_linux_$(VSCODE_ARCH)_deb-package
           RPM_PACKAGE_PUBLISHED vscode_client_linux_$(VSCODE_ARCH)_rpm-package
           SNAP_PACKAGE_PUBLISHED vscode_client_linux_$(VSCODE_ARCH)_snap

@@ -19,7 +19,7 @@ steps:
       . build/azure-pipelines/win32/exec.ps1
       $ErrorActionPreference = "Stop"
       exec { 7z.exe x "$(Agent.TempDirectory)\compilation\builds.7z" "-o$(Agent.BuildDirectory)" -aoa }
-    displayName: Extract client, server and web server builds
+    displayName: Extract client and server builds
 
   - ${{ if eq(parameters.VSCODE_DOWNLOAD_OUT_BUILD, true) }}:
     - powershell: |

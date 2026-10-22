@@ -18,7 +18,6 @@ import { getGitCommitDate } from '../lib/date.ts';
 import { getBootstrapEntryPointsForTarget, type BuildTarget } from '../lib/esbuild.ts';
 import product from '../../product.json' with { type: 'json' };
 import packageJson from '../../package.json' with { type: 'json' };
-import { isWebExtension, type IScannedBuiltinExtension } from '../lib/extensions.ts';
 import { runBuildFast } from './build-fast.ts';
 import { copyFile, mapWithConcurrency, MAX_CONCURRENT_FILE_OPERATIONS, transpileFile } from './transpile.ts';
 import { copyResources } from './resources.ts';
@@ -57,7 +56,7 @@ const options = {
 	force: process.argv.includes('--force'),
 	clientOnly: process.argv.includes('--client-only'),
 	out: getArgValue('--out'),
-	target: getArgValue('--target') ?? 'desktop', // 'desktop' | 'server' | 'server-web' | 'web'
+	target: getArgValue('--target') ?? 'desktop', // 'desktop' | 'server'
 	sourceMapBaseUrl: getArgValue('--source-map-base-url'),
 };
 
@@ -114,12 +113,6 @@ const codeEntryPoints = [
 	'vs/code/electron-browser/workbench/workbench',
 ];
 
-const keyboardMapEntryPoints = [
-	'vs/workbench/services/keybinding/browser/keyboardLayouts/layout.contribution.linux',
-	'vs/workbench/services/keybinding/browser/keyboardLayouts/layout.contribution.darwin',
-	'vs/workbench/services/keybinding/browser/keyboardLayouts/layout.contribution.win',
-];
-
 // Server entry points (reh)
 const serverEntryPoints = [
 	'vs/workbench/api/node/extensionHostProcess',
@@ -143,19 +136,6 @@ function getEntryPointsForTarget(target: BuildTarget): string[] {
 			return [
 				...serverEntryPoints,
 			];
-		case 'server-web':
-			return [
-				...serverEntryPoints,
-				...workerEntryPoints,
-				'vs/code/browser/workbench/workbench', // Includes workbench.web.main.internal.
-				...keyboardMapEntryPoints,
-			];
-		case 'web':
-			return [
-				...workerEntryPoints,
-				'vs/workbench/workbench.web.main.internal', // web workbench only (no browser shell)
-				...keyboardMapEntryPoints,
-			];
 		default:
 			throw new Error(`Unknown target: ${target}`);
 	}
@@ -173,14 +153,6 @@ function getCssBundleEntryPointsForTarget(target: BuildTarget): Set<string> {
 			]);
 		case 'server':
 			return new Set(); // Server has no UI
-		case 'server-web':
-			return new Set([
-				'vs/code/browser/workbench/workbench',
-			]);
-		case 'web':
-			return new Set([
-				'vs/workbench/workbench.web.main.internal',
-			]);
 		default:
 			throw new Error(`Unknown target: ${target}`);
 	}
@@ -195,49 +167,6 @@ async function cleanDir(dir: string): Promise<void> {
 	console.log(`[clean] ${dir}`);
 	await fs.promises.rm(fullPath, { recursive: true, force: true });
 	await fs.promises.mkdir(fullPath, { recursive: true });
-}
-
-/**
- * Scan for built-in extensions in the given directory.
- * Returns an array of extension entries for the builtinExtensionsScannerService.
- */
-function scanBuiltinExtensions(extensionsRoot: string): Array<IScannedBuiltinExtension> {
-	const scannedExtensions: Array<IScannedBuiltinExtension> = [];
-	const extensionsPath = path.join(REPO_ROOT, extensionsRoot);
-
-	if (!fs.existsSync(extensionsPath)) {
-		return scannedExtensions;
-	}
-
-	for (const extensionFolder of fs.readdirSync(extensionsPath)) {
-		const packageJSONPath = path.join(extensionsPath, extensionFolder, 'package.json');
-		if (!fs.existsSync(packageJSONPath)) {
-			continue;
-		}
-		try {
-			const packageJSON = JSON.parse(fs.readFileSync(packageJSONPath, 'utf8'));
-			if (!isWebExtension(packageJSON)) {
-				continue;
-			}
-			const children = fs.readdirSync(path.join(extensionsPath, extensionFolder));
-			const packageNLSPath = children.filter(child => child === 'package.nls.json')[0];
-			const packageNLS = packageNLSPath ? JSON.parse(fs.readFileSync(path.join(extensionsPath, extensionFolder, packageNLSPath), 'utf8')) : undefined;
-			const readme = children.filter(child => /^readme(\.txt|\.md|)$/i.test(child))[0];
-			const changelog = children.filter(child => /^changelog(\.txt|\.md|)$/i.test(child))[0];
-
-			scannedExtensions.push({
-				extensionPath: extensionFolder,
-				packageJSON,
-				packageNLS,
-				readmePath: readme ? path.join(extensionFolder, readme) : undefined,
-				changelogPath: changelog ? path.join(extensionFolder, changelog) : undefined,
-			});
-		} catch (e) {
-			// Skip invalid extensions
-		}
-	}
-
-	return scannedExtensions;
 }
 
 /**
@@ -360,12 +289,8 @@ function fileContentMapperPlugin(outDir: string, target: BuildTarget): esbuild.P
 				// Inject product configuration
 				if (contents.includes('/*BUILD->INSERT_PRODUCT_CONFIGURATION*/')) {
 					if (productConfigReplacement === undefined) {
-						// For server-web, remove webEndpointUrlTemplate
-						const productForTarget = target === 'server-web'
-							? { ...product, webEndpointUrlTemplate: undefined }
-							: product;
 						const productConfiguration = JSON.stringify({
-							...productForTarget,
+							...product,
 							version,
 							commit,
 							date: readISODate(outDir)
@@ -380,17 +305,8 @@ function fileContentMapperPlugin(outDir: string, target: BuildTarget): esbuild.P
 				// Inject built-in extensions list
 				if (contents.includes('/*BUILD->INSERT_BUILTIN_EXTENSIONS*/')) {
 					if (builtinExtensionsReplacement === undefined) {
-						if (target === 'web' || target === 'server-web') {
-							// Web target uses .build/web/extensions (from compileWebExtensionsBuildTask)
-							// while server-web uses .build/extensions.
-							const extensionsRoot = target === 'web' ? '.build/web/extensions' : '.build/extensions';
-							const builtinExtensions = JSON.stringify(scanBuiltinExtensions(extensionsRoot));
-							// Remove the outer brackets since the placeholder is inside an array literal
-							builtinExtensionsReplacement = builtinExtensions.substring(1, builtinExtensions.length - 1);
-						} else {
-							// Native targets never consume the web-only bundled extension list.
-							builtinExtensionsReplacement = '';
-						}
+						// Native targets never consume the web-only bundled extension list.
+						builtinExtensionsReplacement = '';
 					}
 					contents = contents.replace('/*BUILD->INSERT_BUILTIN_EXTENSIONS*/', () => builtinExtensionsReplacement!);
 					modified = true;
@@ -814,7 +730,7 @@ Options for 'bundle':
 	--nls              Process NLS (localization) strings
 	--mangle-privates  Convert native #private fields to regular properties
 	--out <dir>        Output directory (default: out-vscode)
-	--target <target>  Build target: desktop (default), server, server-web, web
+	--target <target>  Build target: desktop (default), server
 	--source-map-base-url <url>  Rewrite sourceMappingURL to CDN URL
 
 Examples:
@@ -829,7 +745,6 @@ Examples:
 	npx tsx build/next/index.ts bundle --minify --nls
 	npx tsx build/next/index.ts bundle --nls --out out-vscode-min
 	npx tsx build/next/index.ts bundle --minify --nls --target server --out out-vscode-reh-min
-	npx tsx build/next/index.ts bundle --minify --nls --target server-web --out out-vscode-reh-web-min
 `);
 }
 

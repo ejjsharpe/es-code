@@ -1,4 +1,4 @@
-# Signs and notarizes the client, server and web server built and published
+# Signs and notarizes the client and server built and published
 # (unsigned client) by the compile job, then stages the final product artifacts.
 steps:
   - template: product-build-darwin-sign-local.yml@self
@@ -27,14 +27,6 @@ steps:
       (cd .. && zip -Xry $(Build.SourcesDirectory)/$ARCHIVE_PATH vscode-server-darwin-$(VSCODE_ARCH))
       echo "##vso[task.setvariable variable=SERVER_PATH]$ARCHIVE_PATH"
     displayName: Package server
-
-  - script: |
-      set -e
-      ARCHIVE_PATH=".build/darwin/server/vscode-server-darwin-$(VSCODE_ARCH)-web.zip"
-      mkdir -p $(dirname $ARCHIVE_PATH)
-      (cd .. && zip -Xry $(Build.SourcesDirectory)/$ARCHIVE_PATH vscode-server-darwin-$(VSCODE_ARCH)-web)
-      echo "##vso[task.setvariable variable=WEB_PATH]$ARCHIVE_PATH"
-    displayName: Package server (web)
 
   - task: UseDotNet@2
     inputs:
@@ -116,6 +108,4 @@ steps:
       mkdir -p $(Build.ArtifactStagingDirectory)/out/vscode_server_darwin_$(VSCODE_ARCH)_archive
       mv $(SERVER_PATH) $(Build.ArtifactStagingDirectory)/out/vscode_server_darwin_$(VSCODE_ARCH)_archive/vscode-server-darwin-$(VSCODE_ARCH).zip
 
-      mkdir -p $(Build.ArtifactStagingDirectory)/out/vscode_web_darwin_$(VSCODE_ARCH)_archive
-      mv $(WEB_PATH) $(Build.ArtifactStagingDirectory)/out/vscode_web_darwin_$(VSCODE_ARCH)_archive/vscode-server-darwin-$(VSCODE_ARCH)-web.zip
     displayName: Move artifacts to out directory

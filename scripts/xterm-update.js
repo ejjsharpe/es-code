@@ -75,7 +75,7 @@ async function update() {
 	}
 
 	if (modulesWithVersion.length > 0) {
-		for (const cwd of [vscodeDir, path.join(vscodeDir, 'remote'), path.join(vscodeDir, 'remote/web')]) {
+		for (const cwd of [vscodeDir, path.join(vscodeDir, 'remote')]) {
 			console.log(`${path.join(cwd, 'package.json')}: Updating\n  ${modulesWithVersion.join('\n  ')}`);
 			cp.execSync(`npm install ${modulesWithVersion.join(' ')}`, { cwd });
 		}

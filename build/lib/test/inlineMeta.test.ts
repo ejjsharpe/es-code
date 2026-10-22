@@ -15,8 +15,6 @@ suite('Bootstrap package metadata', () => {
 	const targets: { target: BuildTarget; files: string[] }[] = [
 		{ target: 'desktop', files: ['main.js', 'cli.js', 'bootstrap-fork.js'] },
 		{ target: 'server', files: ['server-main.js', 'server-cli.js', 'bootstrap-fork.js'] },
-		{ target: 'server-web', files: ['server-main.js', 'server-cli.js', 'bootstrap-fork.js'] },
-		{ target: 'web', files: [] },
 	];
 
 	for (const { target, files } of targets) {

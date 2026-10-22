@@ -1,5 +1,5 @@
 # Adds the CLI to the client build and the Copilot shim to the client and
-# server builds, code signs the client, server and web server builds, and
+# server builds, code signs the client and server builds, and
 # packages them together with the signed setup packages and the standalone CLI.
 steps:
   - task: DownloadPipelineArtifact@2
@@ -54,8 +54,7 @@ steps:
       SYSTEM_ACCESSTOKEN: $(System.AccessToken)
       BUILT_CLIENT: "true"
       BUILT_SERVER: "true"
-      BUILT_WEB: "true"
-      CodeSigningFolderPath: $(Agent.BuildDirectory)/VSCode-win32-$(VSCODE_ARCH),$(Agent.BuildDirectory)/vscode-server-win32-$(VSCODE_ARCH),$(Agent.BuildDirectory)/vscode-server-win32-$(VSCODE_ARCH)-web
+      CodeSigningFolderPath: $(Agent.BuildDirectory)/VSCode-win32-$(VSCODE_ARCH),$(Agent.BuildDirectory)/vscode-server-win32-$(VSCODE_ARCH)
     displayName: ✍️ Codesign
 
   # The standalone CLI is the CLI of the client build, which Codesign already
@@ -97,9 +96,6 @@ steps:
 
       mkdir $(Build.ArtifactStagingDirectory)\out\server -Force
       mv .build\win32-$(VSCODE_ARCH)\vscode-server-win32-$(VSCODE_ARCH).zip $(Build.ArtifactStagingDirectory)\out\server\vscode-server-win32-$(VSCODE_ARCH).zip
-
-      mkdir $(Build.ArtifactStagingDirectory)\out\web -Force
-      mv .build\win32-$(VSCODE_ARCH)\vscode-server-win32-$(VSCODE_ARCH)-web.zip $(Build.ArtifactStagingDirectory)\out\web\vscode-server-win32-$(VSCODE_ARCH)-web.zip
 
       echo "##vso[task.setvariable variable=VSCODE_VERSION]$Version"
     displayName: Move artifacts to out directory

@@ -22,5 +22,4 @@ steps:
       set -e
       export CODESIGN_IDENTITY=$(security find-identity -v -p codesigning $(agent.tempdirectory)/buildagent.keychain | grep -oEi "([0-9A-F]{40})" | head -n 1)
       node build/darwin/sign-server.ts $(Agent.BuildDirectory)/vscode-server-darwin-$(VSCODE_ARCH)
-      node build/darwin/sign-server.ts $(Agent.BuildDirectory)/vscode-server-darwin-$(VSCODE_ARCH)-web
     displayName: Sign server binaries

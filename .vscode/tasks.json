@@ -330,43 +330,6 @@
 			"problemMatcher": []
 		},
 		{
-			"type": "npm",
-			"script": "watch-webd",
-			"label": "Web Ext - Build",
-			"group": "build",
-			"isBackground": true,
-			"presentation": {
-				"reveal": "never"
-			},
-			"problemMatcher": {
-				"owner": "typescript",
-				"applyTo": "closedDocuments",
-				"fileLocation": [
-					"absolute"
-				],
-				"pattern": {
-					"regexp": "Error: ([^(]+)\\((\\d+|\\d+,\\d+|\\d+,\\d+,\\d+,\\d+)\\): (.*)$",
-					"file": 1,
-					"location": 2,
-					"message": 3
-				},
-				"background": {
-					"beginsPattern": "Starting compilation",
-					"endsPattern": "Finished compilation"
-				}
-			}
-		},
-		{
-			"type": "npm",
-			"script": "kill-watch-webd",
-			"label": "Kill Web Ext - Build",
-			"group": "build",
-			"presentation": {
-				"reveal": "never"
-			},
-			"problemMatcher": "$tsc"
-		},
-		{
 			"label": "Run tests",
 			"type": "shell",
 			"command": "./scripts/test.sh",
@@ -416,66 +379,11 @@
 				},
 				"background": {
 					"beginsPattern": ".*node .*",
-					"endsPattern": "Web UI available at .*"
+					"endsPattern": "Extension host agent started.*"
 				}
 			},
 			"presentation": {
 				"reveal": "never"
-			}
-		},
-		{
-			"type": "shell",
-			"command": "./scripts/code-web.sh",
-			"windows": {
-				"command": ".\\scripts\\code-web.bat"
-			},
-			"args": [
-				"--port",
-				"8080",
-				"--browser",
-				"none"
-			],
-			"label": "Run code web",
-			"isBackground": true,
-			"problemMatcher": {
-				"pattern": {
-					"regexp": ""
-				},
-				"background": {
-					"beginsPattern": ".*node .*",
-					"endsPattern": "Listening on .*"
-				}
-			},
-			"presentation": {
-				"reveal": "never"
-			}
-		},
-		{
-			"label": "Run VS Code (Web)",
-			"detail": "Run the Agents window as a web client.",
-			"type": "shell",
-			"command": "./scripts/code-server.sh",
-			"windows": {
-				"command": ".\\scripts\\code-server.bat"
-			},
-			"args": [
-				"--connection-token",
-				"dev-token",
-				"--port",
-				"8080"
-			],
-			"isBackground": true,
-			"problemMatcher": {
-				"pattern": {
-					"regexp": ""
-				},
-				"background": {
-					"beginsPattern": ".*node .*",
-					"endsPattern": "Web UI available at .*"
-				}
-			},
-			"presentation": {
-				"reveal": "always"
 			}
 		},
 		{

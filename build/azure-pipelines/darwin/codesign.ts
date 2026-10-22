@@ -59,7 +59,6 @@ async function main() {
 
 	const serverFolder = `${buildSourcesDirectory}/.build/darwin/server`;
 	const serverGlob = `vscode-server-darwin-${arch}.zip`;
-	const webGlob = `vscode-server-darwin-${arch}-web.zip`;
 
 	const tasks = [
 		codesignAndNotarize(esrpCliDLLPath, 'client', clientFolder, clientGlob),
@@ -68,7 +67,6 @@ async function main() {
 	if (arch !== 'universal') {
 		tasks.push(
 			codesignAndNotarize(esrpCliDLLPath, 'server', serverFolder, serverGlob),
-			codesignAndNotarize(esrpCliDLLPath, 'web', serverFolder, webGlob),
 		);
 	}
 

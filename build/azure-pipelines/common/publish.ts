@@ -639,7 +639,6 @@ const artifactsByGatingJob: Readonly<Record<string, readonly string[]>> = {
 		'vscode_client_win32_x64_user-setup',
 		'vscode_client_win32_x64_archive',
 		'vscode_server_win32_x64_archive',
-		'vscode_web_win32_x64_archive',
 		'vscode_cli_win32_x64_cli',
 	],
 	'Linux_x64_Test': [
@@ -648,14 +647,12 @@ const artifactsByGatingJob: Readonly<Record<string, readonly string[]>> = {
 		'vscode_client_linux_x64_rpm-package',
 		'vscode_client_linux_x64_snap',
 		'vscode_server_linux_x64_archive-unsigned',
-		'vscode_web_linux_x64_archive-unsigned',
 		'vscode_cli_linux_x64_cli',
 	],
 	'macOS_arm64_Test': [
 		'vscode_client_darwin_arm64_archive',
 		'vscode_client_darwin_arm64_dmg',
 		'vscode_server_darwin_arm64_archive',
-		'vscode_web_darwin_arm64_archive',
 		'vscode_cli_darwin_arm64_cli',
 		'vscode_client_darwin_universal_archive',
 		'vscode_client_darwin_universal_dmg',
@@ -798,8 +795,6 @@ function getPlatform(product: string, os: string, arch: string, type: string): s
 				}
 				case 'server':
 					return `server-win32-${arch}`;
-				case 'web':
-					return `server-win32-${arch}-web`;
 				case 'cli':
 					return `cli-win32-${arch}`;
 				default:
@@ -809,8 +804,6 @@ function getPlatform(product: string, os: string, arch: string, type: string): s
 			switch (product) {
 				case 'server':
 					return `server-alpine-${arch}`;
-				case 'web':
-					return `server-alpine-${arch}-web`;
 				case 'cli':
 					return `cli-alpine-${arch}`;
 				default:
@@ -826,8 +819,6 @@ function getPlatform(product: string, os: string, arch: string, type: string): s
 							return `linux-${arch}`;
 						case 'server':
 							return `server-linux-${arch}`;
-						case 'web':
-							return `server-linux-${arch}-web`;
 						default:
 							throw new Error(`Unrecognized: ${product} ${os} ${arch} ${type}`);
 					}
@@ -858,11 +849,6 @@ function getPlatform(product: string, os: string, arch: string, type: string): s
 						return 'server-darwin';
 					}
 					return `server-darwin-${arch}`;
-				case 'web':
-					if (arch === 'x64') {
-						return 'server-darwin-web';
-					}
-					return `server-darwin-${arch}-web`;
 				case 'cli':
 					return `cli-darwin-${arch}`;
 				default:

@@ -152,17 +152,6 @@ steps:
           displayName: 🧪 Run integration tests (Electron)
           timeoutInMinutes: 30
 
-  - ${{ if containsValue(parameters.VSCODE_TEST_IDS, 'integration-browser-chromium') }}:
-    - template: ../../common/run-test-with-checkpoint.yml@self
-      parameters:
-        testId: integration-browser-chromium
-        testStep:
-          script: ./scripts/test-web-integration.sh --browser chromium
-          env:
-            VSCODE_REMOTE_SERVER_PATH: $(agent.builddirectory)/vscode-server-linux-$(VSCODE_ARCH)-web
-          displayName: 🧪 Run integration tests (Browser, Chromium)
-          timeoutInMinutes: 30
-
   - ${{ if containsValue(parameters.VSCODE_TEST_IDS, 'integration-remote') }}:
     - template: ../../common/run-test-with-checkpoint.yml@self
       parameters:
@@ -181,7 +170,7 @@ steps:
           displayName: 🧪 Run integration tests (Remote)
           timeoutInMinutes: 30
 
-  - ${{ if or(containsValue(parameters.VSCODE_TEST_IDS, 'smoke-electron'), containsValue(parameters.VSCODE_TEST_IDS, 'smoke-browser-chromium'), containsValue(parameters.VSCODE_TEST_IDS, 'smoke-remote')) }}:
+  - ${{ if or(containsValue(parameters.VSCODE_TEST_IDS, 'smoke-electron'), containsValue(parameters.VSCODE_TEST_IDS, 'smoke-remote')) }}:
     - script: bash build/azure-pipelines/linux/collect-test-diagnostics.sh before "$(Agent.TempDirectory)"
       displayName: Diagnostics before smoke test run (disk space, processes, max_user_watches, number of opened file handles)
       continueOnError: true
@@ -221,18 +210,6 @@ steps:
       displayName: Clean up native policy smoke fixture
       condition: and(always(), eq(variables['policyFixture.created'], 'true'))
 
-  - ${{ if containsValue(parameters.VSCODE_TEST_IDS, 'smoke-browser-chromium') }}:
-    - template: ../../common/run-test-with-checkpoint.yml@self
-      parameters:
-        testId: smoke-browser-chromium
-        testStep:
-          script: npm run smoketest-no-compile -- --web --tracing --headless
-          env:
-            VSCODE_REMOTE_SERVER_PATH: $(agent.builddirectory)/vscode-server-linux-$(VSCODE_ARCH)-web
-            TMPDIR: $(Agent.TempDirectory)
-          timeoutInMinutes: 30
-          displayName: 🧪 Run smoke tests (Browser, Chromium)
-
   - ${{ if containsValue(parameters.VSCODE_TEST_IDS, 'smoke-remote') }}:
     - template: ../../common/run-test-with-checkpoint.yml@self
       parameters:
@@ -248,7 +225,7 @@ steps:
           timeoutInMinutes: 30
           displayName: 🧪 Run smoke tests (Remote)
 
-  - ${{ if or(containsValue(parameters.VSCODE_TEST_IDS, 'smoke-electron'), containsValue(parameters.VSCODE_TEST_IDS, 'smoke-browser-chromium'), containsValue(parameters.VSCODE_TEST_IDS, 'smoke-remote')) }}:
+  - ${{ if or(containsValue(parameters.VSCODE_TEST_IDS, 'smoke-electron'), containsValue(parameters.VSCODE_TEST_IDS, 'smoke-remote')) }}:
     - script: bash build/azure-pipelines/linux/collect-test-diagnostics.sh after "$(Agent.TempDirectory)"
       displayName: Diagnostics after smoke test run (disk space, processes, max_user_watches, number of opened file handles)
       continueOnError: true
