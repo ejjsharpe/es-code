@@ -5,7 +5,9 @@
 
 import { Event } from '../../../../base/common/event.js';
 import { Disposable, IDisposable } from '../../../../base/common/lifecycle.js';
+import { constObservable } from '../../../../base/common/observable.js';
 import { InstantiationType, registerSingleton } from '../../../../platform/instantiation/common/extensions.js';
+import { IChatEditingService, IChatEditingSession, IChatEditReviewSession } from '../common/editing/chatEditingService.js';
 import { ChatAgentService, IChatAgentService } from '../common/participants/chatAgents.js';
 import { IInlineChatSession, IInlineChatSessionService } from '../../inlineChat/browser/inlineChatSessionService.js';
 import { IChatWidget, IChatWidgetService, IQuickChatService } from './chat.js';
@@ -54,7 +56,20 @@ class DisabledInlineChatSessionService implements IInlineChatSessionService {
 	getSessionBySessionUri(): undefined { return undefined; }
 }
 
+class DisabledChatEditingService implements IChatEditingService {
+	declare readonly _serviceBrand: undefined;
+	readonly editingSessionsObs = constObservable<readonly IChatEditReviewSession[]>([]);
+
+	startOrContinueGlobalEditingSession(): IChatEditingSession { throw new Error('Chat editing is unavailable in the editor workbench'); }
+	getEditingSession(): undefined { return undefined; }
+	createEditingSession(): IChatEditingSession { throw new Error('Chat editing is unavailable in the editor workbench'); }
+	registerEditReviewSession(): IDisposable { return Disposable.None; }
+	transferEditingSession(): IChatEditingSession { throw new Error('Chat editing is unavailable in the editor workbench'); }
+	registerEditingSessionProvider(): IDisposable { return Disposable.None; }
+}
+
 registerSingleton(IQuickChatService, DisabledQuickChatService, InstantiationType.Delayed);
 registerSingleton(IChatWidgetService, DisabledChatWidgetService, InstantiationType.Delayed);
 registerSingleton(IChatAgentService, ChatAgentService, InstantiationType.Delayed);
 registerSingleton(IInlineChatSessionService, DisabledInlineChatSessionService, InstantiationType.Delayed);
+registerSingleton(IChatEditingService, DisabledChatEditingService, InstantiationType.Delayed);
