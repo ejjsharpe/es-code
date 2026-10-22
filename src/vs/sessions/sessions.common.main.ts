@@ -115,7 +115,6 @@ import '../workbench/services/filesConfiguration/common/filesConfigurationServic
 import '../workbench/services/views/browser/viewDescriptorService.js';
 import '../workbench/services/views/browser/viewsService.js';
 import '../workbench/services/quickinput/browser/quickInputService.js';
-import '../workbench/services/userDataSync/browser/userDataSyncWorkbenchService.js';
 import '../workbench/services/authentication/browser/authenticationService.js';
 import '../workbench/services/authentication/browser/authenticationExtensionsService.js';
 import '../workbench/services/authentication/browser/authenticationUsageService.js';
@@ -405,9 +404,6 @@ import '../workbench/contrib/languageDetection/browser/languageDetection.contrib
 // Authentication
 import '../workbench/contrib/authentication/browser/authentication.contribution.js';
 
-// User Data Profiles
-import '../workbench/contrib/userDataProfile/browser/userDataProfile.contribution.js';
-
 // Continue Edit Session
 import '../workbench/contrib/editSessions/browser/editSessions.contribution.js';
 
@@ -499,7 +495,6 @@ import './contrib/github/browser/github.contribution.js';
 import './contrib/applyCommitsToParentRepo/browser/applyChangesToParentRepo.js';
 import './contrib/fileTreeView/browser/fileTreeView.contribution.js'; // view registration disabled; filesystem provider still needed
 import './contrib/configuration/browser/configuration.contribution.js';
-import './contrib/browserView/browser/sessionBrowserView.contribution.js';
 import './contrib/editor/browser/editor.contribution.js';
 import './contrib/extensions/browser/extensions.contribution.js';
 

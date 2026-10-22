@@ -23,7 +23,6 @@ import { IObjectTreeOptions } from '../../../../base/browser/ui/tree/objectTree.
 import { ObjectTreeModel } from '../../../../base/browser/ui/tree/objectTreeModel.js';
 import { ITreeFilter, ITreeModel, ITreeNode, ITreeRenderer, TreeFilterResult, TreeVisibility } from '../../../../base/browser/ui/tree/tree.js';
 import { Action, IAction, Separator } from '../../../../base/common/actions.js';
-import { distinct } from '../../../../base/common/arrays.js';
 import { Codicon } from '../../../../base/common/codicons.js';
 import { onUnexpectedError } from '../../../../base/common/errors.js';
 import { Emitter, Event } from '../../../../base/common/event.js';
@@ -54,11 +53,8 @@ import { ITelemetryService } from '../../../../platform/telemetry/common/telemet
 import { defaultButtonStyles, getInputBoxStyle, getListStyles, getSelectBoxStyles } from '../../../../platform/theme/browser/defaultStyles.js';
 import { editorBackground, foreground } from '../../../../platform/theme/common/colorRegistry.js';
 import { IThemeService } from '../../../../platform/theme/common/themeService.js';
-import { IUserDataProfilesService } from '../../../../platform/userDataProfile/common/userDataProfile.js';
-import { getIgnoredSettings } from '../../../../platform/userDataSync/common/settingsMerge.js';
-import { IUserDataSyncEnablementService, getDefaultIgnoredSettings } from '../../../../platform/userDataSync/common/userDataSync.js';
 import { hasNativeContextMenu } from '../../../../platform/window/common/window.js';
-import { APPLICATION_SCOPES, APPLY_ALL_PROFILES_SETTING, IWorkbenchConfigurationService } from '../../../services/configuration/common/configuration.js';
+import { IWorkbenchConfigurationService } from '../../../services/configuration/common/configuration.js';
 import { IWorkbenchEnvironmentService } from '../../../services/environment/common/environmentService.js';
 import { IExtensionService } from '../../../services/extensions/common/extensions.js';
 import { ISetting, ISettingsGroup, SETTINGS_AUTHORITY, SettingValueType } from '../../../services/preferences/common/preferences.js';
@@ -882,9 +878,6 @@ export abstract class AbstractSettingRenderer extends Disposable implements ITre
 	protected readonly _onDidFocusSetting = this._register(new Emitter<SettingsTreeSettingElement>());
 	readonly onDidFocusSetting: Event<SettingsTreeSettingElement> = this._onDidFocusSetting.event;
 
-	private ignoredSettings: string[];
-	private readonly _onDidChangeIgnoredSettings = this._register(new Emitter<void>());
-	readonly onDidChangeIgnoredSettings: Event<void> = this._onDidChangeIgnoredSettings.event;
 
 	protected readonly _onDidChangeSettingHeight = this._register(new Emitter<HeightChangeParams>());
 	readonly onDidChangeSettingHeight: Event<HeightChangeParams> = this._onDidChangeSettingHeight.event;
@@ -912,11 +905,6 @@ export abstract class AbstractSettingRenderer extends Disposable implements ITre
 	) {
 		super();
 
-		this.ignoredSettings = getIgnoredSettings(getDefaultIgnoredSettings(), this._configService);
-		this._register(this._configService.onDidChangeConfiguration(e => {
-			this.ignoredSettings = getIgnoredSettings(getDefaultIgnoredSettings(), this._configService);
-			this._onDidChangeIgnoredSettings.fire();
-		}));
 	}
 
 	abstract renderTemplate(container: HTMLElement): any;
@@ -1041,11 +1029,6 @@ export abstract class AbstractSettingRenderer extends Disposable implements ITre
 		}
 
 		template.indicatorsLabel.updateScopeOverrides(element, this._onDidClickOverrideElement, this._onApplyFilter);
-		template.elementDisposables.add(this._configService.onDidChangeConfiguration(e => {
-			if (e.affectsConfiguration(APPLY_ALL_PROFILES_SETTING)) {
-				template.indicatorsLabel.updateScopeOverrides(element, this._onDidClickOverrideElement, this._onApplyFilter);
-			}
-		}));
 
 		const onChange = (value: unknown) => this._onDidChangeSetting.fire({
 			key: element.setting.key,
@@ -1074,13 +1057,9 @@ export abstract class AbstractSettingRenderer extends Disposable implements ITre
 		this.renderValue(element, <ISettingItemTemplate>template, onChange);
 
 		template.indicatorsLabel.updateWorkspaceTrust(element);
-		template.indicatorsLabel.updateSyncIgnored(element, this.ignoredSettings);
 		template.indicatorsLabel.updateDefaultOverrideIndicator(element);
 		template.indicatorsLabel.updatePreviewIndicator(element);
 		template.indicatorsLabel.updateAdvancedIndicator(element);
-		template.elementDisposables.add(this.onDidChangeIgnoredSettings(() => {
-			template.indicatorsLabel.updateSyncIgnored(element, this.ignoredSettings);
-		}));
 
 		this.updateSettingTabbable(element, template);
 		template.elementDisposables.add(element.onDidChangeTabbable(() => {
@@ -2232,7 +2211,6 @@ export class SettingTreeRenderers extends Disposable {
 		@IInstantiationService private readonly _instantiationService: IInstantiationService,
 		@IContextMenuService private readonly _contextMenuService: IContextMenuService,
 		@IContextViewService private readonly _contextViewService: IContextViewService,
-		@IUserDataSyncEnablementService private readonly _userDataSyncEnablementService: IUserDataSyncEnablementService,
 	) {
 		super();
 		this.settingActions = [
@@ -2255,8 +2233,8 @@ export class SettingTreeRenderers extends Disposable {
 			this._instantiationService.createInstance(CopySettingAsURLAction),
 		];
 
-		const actionFactory = (setting: ISetting, settingTarget: SettingsTarget) => this.getActionsForSetting(setting, settingTarget);
 		const emptyActionFactory = (_: ISetting) => [];
+		const actionFactory = emptyActionFactory;
 		const extensionRenderer = this._instantiationService.createInstance(SettingsExtensionToggleRenderer, [], emptyActionFactory);
 		const settingRenderers = [
 			this._instantiationService.createInstance(SettingBoolRenderer, this.settingActions, actionFactory),
@@ -2291,20 +2269,6 @@ export class SettingTreeRenderers extends Disposable {
 			this._instantiationService.createInstance(SettingGroupRenderer),
 			this._instantiationService.createInstance(SettingNewExtensionsRenderer),
 		];
-	}
-
-	private getActionsForSetting(setting: ISetting, settingTarget: SettingsTarget): IAction[] {
-		const actions: IAction[] = [];
-		if (!(setting.scope && APPLICATION_SCOPES.includes(setting.scope)) && settingTarget === ConfigurationTarget.USER_LOCAL) {
-			actions.push(this._instantiationService.createInstance(ApplySettingToAllProfilesAction, setting));
-		}
-		if (this._userDataSyncEnablementService.isEnabled() && !setting.disallowSyncIgnore) {
-			actions.push(this._instantiationService.createInstance(SyncSettingAction, setting));
-		}
-		if (actions.length) {
-			actions.splice(0, 0, new Separator());
-		}
-		return actions;
 	}
 
 	cancelSuggesters() {
@@ -2639,7 +2603,7 @@ export class NonCollapsibleObjectTreeModel<T> extends ObjectTreeModel<T> {
 }
 
 class SettingsTreeAccessibilityProvider implements IListAccessibilityProvider<SettingsTreeElement> {
-	constructor(private readonly configurationService: IWorkbenchConfigurationService, private readonly languageService: ILanguageService, private readonly userDataProfilesService: IUserDataProfilesService) {
+	constructor(private readonly languageService: ILanguageService) {
 	}
 
 	getAriaLabel(element: SettingsTreeElement) {
@@ -2652,7 +2616,7 @@ class SettingsTreeAccessibilityProvider implements IListAccessibilityProvider<Se
 				ariaLabelSections.push(modifiedText);
 			}
 
-			const indicatorsLabelAriaLabel = getIndicatorsLabelAriaLabel(element, this.configurationService, this.userDataProfilesService, this.languageService);
+			const indicatorsLabelAriaLabel = getIndicatorsLabelAriaLabel(element, this.languageService);
 			if (indicatorsLabelAriaLabel.length) {
 				ariaLabelSections.push(`${indicatorsLabelAriaLabel}.`);
 			}
@@ -2683,8 +2647,7 @@ export class SettingsTree extends WorkbenchObjectTree<SettingsTreeElement> {
 		@IListService listService: IListService,
 		@IWorkbenchConfigurationService configurationService: IWorkbenchConfigurationService,
 		@IInstantiationService instantiationService: IInstantiationService,
-		@ILanguageService languageService: ILanguageService,
-		@IUserDataProfilesService userDataProfilesService: IUserDataProfilesService
+		@ILanguageService languageService: ILanguageService
 	) {
 		super('SettingsTree', container,
 			new SettingsTreeDelegate(),
@@ -2698,7 +2661,7 @@ export class SettingsTree extends WorkbenchObjectTree<SettingsTreeElement> {
 						return e.id;
 					}
 				},
-				accessibilityProvider: new SettingsTreeAccessibilityProvider(configurationService, languageService, userDataProfilesService),
+				accessibilityProvider: new SettingsTreeAccessibilityProvider(languageService),
 				styleController: id => new DefaultStyleController(domStylesheetsJs.createStyleSheet(container), id),
 				filter: instantiationService.createInstance(SettingsTreeFilter, viewState, true),
 				smoothScrolling: configurationService.getValue<boolean>('workbench.list.smoothScrolling'),
@@ -2809,91 +2772,4 @@ class CopySettingAsURLAction extends Action {
 
 		return Promise.resolve(undefined);
 	}
-}
-
-class SyncSettingAction extends Action {
-	static readonly ID = 'settings.stopSyncingSetting';
-	static readonly LABEL = localize('stopSyncingSetting', "Sync This Setting");
-
-	constructor(
-		private readonly setting: ISetting,
-		@IConfigurationService private readonly configService: IConfigurationService,
-	) {
-		super(SyncSettingAction.ID, SyncSettingAction.LABEL);
-		this._register(Event.filter(configService.onDidChangeConfiguration, e => e.affectsConfiguration('settingsSync.ignoredSettings'))(() => this.update()));
-		this.update();
-	}
-
-	async update() {
-		const ignoredSettings = getIgnoredSettings(getDefaultIgnoredSettings(), this.configService);
-		this.checked = !ignoredSettings.includes(this.setting.key);
-	}
-
-	override async run(): Promise<void> {
-		// first remove the current setting completely from ignored settings
-		let currentValue = [...this.configService.getValue<string[]>('settingsSync.ignoredSettings')];
-		currentValue = currentValue.filter(v => v !== this.setting.key && v !== `-${this.setting.key}`);
-
-		const defaultIgnoredSettings = getDefaultIgnoredSettings();
-		const isDefaultIgnored = defaultIgnoredSettings.includes(this.setting.key);
-		const askedToSync = !this.checked;
-
-		// If asked to sync, then add only if it is ignored by default
-		if (askedToSync && isDefaultIgnored) {
-			currentValue.push(`-${this.setting.key}`);
-		}
-
-		// If asked not to sync, then add only if it is not ignored by default
-		if (!askedToSync && !isDefaultIgnored) {
-			currentValue.push(this.setting.key);
-		}
-
-		this.configService.updateValue('settingsSync.ignoredSettings', currentValue.length ? currentValue : undefined, ConfigurationTarget.USER);
-
-		return Promise.resolve(undefined);
-	}
-
-}
-
-class ApplySettingToAllProfilesAction extends Action {
-	static readonly ID = 'settings.applyToAllProfiles';
-	static readonly LABEL = localize('applyToAllProfiles', "Apply Setting to all Profiles");
-
-	constructor(
-		private readonly setting: ISetting,
-		@IWorkbenchConfigurationService private readonly configService: IWorkbenchConfigurationService,
-	) {
-		super(ApplySettingToAllProfilesAction.ID, ApplySettingToAllProfilesAction.LABEL);
-		this._register(Event.filter(configService.onDidChangeConfiguration, e => e.affectsConfiguration(APPLY_ALL_PROFILES_SETTING))(() => this.update()));
-		this.update();
-	}
-
-	update() {
-		const allProfilesSettings = this.configService.getValue<string[]>(APPLY_ALL_PROFILES_SETTING);
-		this.checked = allProfilesSettings.includes(this.setting.key);
-	}
-
-	override async run(): Promise<void> {
-		// first remove the current setting completely from ignored settings
-		const value = this.configService.getValue<string[]>(APPLY_ALL_PROFILES_SETTING) ?? [];
-
-		if (this.checked) {
-			const idx = value.indexOf(this.setting.key);
-			if (idx !== -1) {
-				value.splice(idx, 1);
-			}
-		} else {
-			value.push(this.setting.key);
-		}
-
-		const newValue = distinct(value);
-		if (this.checked) {
-			await this.configService.updateValue(this.setting.key, this.configService.inspect(this.setting.key).application?.value, ConfigurationTarget.USER_LOCAL);
-			await this.configService.updateValue(APPLY_ALL_PROFILES_SETTING, newValue.length ? newValue : undefined, ConfigurationTarget.USER_LOCAL);
-		} else {
-			await this.configService.updateValue(APPLY_ALL_PROFILES_SETTING, newValue.length ? newValue : undefined, ConfigurationTarget.USER_LOCAL);
-			await this.configService.updateValue(this.setting.key, this.configService.inspect(this.setting.key).userLocal?.value, ConfigurationTarget.USER_LOCAL);
-		}
-	}
-
 }

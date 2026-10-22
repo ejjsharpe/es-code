@@ -20,7 +20,7 @@ import { registerIcon } from '../../../platform/theme/common/iconRegistry.js';
 import { Action, IAction, Separator, SubmenuAction, toAction } from '../../../base/common/actions.js';
 import { Emitter } from '../../../base/common/event.js';
 import { IMenu, IMenuService, MenuId } from '../../../platform/actions/common/actions.js';
-import { addDisposableListener, EventType, append, clearNode, hide, show, EventHelper, $, runWhenWindowIdle, getWindow } from '../../../base/browser/dom.js';
+import { addDisposableListener, EventType, append, EventHelper, $, runWhenWindowIdle, getWindow } from '../../../base/browser/dom.js';
 import { StandardKeyboardEvent } from '../../../base/browser/keyboardEvent.js';
 import { StandardMouseEvent } from '../../../base/browser/mouseEvent.js';
 import { EventType as TouchEventType, GestureEvent } from '../../../base/browser/touch.js';
@@ -39,7 +39,6 @@ import { ACCOUNTS_AVATAR_SETTING, AuthenticationSessionAccount, IAuthenticationS
 import { IWorkbenchEnvironmentService } from '../../services/environment/common/environmentService.js';
 import { IHoverService } from '../../../platform/hover/browser/hover.js';
 import { ILifecycleService, LifecyclePhase } from '../../services/lifecycle/common/lifecycle.js';
-import { IUserDataProfileService } from '../../services/userDataProfile/common/userDataProfile.js';
 import { DEFAULT_ICON } from '../../services/userDataProfile/common/userDataProfileIcons.js';
 import { isString } from '../../../base/common/types.js';
 import { FileAccess } from '../../../base/common/network.js';
@@ -685,14 +684,10 @@ export class AccountsActivityActionViewItem extends AbstractGlobalActivityAction
 
 export class GlobalActivityActionViewItem extends AbstractGlobalActivityActionViewItem {
 
-	private profileBadge: HTMLElement | undefined;
-	private profileBadgeContent: HTMLElement | undefined;
-
 	constructor(
 		contextMenuActionsProvider: () => IAction[],
 		options: ICompositeBarActionViewItemOptions,
 		contextMenuAlignmentOptions: () => Readonly<{ anchorAlignment: AnchorAlignment; anchorAxisAlignment: AnchorAxisAlignment }> | undefined,
-		@IUserDataProfileService private readonly userDataProfileService: IUserDataProfileService,
 		@IThemeService themeService: IThemeService,
 		@IHoverService hoverService: IHoverService,
 		@IMenuService menuService: IMenuService,
@@ -707,58 +702,10 @@ export class GlobalActivityActionViewItem extends AbstractGlobalActivityActionVi
 		const action = instantiationService.createInstance(CompositeBarAction, {
 			id: GLOBAL_ACTIVITY_ID,
 			name: localize('manage', "Manage"),
-			classNames: ThemeIcon.asClassNameArray(userDataProfileService.currentProfile.icon ? ThemeIcon.fromId(userDataProfileService.currentProfile.icon) : DEFAULT_ICON)
+			classNames: ThemeIcon.asClassNameArray(DEFAULT_ICON)
 		});
 		super(MenuId.GlobalActivity, action, options, contextMenuActionsProvider, contextMenuAlignmentOptions, themeService, hoverService, menuService, contextMenuService, contextKeyService, configurationService, keybindingService, activityService);
 		this._register(action);
-		this._register(this.userDataProfileService.onDidChangeCurrentProfile(e => {
-			action.compositeBarActionItem = {
-				...action.compositeBarActionItem,
-				classNames: ThemeIcon.asClassNameArray(userDataProfileService.currentProfile.icon ? ThemeIcon.fromId(userDataProfileService.currentProfile.icon) : DEFAULT_ICON)
-			};
-		}));
-	}
-
-	override render(container: HTMLElement): void {
-		super.render(container);
-
-		this.profileBadge = append(container, $('.profile-badge'));
-		this.profileBadgeContent = append(this.profileBadge, $('.profile-badge-content'));
-		this.updateProfileBadge();
-	}
-
-	private updateProfileBadge(): void {
-		if (!this.profileBadge || !this.profileBadgeContent) {
-			return;
-		}
-
-		clearNode(this.profileBadgeContent);
-		hide(this.profileBadge);
-
-		if (this.userDataProfileService.currentProfile.isDefault) {
-			return;
-		}
-
-		if (this.userDataProfileService.currentProfile.icon && this.userDataProfileService.currentProfile.icon !== DEFAULT_ICON.id) {
-			return;
-		}
-
-		if ((this.action as CompositeBarAction).activities.length > 0) {
-			return;
-		}
-
-		show(this.profileBadge);
-		this.profileBadgeContent.classList.add('profile-text-overlay');
-		this.profileBadgeContent.textContent = this.userDataProfileService.currentProfile.name.substring(0, 2).toUpperCase();
-	}
-
-	protected override updateActivity(): void {
-		super.updateActivity();
-		this.updateProfileBadge();
-	}
-
-	protected override computeTitle(): string {
-		return this.userDataProfileService.currentProfile.isDefault ? super.computeTitle() : localize('manage profile', "Manage {0} (Profile)", this.userDataProfileService.currentProfile.name);
 	}
 }
 
@@ -804,7 +751,6 @@ export class SimpleGlobalActivityActionViewItem extends GlobalActivityActionView
 	constructor(
 		hoverOptions: IActivityHoverOptions,
 		options: IBaseActionViewItemOptions,
-		@IUserDataProfileService userDataProfileService: IUserDataProfileService,
 		@IThemeService themeService: IThemeService,
 		@IHoverService hoverService: IHoverService,
 		@IMenuService menuService: IMenuService,
@@ -826,7 +772,7 @@ export class SimpleGlobalActivityActionViewItem extends GlobalActivityActionView
 				}),
 				hoverOptions,
 				compact: true,
-			}, () => undefined, userDataProfileService, themeService, hoverService, menuService, contextMenuService, contextKeyService, configurationService, environmentService, keybindingService, instantiationService, activityService);
+			}, () => undefined, themeService, hoverService, menuService, contextMenuService, contextKeyService, configurationService, environmentService, keybindingService, instantiationService, activityService);
 	}
 }
 

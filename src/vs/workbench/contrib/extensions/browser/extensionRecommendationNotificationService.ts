@@ -16,11 +16,10 @@ import { IConfigurationService } from '../../../../platform/configuration/common
 import { IGalleryExtension } from '../../../../platform/extensionManagement/common/extensionManagement.js';
 import { areSameExtensions } from '../../../../platform/extensionManagement/common/extensionManagementUtil.js';
 import { IExtensionRecommendationNotificationService, IExtensionRecommendations, RecommendationsNotificationResult, RecommendationSource, RecommendationSourceToString } from '../../../../platform/extensionRecommendations/common/extensionRecommendations.js';
-import { INotificationHandle, INotificationService, IPromptChoice, IPromptChoiceWithMenu, NotificationPriority, Severity } from '../../../../platform/notification/common/notification.js';
+import { INotificationHandle, INotificationService, IPromptChoice, NotificationPriority, Severity } from '../../../../platform/notification/common/notification.js';
 import { IStorageService, StorageScope, StorageTarget } from '../../../../platform/storage/common/storage.js';
 import { ITelemetryService } from '../../../../platform/telemetry/common/telemetry.js';
 import { IUriIdentityService } from '../../../../platform/uriIdentity/common/uriIdentity.js';
-import { IUserDataSyncEnablementService, SyncResource } from '../../../../platform/userDataSync/common/userDataSync.js';
 import { IExtension, IExtensionsWorkbenchService } from '../common/extensions.js';
 import { IWorkbenchEnvironmentService } from '../../../services/environment/common/environmentService.js';
 import { EnablementState, IWorkbenchExtensionManagementService, IWorkbenchExtensionEnablementService } from '../../../services/extensionManagement/common/extensionManagement.js';
@@ -139,7 +138,6 @@ export class ExtensionRecommendationNotificationService extends Disposable imple
 		@IWorkbenchExtensionManagementService private readonly extensionManagementService: IWorkbenchExtensionManagementService,
 		@IWorkbenchExtensionEnablementService private readonly extensionEnablementService: IWorkbenchExtensionEnablementService,
 		@IExtensionIgnoredRecommendationsService private readonly extensionIgnoredRecommendationsService: IExtensionIgnoredRecommendationsService,
-		@IUserDataSyncEnablementService private readonly userDataSyncEnablementService: IUserDataSyncEnablementService,
 		@IWorkbenchEnvironmentService private readonly workbenchEnvironmentService: IWorkbenchEnvironmentService,
 		@IUriIdentityService private readonly uriIdentityService: IUriIdentityService,
 	) {
@@ -276,8 +274,8 @@ export class ExtensionRecommendationNotificationService extends Disposable imple
 		{ onDidInstallRecommendedExtensions, onDidShowRecommendedExtensions, onDidCancelRecommendedExtensions, onDidNeverShowRecommendedExtensionsAgain }: RecommendationsNotificationActions): CancelablePromise<RecommendationsNotificationResult> {
 		return createCancelablePromise<RecommendationsNotificationResult>(async token => {
 			let accepted = false;
-			const choices: (IPromptChoice | IPromptChoiceWithMenu)[] = [];
-			const installExtensions = async (isMachineScoped: boolean) => {
+			const choices: IPromptChoice[] = [];
+			const installExtensions = async () => {
 				this.extensionsWorkbenchService.openSearch(searchValue);
 				onDidInstallRecommendedExtensions(extensions);
 				const galleryExtensions: IGalleryExtension[] = [], resourceExtensions: IExtension[] = [];
@@ -290,17 +288,13 @@ export class ExtensionRecommendationNotificationService extends Disposable imple
 				}
 				await Promises.settled<any>([
 					Promises.settled(extensions.map(extension => this.extensionsWorkbenchService.open(extension, { pinned: true }))),
-					galleryExtensions.length ? this.extensionManagementService.installGalleryExtensions(galleryExtensions.map(e => ({ extension: e, options: { isMachineScoped } }))) : Promise.resolve(),
+					galleryExtensions.length ? this.extensionManagementService.installGalleryExtensions(galleryExtensions.map(e => ({ extension: e }))) : Promise.resolve(),
 					resourceExtensions.length ? Promise.allSettled(resourceExtensions.map(r => this.extensionsWorkbenchService.install(r))) : Promise.resolve()
 				]);
 			};
 			choices.push({
 				label: localize('install', "Install"),
-				run: () => installExtensions(false),
-				menu: this.userDataSyncEnablementService.isEnabled() && this.userDataSyncEnablementService.isResourceEnabled(SyncResource.Extensions) ? [{
-					label: localize('install and do no sync', "Install (Do not sync)"),
-					run: () => installExtensions(true)
-				}] : undefined,
+				run: () => installExtensions(),
 			});
 			choices.push(...[{
 				label: localize('show recommendations', "Show Recommendations"),

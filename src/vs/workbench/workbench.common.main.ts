@@ -104,7 +104,6 @@ import './services/filesConfiguration/common/filesConfigurationService.js';
 import './services/views/browser/viewDescriptorService.js';
 import './services/views/browser/viewsService.js';
 import './services/quickinput/browser/quickInputService.js';
-import './services/userDataSync/browser/userDataSyncWorkbenchService.js';
 import './services/authentication/browser/authenticationService.js';
 import './services/authentication/browser/authenticationExtensionsService.js';
 import './services/authentication/browser/authenticationUsageService.js';
@@ -396,12 +395,6 @@ import './contrib/languageStatus/browser/languageStatus.contribution.js';
 
 // Authentication
 import './contrib/authentication/browser/authentication.contribution.js';
-
-// User Data Sync
-import './contrib/userDataSync/browser/userDataSync.contribution.js';
-
-// User Data Profiles
-import './contrib/userDataProfile/browser/userDataProfile.contribution.js';
 
 // Continue Edit Session
 import './contrib/editSessions/browser/editSessions.contribution.js';

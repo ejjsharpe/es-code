@@ -27,7 +27,7 @@ suite('SettingsTreeIndicatorsLabel', () => {
 			},
 		});
 		const container = document.createElement('div');
-		const label = store.add(new SettingsTreeIndicatorsLabel(container, undefined!, hoverService, undefined!, undefined!, undefined!));
+		const label = store.add(new SettingsTreeIndicatorsLabel(container, hoverService, undefined!, undefined!));
 		const clicks = store.add(new Emitter<ISettingOverrideClickEvent>());
 		const filters = store.add(new Emitter<string>());
 		const element = upcastPartial<SettingsTreeSettingElement>({ hasPolicyValue: true, policyValueDescription: 'Organization default explanation' });
@@ -53,9 +53,7 @@ suite('SettingsTreeIndicatorsLabel', () => {
 		};
 		const label = new SettingsTreeIndicatorsLabel(
 			document.createElement('div'),
-			undefined!,
 			hoverService as never,
-			undefined!,
 			undefined!,
 			undefined!,
 		);

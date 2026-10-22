@@ -13,7 +13,7 @@ import { IOpenerService } from '../../../../platform/opener/common/opener.js';
 import { IWorkbenchContribution } from '../../../common/contributions.js';
 import { IStorageService, StorageScope, StorageTarget } from '../../../../platform/storage/common/storage.js';
 import { IUpdateService, State as UpdateState, StateType } from '../../../../platform/update/common/update.js';
-import { INotificationService, NotificationPriority, Severity } from '../../../../platform/notification/common/notification.js';
+import { INotificationService, NotificationPriority } from '../../../../platform/notification/common/notification.js';
 import { IDialogService } from '../../../../platform/dialogs/common/dialogs.js';
 import { IBrowserWorkbenchEnvironmentService } from '../../../services/environment/browser/environmentService.js';
 import { ReleaseNotesManager } from './releaseNotesEditor.js';
@@ -24,11 +24,8 @@ import { MenuRegistry, MenuId, registerAction2, Action2 } from '../../../../plat
 import { CommandsRegistry } from '../../../../platform/commands/common/commands.js';
 import { IHostService } from '../../../services/host/browser/host.js';
 import { IProductService } from '../../../../platform/product/common/productService.js';
-import { IUserDataSyncEnablementService, IUserDataSyncService, IUserDataSyncStoreManagementService, SyncStatus, UserDataSyncStoreType } from '../../../../platform/userDataSync/common/userDataSync.js';
 import { IsWebContext } from '../../../../platform/contextkey/common/contextkeys.js';
-import { Promises, Throttler } from '../../../../base/common/async.js';
-import { IUserDataSyncWorkbenchService } from '../../../services/userDataSync/common/userDataSync.js';
-import { Event } from '../../../../base/common/event.js';
+import { Throttler } from '../../../../base/common/async.js';
 import { IDefaultAccountService } from '../../../../platform/defaultAccount/common/defaultAccount.js';
 import { getInternalOrg } from '../../../../platform/assignment/common/assignment.js';
 import { IVersion, tryParseVersion } from '../common/updateUtils.js';
@@ -390,30 +387,9 @@ export class SwitchProductQualityContribution extends Disposable implements IWor
 
 				async run(accessor: ServicesAccessor): Promise<void> {
 					const dialogService = accessor.get(IDialogService);
-					const userDataSyncEnablementService = accessor.get(IUserDataSyncEnablementService);
-					const userDataSyncStoreManagementService = accessor.get(IUserDataSyncStoreManagementService);
-					const storageService = accessor.get(IStorageService);
-					const userDataSyncWorkbenchService = accessor.get(IUserDataSyncWorkbenchService);
-					const userDataSyncService = accessor.get(IUserDataSyncService);
 					const notificationService = accessor.get(INotificationService);
 
 					try {
-						const selectSettingsSyncServiceDialogShownKey = 'switchQuality.selectSettingsSyncServiceDialogShown';
-						const userDataSyncStore = userDataSyncStoreManagementService.userDataSyncStore;
-						let userDataSyncStoreType: UserDataSyncStoreType | undefined;
-						if (userDataSyncStore && isSwitchingToInsiders && userDataSyncEnablementService.isEnabled()
-							&& !storageService.getBoolean(selectSettingsSyncServiceDialogShownKey, StorageScope.APPLICATION, false)) {
-							userDataSyncStoreType = await this.selectSettingsSyncService(dialogService);
-							if (!userDataSyncStoreType) {
-								return;
-							}
-							storageService.store(selectSettingsSyncServiceDialogShownKey, true, StorageScope.APPLICATION, StorageTarget.USER);
-							if (userDataSyncStoreType === 'stable') {
-								// Update the stable service type in the current window, so that it uses stable service after switched to insiders version (after reload).
-								await userDataSyncStoreManagementService.switch(userDataSyncStoreType);
-							}
-						}
-
 						const res = await dialogService.confirm({
 							type: 'info',
 							message: nls.localize('relaunchMessage', "Changing the version requires a reload to take effect"),
@@ -424,50 +400,11 @@ export class SwitchProductQualityContribution extends Disposable implements IWor
 						});
 
 						if (res.confirmed) {
-							const promises: Promise<unknown>[] = [];
-
-							// If sync is happening wait until it is finished before reload
-							if (userDataSyncService.status === SyncStatus.Syncing) {
-								promises.push(Event.toPromise(Event.filter(userDataSyncService.onDidChangeStatus, status => status !== SyncStatus.Syncing)));
-							}
-
-							// If user chose the sync service then synchronise the store type option in insiders service, so that other clients using insiders service are also updated.
-							if (isSwitchingToInsiders && userDataSyncStoreType) {
-								promises.push(userDataSyncWorkbenchService.synchroniseUserDataSyncStoreType());
-							}
-
-							await Promises.settled(promises);
-
 							productQualityChangeHandler(newQuality);
-						} else {
-							// Reset
-							if (userDataSyncStoreType) {
-								storageService.remove(selectSettingsSyncServiceDialogShownKey, StorageScope.APPLICATION);
-							}
 						}
 					} catch (error) {
 						notificationService.error(error);
 					}
-				}
-
-				private async selectSettingsSyncService(dialogService: IDialogService): Promise<UserDataSyncStoreType | undefined> {
-					const { result } = await dialogService.prompt<UserDataSyncStoreType>({
-						type: Severity.Info,
-						message: nls.localize('selectSyncService.message', "Choose the settings sync service to use after changing the version"),
-						detail: nls.localize('selectSyncService.detail', "The Insiders version of VS Code will synchronize your settings, keybindings, extensions, snippets and UI State using separate insiders settings sync service by default."),
-						buttons: [
-							{
-								label: nls.localize({ key: 'use insiders', comment: ['&& denotes a mnemonic'] }, "&&Insiders"),
-								run: () => 'insiders'
-							},
-							{
-								label: nls.localize({ key: 'use stable', comment: ['&& denotes a mnemonic'] }, "&&Stable (current)"),
-								run: () => 'stable'
-							}
-						],
-						cancelButton: true
-					});
-					return result;
 				}
 			}));
 		}

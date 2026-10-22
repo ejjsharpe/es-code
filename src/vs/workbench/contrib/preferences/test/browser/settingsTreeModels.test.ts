@@ -35,7 +35,6 @@ import { SettingMatches } from '../../browser/preferencesSearch.js';
 import { chatNetworkDomainConfigurationProperties } from '../../../chat/browser/chatNetworkConfiguration.js';
 import { getDefaultModelPolicyDescription } from '../../../chat/common/modelSelection.js';
 import { getIndicatorsLabelAriaLabel } from '../../browser/settingsEditorSettingIndicators.js';
-import { IUserDataProfilesService } from '../../../../../platform/userDataProfile/common/userDataProfile.js';
 
 suite('SettingsTree managed default descriptions', () => {
 	const store = ensureNoDisposablesAreLeakedInTestSuite();
@@ -89,7 +88,7 @@ suite('SettingsTree managed default descriptions', () => {
 					value: element.value,
 					managed: element.hasPolicyValue,
 					description: element.policyValueDescription,
-					accessible: getIndicatorsLabelAriaLabel(element, instantiationService.get(IWorkbenchConfigurationService), new class extends mock<IUserDataProfilesService>() { }(), instantiationService.get(ILanguageService)),
+					accessible: getIndicatorsLabelAriaLabel(element, instantiationService.get(ILanguageService)),
 				};
 			};
 			const managed = read();

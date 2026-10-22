@@ -51,7 +51,7 @@ import { ILanguageService } from '../../../../editor/common/languages/language.j
 import { IProductService } from '../../../../platform/product/common/productService.js';
 import { FileAccess } from '../../../../base/common/network.js';
 import { IIgnoredExtensionsManagementService } from '../../../../platform/userDataSync/common/ignoredExtensions.js';
-import { IUserDataAutoSyncService, IUserDataSyncEnablementService, SyncResource } from '../../../../platform/userDataSync/common/userDataSync.js';
+import { IUserDataAutoSyncService } from '../../../../platform/userDataSync/common/userDataSync.js';
 import { IContextKey, IContextKeyService } from '../../../../platform/contextkey/common/contextkey.js';
 import { isDefined, isString, isUndefined } from '../../../../base/common/types.js';
 import { IExtensionManifestPropertiesService } from '../../../services/extensions/common/extensionManifestPropertiesService.js';
@@ -1032,7 +1032,6 @@ export class ExtensionsWorkbenchService extends Disposable implements IExtension
 		@IUserDataProfilesService private readonly userDataProfilesService: IUserDataProfilesService,
 		@IStorageService private readonly storageService: IStorageService,
 		@IDialogService private readonly dialogService: IDialogService,
-		@IUserDataSyncEnablementService private readonly userDataSyncEnablementService: IUserDataSyncEnablementService,
 		@IUpdateService private readonly updateService: IUpdateService,
 		@IUriIdentityService private readonly uriIdentityService: IUriIdentityService,
 		@IWorkspaceContextService private readonly workspaceContextService: IWorkspaceContextService,
@@ -2726,7 +2725,6 @@ export class ExtensionsWorkbenchService extends Disposable implements IExtension
 
 		if (installable) {
 			if (installOptions.justification) {
-				const syncCheck = isUndefined(installOptions.isMachineScoped) && this.userDataSyncEnablementService.isEnabled() && this.userDataSyncEnablementService.isResourceEnabled(SyncResource.Extensions);
 				const buttons: IPromptButton<boolean>[] = [];
 				buttons.push({
 					label: isString(installOptions.justification) || !installOptions.justification.action
@@ -2742,16 +2740,9 @@ export class ExtensionsWorkbenchService extends Disposable implements IExtension
 					detail: isString(installOptions.justification) ? installOptions.justification : installOptions.justification.reason,
 					cancelButton: true,
 					buttons,
-					checkbox: syncCheck ? {
-						label: nls.localize('sync extension', "Sync this extension"),
-						checked: true,
-					} : undefined,
 				});
 				if (!result.result) {
 					throw new CancellationError();
-				}
-				if (syncCheck) {
-					installOptions.isMachineScoped = !result.checkboxChecked;
 				}
 			}
 			if (installable instanceof URI) {

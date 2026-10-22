@@ -17,11 +17,7 @@ import { URI } from '../../../../base/common/uri.js';
 import { ILanguageService } from '../../../../editor/common/languages/language.js';
 import { localize } from '../../../../nls.js';
 import { ICommandService } from '../../../../platform/commands/common/commands.js';
-import { ConfigurationTarget } from '../../../../platform/configuration/common/configuration.js';
 import { IHoverService } from '../../../../platform/hover/browser/hover.js';
-import { IUserDataProfilesService } from '../../../../platform/userDataProfile/common/userDataProfile.js';
-import { IUserDataSyncEnablementService } from '../../../../platform/userDataSync/common/userDataSync.js';
-import { IWorkbenchConfigurationService } from '../../../services/configuration/common/configuration.js';
 import { ADVANCED_INDICATOR_DESCRIPTION, EXPERIMENTAL_INDICATOR_DESCRIPTION, POLICY_SETTING_TAG, PREVIEW_INDICATOR_DESCRIPTION } from '../common/preferences.js';
 import { SettingsTreeSettingElement } from './settingsTreeModels.js';
 
@@ -47,19 +43,6 @@ interface SettingIndicator {
 }
 
 /**
- * Contains a set of the sync-ignored settings
- * to keep the sync ignored indicator and the getIndicatorsLabelAriaLabel() function in sync.
- * SettingsTreeIndicatorsLabel#updateSyncIgnored provides the source of truth.
- */
-let cachedSyncIgnoredSettingsSet: Set<string> = new Set<string>();
-
-/**
- * Contains a copy of the sync-ignored settings to determine when to update
- * cachedSyncIgnoredSettingsSet.
- */
-let cachedSyncIgnoredSettings: string[] = [];
-
-/**
  * Renders the indicators next to a setting, such as "Also Modified In".
  */
 export class SettingsTreeIndicatorsLabel implements IDisposable {
@@ -69,7 +52,6 @@ export class SettingsTreeIndicatorsLabel implements IDisposable {
 	private readonly advancedIndicator: SettingIndicator;
 	private readonly workspaceTrustIndicator: SettingIndicator;
 	private readonly scopeOverridesIndicator: SettingIndicator;
-	private readonly syncIgnoredIndicator: SettingIndicator;
 	private readonly defaultOverrideIndicator: SettingIndicator;
 
 	/** Indicators that each have their own square container at the top-right of the setting */
@@ -83,9 +65,7 @@ export class SettingsTreeIndicatorsLabel implements IDisposable {
 
 	constructor(
 		container: HTMLElement,
-		@IWorkbenchConfigurationService private readonly configurationService: IWorkbenchConfigurationService,
 		@IHoverService private readonly hoverService: IHoverService,
-		@IUserDataSyncEnablementService private readonly userDataSyncEnablementService: IUserDataSyncEnablementService,
 		@ILanguageService private readonly languageService: ILanguageService,
 		@ICommandService private readonly commandService: ICommandService) {
 		this.indicatorsContainerElement = DOM.append(container, $('.setting-indicators-container'));
@@ -97,9 +77,8 @@ export class SettingsTreeIndicatorsLabel implements IDisposable {
 
 		this.workspaceTrustIndicator = this.createWorkspaceTrustIndicator();
 		this.scopeOverridesIndicator = this.createScopeOverridesIndicator();
-		this.syncIgnoredIndicator = this.createSyncIgnoredIndicator();
 		this.defaultOverrideIndicator = this.createDefaultOverrideIndicator();
-		this.parenthesizedIndicators = [this.workspaceTrustIndicator, this.scopeOverridesIndicator, this.syncIgnoredIndicator, this.defaultOverrideIndicator];
+		this.parenthesizedIndicators = [this.workspaceTrustIndicator, this.scopeOverridesIndicator, this.defaultOverrideIndicator];
 	}
 
 	private defaultHoverOptions: Partial<IHoverOptions> = {
@@ -144,25 +123,6 @@ export class SettingsTreeIndicatorsLabel implements IDisposable {
 		return {
 			element: otherOverridesElement,
 			label: otherOverridesLabel,
-			disposables
-		};
-	}
-
-	private createSyncIgnoredIndicator(): SettingIndicator {
-		const disposables = new DisposableStore();
-		const syncIgnoredElement = $('span.setting-indicator.setting-item-ignored');
-		const syncIgnoredLabel = disposables.add(new SimpleIconLabel(syncIgnoredElement));
-		syncIgnoredLabel.text = localize('extensionSyncIgnoredLabel', 'Not synced');
-
-		const syncIgnoredHoverContent = localize('syncIgnoredTitle', "This setting is ignored during sync");
-		disposables.add(this.hoverService.setupDelayedHover(syncIgnoredElement, {
-			...this.defaultHoverOptions,
-			content: syncIgnoredHoverContent,
-		}, { setupKeyboardEvents: true }));
-
-		return {
-			element: syncIgnoredElement,
-			label: syncIgnoredLabel,
 			disposables
 		};
 	}
@@ -293,16 +253,6 @@ export class SettingsTreeIndicatorsLabel implements IDisposable {
 		this.render();
 	}
 
-	updateSyncIgnored(element: SettingsTreeSettingElement, ignoredSettings: string[]) {
-		this.syncIgnoredIndicator.element.style.display = this.userDataSyncEnablementService.isEnabled()
-			&& ignoredSettings.includes(element.setting.key) ? 'inline' : 'none';
-		this.render();
-		if (cachedSyncIgnoredSettings !== ignoredSettings) {
-			cachedSyncIgnoredSettings = ignoredSettings;
-			cachedSyncIgnoredSettingsSet = new Set<string>(cachedSyncIgnoredSettings);
-		}
-	}
-
 	updatePreviewIndicator(element: SettingsTreeSettingElement) {
 		const isPreviewSetting = element.tags?.has('preview');
 		const isExperimentalSetting = element.tags?.has('experimental');
@@ -377,17 +327,6 @@ export class SettingsTreeIndicatorsLabel implements IDisposable {
 
 			this.scopeOverridesIndicator.label.text = '$(lock) ' + localize('agentsWindowReadOnlyLabelText', "Cannot be changed in Agents window");
 			const content = localize('agentsWindowReadOnlyDescription', "This setting cannot be changed in the Agents window.");
-			this.scopeOverridesIndicator.disposables.add(this.hoverService.setupDelayedHover(this.scopeOverridesIndicator.element, {
-				...this.defaultHoverOptions,
-				content,
-			}, { setupKeyboardEvents: true }));
-		} else if (element.settingsTarget === ConfigurationTarget.USER_LOCAL && this.configurationService.isSettingAppliedForAllProfiles(element.setting.key)) {
-			this.scopeOverridesIndicator.element.style.display = 'inline';
-			this.scopeOverridesIndicator.element.classList.add('setting-indicator');
-
-			this.scopeOverridesIndicator.label.text = localize('applicationSetting', "Applies to all profiles");
-
-			const content = localize('applicationSettingDescription', "The setting is not specific to the current profile, and will retain its value when switching profiles.");
 			this.scopeOverridesIndicator.disposables.add(this.hoverService.setupDelayedHover(this.scopeOverridesIndicator.element, {
 				...this.defaultHoverOptions,
 				content,
@@ -555,7 +494,7 @@ function getAccessibleScopeDisplayMidSentenceText(completeScope: string, languag
 	return localizedScope;
 }
 
-export function getIndicatorsLabelAriaLabel(element: SettingsTreeSettingElement, configurationService: IWorkbenchConfigurationService, userDataProfilesService: IUserDataProfilesService, languageService: ILanguageService): string {
+export function getIndicatorsLabelAriaLabel(element: SettingsTreeSettingElement, languageService: ILanguageService): string {
 	const ariaLabelSections: string[] = [];
 
 	// Add preview or experimental indicator text
@@ -578,8 +517,6 @@ export function getIndicatorsLabelAriaLabel(element: SettingsTreeSettingElement,
 		ariaLabelSections.push(element.policyValueDescription ?? localize('policyDescriptionAccessible', "Managed by organization policy; setting value not applied"));
 	} else if (element.isAgentsWindowReadOnly) {
 		ariaLabelSections.push(localize('agentsWindowReadOnlyAccessible', "Cannot be changed in Agents window"));
-	} else if (element.settingsTarget === ConfigurationTarget.USER_LOCAL && configurationService.isSettingAppliedForAllProfiles(element.setting.key)) {
-		ariaLabelSections.push(localize('applicationSettingDescriptionAccessible', "Setting value retained when switching profiles"));
 	} else {
 		// Add other overrides text
 		const otherOverridesStart = element.isConfigured ?
@@ -590,11 +527,6 @@ export function getIndicatorsLabelAriaLabel(element: SettingsTreeSettingElement,
 		if (element.overriddenScopeList.length) {
 			ariaLabelSections.push(`${otherOverridesStart} ${otherOverridesList}`);
 		}
-	}
-
-	// Add sync ignored text
-	if (cachedSyncIgnoredSettingsSet.has(element.setting.key)) {
-		ariaLabelSections.push(localize('syncIgnoredAriaLabel', "Setting ignored during sync"));
 	}
 
 	// Add default override indicator text
