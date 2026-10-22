@@ -7,6 +7,7 @@ import { Event } from '../../../../base/common/event.js';
 import { Disposable, IDisposable } from '../../../../base/common/lifecycle.js';
 import { InstantiationType, registerSingleton } from '../../../../platform/instantiation/common/extensions.js';
 import { ChatAgentService, IChatAgentService } from '../common/participants/chatAgents.js';
+import { IInlineChatSession, IInlineChatSessionService } from '../../inlineChat/browser/inlineChatSessionService.js';
 import { IChatWidget, IChatWidgetService, IQuickChatService } from './chat.js';
 
 class DisabledQuickChatService implements IQuickChatService {
@@ -43,6 +44,17 @@ class DisabledChatWidgetService implements IChatWidgetService {
 	register(): IDisposable { return Disposable.None; }
 }
 
+class DisabledInlineChatSessionService implements IInlineChatSessionService {
+	declare readonly _serviceBrand: undefined;
+	readonly onWillStartSession = Event.None;
+	readonly onDidChangeSessions = Event.None;
+
+	async createSession(): Promise<IInlineChatSession> { throw new Error('Inline Chat is unavailable in the editor workbench'); }
+	getSessionByTextModel(): undefined { return undefined; }
+	getSessionBySessionUri(): undefined { return undefined; }
+}
+
 registerSingleton(IQuickChatService, DisabledQuickChatService, InstantiationType.Delayed);
 registerSingleton(IChatWidgetService, DisabledChatWidgetService, InstantiationType.Delayed);
 registerSingleton(IChatAgentService, ChatAgentService, InstantiationType.Delayed);
+registerSingleton(IInlineChatSessionService, DisabledInlineChatSessionService, InstantiationType.Delayed);

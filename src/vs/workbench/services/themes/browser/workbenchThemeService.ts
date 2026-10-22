@@ -163,7 +163,7 @@ export class WorkbenchThemeService extends Disposable implements IWorkbenchTheme
 		this.applyTheme(themeData, undefined, true);
 
 		const fileIconData = FileIconThemeData.fromStorageData(this.storageService);
-		if (fileIconData) {
+		if (fileIconData && fileIconData.settingsId === this.settings.fileIconTheme && fileIconData.settingsId !== 'vscode-modern-icons' && fileIconData.settingsId !== 'vs-seti') {
 			this.applyAndSetFileIconTheme(fileIconData, true);
 		}
 
@@ -267,7 +267,7 @@ export class WorkbenchThemeService extends Disposable implements IWorkbenchTheme
 				[ConfigurationTarget.WORKSPACE, inspection.workspaceValue],
 			] as const) {
 				if (value) {
-					const migrated = key === ThemeSettings.FILE_ICON_THEME && value === 'vscode-modern-icons' ? ThemeSettingDefaults.FILE_ICON_THEME : migrateThemeSettingsId(value);
+					const migrated = key === ThemeSettings.FILE_ICON_THEME && (value === 'vscode-modern-icons' || value === 'vs-seti') ? ThemeSettingDefaults.FILE_ICON_THEME : migrateThemeSettingsId(value);
 					if (migrated !== value) {
 						this.configurationService.updateValue(key, migrated, target);
 					}
