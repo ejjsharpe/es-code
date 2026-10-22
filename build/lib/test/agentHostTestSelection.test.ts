@@ -45,7 +45,7 @@ suite('Agent Host PR test selection', () => {
 		for (const filename of [
 			'src/vs/workbench/browser/editor.ts',
 			'README.md',
-			'src/vs/platform/agentHost/node/copilot/copilotAgent.ts',
+			'src/vs/platform/agentHost/node/nodeAgentHostStarter.ts',
 			'src/vs/base/common/async.ts',
 		]) {
 			const { outputs } = await detect([{ filename }]);
@@ -74,7 +74,7 @@ suite('Agent Host PR test selection', () => {
 			'scripts/test-agent-host-e2e.bat',
 			'scripts/test-integration.sh',
 			'scripts/test-integration.bat',
-			'build/agent-sdk/agents/copilot/package.json',
+			'build/agent-sdk/agents/claude/package.json',
 			'build/lib/test/agentHostTestSelection.test.ts',
 			'package.json',
 			'package-lock.json',
@@ -201,9 +201,6 @@ suite('Agent Host PR test selection', () => {
 				`${e2eDirectory}/conformance/agentHostConformance.integrationTest.ts`,
 				`${e2eDirectory}/providers/claudeAgentHostE2E.integrationTest.ts`,
 				`${e2eDirectory}/providers/codexAgentHostE2E.integrationTest.ts`,
-				`${e2eDirectory}/providers/copilotAgentHostE2E.integrationTest.ts`,
-				`${e2eDirectory}/providers/copilotManagedSettingsAgentHostE2E.integrationTest.ts`,
-				`${e2eDirectory}/providers/copilotOtelAgentHostE2E.integrationTest.ts`,
 			],
 		});
 	});

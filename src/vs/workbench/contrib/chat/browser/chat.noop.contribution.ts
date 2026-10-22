@@ -6,6 +6,7 @@
 import { Event } from '../../../../base/common/event.js';
 import { Disposable, IDisposable } from '../../../../base/common/lifecycle.js';
 import { InstantiationType, registerSingleton } from '../../../../platform/instantiation/common/extensions.js';
+import { ChatAgentService, IChatAgentService } from '../common/participants/chatAgents.js';
 import { IChatWidget, IChatWidgetService, IQuickChatService } from './chat.js';
 
 class DisabledQuickChatService implements IQuickChatService {
@@ -44,3 +45,4 @@ class DisabledChatWidgetService implements IChatWidgetService {
 
 registerSingleton(IQuickChatService, DisabledQuickChatService, InstantiationType.Delayed);
 registerSingleton(IChatWidgetService, DisabledChatWidgetService, InstantiationType.Delayed);
+registerSingleton(IChatAgentService, ChatAgentService, InstantiationType.Delayed);
