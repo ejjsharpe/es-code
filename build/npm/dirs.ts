@@ -43,7 +43,6 @@ export const dirs = [
 	'extensions/php-language-features',
 	'extensions/references-view',
 	'extensions/search-result',
-	'extensions/simple-browser',
 	'extensions/tunnel-forwarding',
 	'extensions/terminal-suggest',
 	'extensions/typescript-language-features',

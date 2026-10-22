@@ -9,7 +9,7 @@ import './media/editorBreadcrumbs.css';
 import './media/editorHeader.css';
 import '../../../../workbench/services/themes/browser/modernTabColorCustomizations.js';
 import './diffEditor.sessions.contribution.js';
-import { NewBrowserTabAction, NewChangesTabAction, NewFileTabAction, NewSearchTabAction, OpenBrowserAction } from './addTabActions.js';
+import { NewChangesTabAction, NewFileTabAction, NewSearchTabAction } from './addTabActions.js';
 import { localize2 } from '../../../../nls.js';
 import { Codicon } from '../../../../base/common/codicons.js';
 import { KeyCode, KeyMod } from '../../../../base/common/keyCodes.js';
@@ -129,8 +129,6 @@ class DesktopAddTabContribution extends Disposable implements IWorkbenchContribu
 		}
 
 		this._register(registerAction2(NewFileTabAction));
-		this._register(registerAction2(NewBrowserTabAction));
-		this._register(registerAction2(OpenBrowserAction));
 		this._register(registerAction2(NewSearchTabAction));
 		this._register(registerAction2(NewChangesTabAction));
 	}

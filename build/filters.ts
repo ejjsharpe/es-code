@@ -168,7 +168,6 @@ export const indentationFilter = Object.freeze<string[]>([
 	'!extensions/markdown-math/notebook-out/*.js',
 	'!extensions/ipynb/notebook-out/**',
 	'!extensions/notebook-renderers/renderer-out/*.js',
-	'!extensions/simple-browser/media/*.js',
 ]);
 
 export const copyrightFilter = Object.freeze<string[]>([
@@ -211,7 +210,6 @@ export const copyrightFilter = Object.freeze<string[]>([
 	'!extensions/markdown-language-features/media/highlight.css',
 	'!extensions/markdown-math/notebook-out/**',
 	'!extensions/ipynb/notebook-out/**',
-	'!extensions/simple-browser/media/codicon.css',
 	'!extensions/terminal-suggest/src/completions/upstream/**',
 	'!extensions/typescript-language-features/node-maintainer/**',
 	'!extensions/html-language-features/server/src/modes/typescript/*',
