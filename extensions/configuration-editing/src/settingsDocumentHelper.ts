@@ -41,16 +41,6 @@ export class SettingsDocument {
 			return this.provideEditorLabelCompletionItems(location, position);
 		}
 
-		// settingsSync.ignoredExtensions
-		if (location.path[0] === 'settingsSync.ignoredExtensions') {
-			let ignoredExtensions = [];
-			try {
-				ignoredExtensions = parse(this.document.getText())['settingsSync.ignoredExtensions'];
-			} catch (e) {/* ignore error */ }
-			const range = this.getReplaceRange(location, position);
-			return provideInstalledExtensionProposals(ignoredExtensions, '', range, true);
-		}
-
 		// remote.extensionKind
 		if (location.path[0] === 'remote.extensionKind' && location.path.length === 2 && location.isAtPropertyKey) {
 			let alreadyConfigured: string[] = [];

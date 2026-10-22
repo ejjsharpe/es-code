@@ -7,23 +7,20 @@ import { CancelablePromise, createCancelablePromise, timeout } from '../../../ba
 import { CancellationToken } from '../../../base/common/cancellation.js';
 import { getErrorMessage, isCancellationError } from '../../../base/common/errors.js';
 import { Emitter, Event } from '../../../base/common/event.js';
-import { Disposable, DisposableStore, toDisposable } from '../../../base/common/lifecycle.js';
+import { Disposable, toDisposable } from '../../../base/common/lifecycle.js';
 import { Mimes } from '../../../base/common/mime.js';
 import { isWeb } from '../../../base/common/platform.js';
-import { ConfigurationSyncStore } from '../../../base/common/product.js';
 import { joinPath, relativePath } from '../../../base/common/resources.js';
-import { isObject, isString } from '../../../base/common/types.js';
 import { URI } from '../../../base/common/uri.js';
 import { generateUuid } from '../../../base/common/uuid.js';
 import { IHeaders, IRequestContext, IRequestOptions } from '../../../base/parts/request/common/request.js';
-import { IConfigurationService } from '../../configuration/common/configuration.js';
 import { IEnvironmentService } from '../../environment/common/environment.js';
 import { IFileService } from '../../files/common/files.js';
 import { IProductService } from '../../product/common/productService.js';
 import { asJson, asText, asTextOrError, hasNoContent, IRequestService, isSuccess, isSuccess as isSuccessContext } from '../../request/common/request.js';
 import { getServiceMachineId } from '../../externalServices/common/serviceMachineId.js';
 import { IStorageService, StorageScope, StorageTarget } from '../../storage/common/storage.js';
-import { HEADER_EXECUTION_ID, HEADER_OPERATION_ID, IAuthenticationProvider, IResourceRefHandle, IUserData, IUserDataManifest, IUserDataSyncLatestData, IUserDataSyncLogService, IUserDataSyncStore, IUserDataSyncStoreManagementService, IUserDataSyncStoreService, ServerResource, SYNC_SERVICE_URL_TYPE, UserDataSyncErrorCode, UserDataSyncStoreError, UserDataSyncStoreType } from './userDataSync.js';
+import { HEADER_EXECUTION_ID, HEADER_OPERATION_ID, IResourceRefHandle, IUserData, IUserDataManifest, IUserDataSyncLatestData, IUserDataSyncLogService, ServerResource, UserDataSyncErrorCode, UserDataSyncStoreError } from './userDataSync.js';
 import { VSBufferReadableStream } from '../../../base/common/buffer.js';
 import { IStringDictionary } from '../../../base/common/collections.js';
 
@@ -40,122 +37,11 @@ type IDownloadLatestDataType = {
 	};
 };
 
-const CONFIGURATION_SYNC_STORE_KEY = 'configurationSync.store';
-const SYNC_PREVIOUS_STORE = 'sync.previous.store';
 const DONOT_MAKE_REQUESTS_UNTIL_KEY = 'sync.donot-make-requests-until';
 const USER_SESSION_ID_KEY = 'sync.user-session-id';
 const MACHINE_SESSION_ID_KEY = 'sync.machine-session-id';
 const REQUEST_SESSION_LIMIT = 100;
 const REQUEST_SESSION_INTERVAL = 1000 * 60 * 5; /* 5 minutes */
-
-type UserDataSyncStore = IUserDataSyncStore & { defaultType: UserDataSyncStoreType };
-
-export abstract class AbstractUserDataSyncStoreManagementService extends Disposable implements IUserDataSyncStoreManagementService {
-
-	_serviceBrand: undefined;
-
-	private readonly _onDidChangeUserDataSyncStore = this._register(new Emitter<void>());
-	readonly onDidChangeUserDataSyncStore = this._onDidChangeUserDataSyncStore.event;
-	private _userDataSyncStore: UserDataSyncStore | undefined;
-	get userDataSyncStore(): UserDataSyncStore | undefined { return this._userDataSyncStore; }
-
-	protected get userDataSyncStoreType(): UserDataSyncStoreType | undefined {
-		return this.storageService.get(SYNC_SERVICE_URL_TYPE, StorageScope.APPLICATION) as UserDataSyncStoreType;
-	}
-	protected set userDataSyncStoreType(type: UserDataSyncStoreType | undefined) {
-		this.storageService.store(SYNC_SERVICE_URL_TYPE, type, StorageScope.APPLICATION, isWeb ? StorageTarget.USER /* sync in web */ : StorageTarget.MACHINE);
-	}
-
-	constructor(
-		@IProductService protected readonly productService: IProductService,
-		@IConfigurationService protected readonly configurationService: IConfigurationService,
-		@IStorageService protected readonly storageService: IStorageService,
-	) {
-		super();
-		this.updateUserDataSyncStore();
-		const disposable = this._register(new DisposableStore());
-		this._register(Event.filter(storageService.onDidChangeValue(StorageScope.APPLICATION, SYNC_SERVICE_URL_TYPE, disposable), () => this.userDataSyncStoreType !== this.userDataSyncStore?.type, disposable)(() => this.updateUserDataSyncStore()));
-	}
-
-	protected updateUserDataSyncStore(): void {
-		this._userDataSyncStore = this.toUserDataSyncStore(this.productService[CONFIGURATION_SYNC_STORE_KEY]);
-		this._onDidChangeUserDataSyncStore.fire();
-	}
-
-	protected toUserDataSyncStore(configurationSyncStore: ConfigurationSyncStore & { web?: ConfigurationSyncStore } | undefined): UserDataSyncStore | undefined {
-		if (!configurationSyncStore) {
-			return undefined;
-		}
-		// Check for web overrides for backward compatibility while reading previous store
-		configurationSyncStore = isWeb && configurationSyncStore.web ? { ...configurationSyncStore, ...configurationSyncStore.web } : configurationSyncStore;
-		if (isString(configurationSyncStore.url)
-			&& isObject(configurationSyncStore.authenticationProviders)
-			&& Object.keys(configurationSyncStore.authenticationProviders).every(authenticationProviderId => Array.isArray(configurationSyncStore.authenticationProviders[authenticationProviderId].scopes))
-		) {
-			const syncStore = configurationSyncStore as ConfigurationSyncStore;
-			const canSwitch = !!syncStore.canSwitch;
-			const defaultType: UserDataSyncStoreType = syncStore.url === syncStore.insidersUrl ? 'insiders' : 'stable';
-			const type: UserDataSyncStoreType = (canSwitch ? this.userDataSyncStoreType : undefined) || defaultType;
-			const url = type === 'insiders' ? syncStore.insidersUrl
-				: type === 'stable' ? syncStore.stableUrl
-					: syncStore.url;
-			return {
-				url: URI.parse(url),
-				type,
-				defaultType,
-				defaultUrl: URI.parse(syncStore.url),
-				stableUrl: URI.parse(syncStore.stableUrl),
-				insidersUrl: URI.parse(syncStore.insidersUrl),
-				canSwitch,
-				authenticationProviders: Object.keys(syncStore.authenticationProviders).reduce<IAuthenticationProvider[]>((result, id) => {
-					result.push({ id, scopes: syncStore.authenticationProviders[id].scopes });
-					return result;
-				}, [])
-			};
-		}
-		return undefined;
-	}
-
-	abstract switch(type: UserDataSyncStoreType): Promise<void>;
-	abstract getPreviousUserDataSyncStore(): Promise<IUserDataSyncStore | undefined>;
-
-}
-
-export class UserDataSyncStoreManagementService extends AbstractUserDataSyncStoreManagementService implements IUserDataSyncStoreManagementService {
-
-	private readonly previousConfigurationSyncStore: ConfigurationSyncStore | undefined;
-
-	constructor(
-		@IProductService productService: IProductService,
-		@IConfigurationService configurationService: IConfigurationService,
-		@IStorageService storageService: IStorageService,
-	) {
-		super(productService, configurationService, storageService);
-
-		const previousConfigurationSyncStore = this.storageService.get(SYNC_PREVIOUS_STORE, StorageScope.APPLICATION);
-		if (previousConfigurationSyncStore) {
-			this.previousConfigurationSyncStore = JSON.parse(previousConfigurationSyncStore);
-		}
-
-		const syncStore = this.productService[CONFIGURATION_SYNC_STORE_KEY];
-		if (syncStore) {
-			this.storageService.store(SYNC_PREVIOUS_STORE, JSON.stringify(syncStore), StorageScope.APPLICATION, StorageTarget.MACHINE);
-		} else {
-			this.storageService.remove(SYNC_PREVIOUS_STORE, StorageScope.APPLICATION);
-		}
-	}
-
-	async switch(type: UserDataSyncStoreType): Promise<void> {
-		if (type !== this.userDataSyncStoreType) {
-			this.userDataSyncStoreType = type;
-			this.updateUserDataSyncStore();
-		}
-	}
-
-	async getPreviousUserDataSyncStore(): Promise<IUserDataSyncStore | undefined> {
-		return this.toUserDataSyncStore(this.previousConfigurationSyncStore);
-	}
-}
 
 export class UserDataSyncStoreClient extends Disposable {
 
@@ -696,25 +582,6 @@ export class UserDataSyncStoreClient extends Disposable {
 		if (userSessionId !== undefined) {
 			headers['X-User-Session-Id'] = userSessionId;
 		}
-	}
-
-}
-
-export class UserDataSyncStoreService extends UserDataSyncStoreClient implements IUserDataSyncStoreService {
-
-	_serviceBrand: undefined;
-
-	constructor(
-		@IUserDataSyncStoreManagementService userDataSyncStoreManagementService: IUserDataSyncStoreManagementService,
-		@IProductService productService: IProductService,
-		@IRequestService requestService: IRequestService,
-		@IUserDataSyncLogService logService: IUserDataSyncLogService,
-		@IEnvironmentService environmentService: IEnvironmentService,
-		@IFileService fileService: IFileService,
-		@IStorageService storageService: IStorageService,
-	) {
-		super(userDataSyncStoreManagementService.userDataSyncStore?.url, productService, requestService, logService, environmentService, fileService, storageService);
-		this._register(userDataSyncStoreManagementService.onDidChangeUserDataSyncStore(() => this.updateUserDataSyncStoreUrl(userDataSyncStoreManagementService.userDataSyncStore?.url)));
 	}
 
 }

@@ -43,9 +43,7 @@ import { ICommandService } from '../../platform/commands/common/commands.js';
 import { IndexedDBFileSystemProvider } from '../../platform/files/browser/indexedDBFileSystemProvider.js';
 import { BrowserRequestService } from '../services/request/browser/requestService.js';
 import { IRequestService } from '../../platform/request/common/request.js';
-import { IUserDataInitializationService, IUserDataInitializer, UserDataInitializationService } from '../services/userData/browser/userDataInit.js';
-import { UserDataSyncStoreManagementService } from '../../platform/userDataSync/common/userDataSyncStoreService.js';
-import { IUserDataSyncStoreManagementService } from '../../platform/userDataSync/common/userDataSync.js';
+import { IUserDataInitializationService, UserDataInitializationService } from '../services/userData/browser/userDataInit.js';
 import { ILifecycleService, WillShutdownEvent } from '../services/lifecycle/common/lifecycle.js';
 import { Event } from '../../base/common/event.js';
 import { Action2, MenuId, registerAction2 } from '../../platform/actions/common/actions.js';
@@ -68,7 +66,7 @@ import { WebFileSystemAccess } from '../../platform/files/browser/webFileSystemA
 import { IProgressService } from '../../platform/progress/common/progress.js';
 import { DelayedLogChannel } from '../services/output/common/delayedLogChannel.js';
 import { dirname, joinPath } from '../../base/common/resources.js';
-import { IUserDataProfile, IUserDataProfilesService } from '../../platform/userDataProfile/common/userDataProfile.js';
+import { IUserDataProfilesService } from '../../platform/userDataProfile/common/userDataProfile.js';
 import { IPolicyService } from '../../platform/policy/common/policy.js';
 import { IFileManagedSettingsService, IManagedSettingsService, INativeManagedSettingsService, NullFileManagedSettingsService, NullNativeManagedSettingsService } from '../../platform/policy/common/copilotManagedSettings.js';
 import { IRemoteExplorerService } from '../services/remote/common/remoteExplorerService.js';
@@ -84,8 +82,6 @@ import { IRemoteSocketFactoryService, RemoteSocketFactoryService } from '../../p
 import { BrowserSocketFactory } from '../../platform/remote/browser/browserSocketFactory.js';
 import { VSBuffer } from '../../base/common/buffer.js';
 import { IStoredWorkspace } from '../../platform/workspaces/common/workspaces.js';
-import { UserDataProfileInitializer } from '../services/userDataProfile/browser/userDataProfileInit.js';
-import { UserDataSyncInitializer } from '../services/userDataSync/browser/userDataSyncInit.js';
 import { BrowserRemoteResourceLoader } from '../services/remote/browser/browserRemoteResourceHandler.js';
 import { BufferLogger } from '../../platform/log/common/bufferLog.js';
 import { FileLoggerService } from '../../platform/log/common/fileLog.js';
@@ -356,7 +352,7 @@ export class BrowserMain extends Disposable {
 		const userDataProfilesService = new BrowserUserDataProfilesService(environmentService, fileService, uriIdentityService, logService);
 		serviceCollection.set(IUserDataProfilesService, userDataProfilesService);
 
-		const currentProfile = await this.getCurrentProfile(workspace, userDataProfilesService, environmentService);
+		const currentProfile = userDataProfilesService.defaultProfile;
 		await userDataProfilesService.setProfileForWorkspace(workspace, currentProfile);
 		const userDataProfileService = new UserDataProfileService(currentProfile);
 		serviceCollection.set(IUserDataProfileService, userDataProfileService);
@@ -418,11 +414,6 @@ export class BrowserMain extends Disposable {
 		const requestService = new BrowserRequestService(remoteAgentService, configurationService, loggerService);
 		serviceCollection.set(IRequestService, requestService);
 
-		// Userdata Sync Store Management Service
-		const userDataSyncStoreManagementService = new UserDataSyncStoreManagementService(productService, configurationService, storageService);
-		serviceCollection.set(IUserDataSyncStoreManagementService, userDataSyncStoreManagementService);
-
-
 		// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 		//
 		// NOTE: Please do NOT register services here. Use `registerSingleton()`
@@ -438,12 +429,7 @@ export class BrowserMain extends Disposable {
 		serviceCollection.set(ISecretStorageService, secretStorageService);
 
 		// Userdata Initialize Service
-		const userDataInitializers: IUserDataInitializer[] = [];
-		userDataInitializers.push(new UserDataSyncInitializer(environmentService, secretStorageService, userDataSyncStoreManagementService, fileService, userDataProfilesService, storageService, productService, requestService, logService, uriIdentityService));
-		if (environmentService.options?.profile) {
-			userDataInitializers.push(new UserDataProfileInitializer(environmentService, fileService, userDataProfileService, storageService, logService, uriIdentityService, requestService));
-		}
-		const userDataInitializationService = new UserDataInitializationService(userDataInitializers);
+		const userDataInitializationService = new UserDataInitializationService();
 		serviceCollection.set(IUserDataInitializationService, userDataInitializationService);
 
 		try {
@@ -652,18 +638,6 @@ export class BrowserMain extends Disposable {
 
 			return workspaceService;
 		}
-	}
-
-	private async getCurrentProfile(workspace: IAnyWorkspaceIdentifier, userDataProfilesService: BrowserUserDataProfilesService, environmentService: BrowserWorkbenchEnvironmentService): Promise<IUserDataProfile> {
-		const profileName = environmentService.options?.profile?.name ?? environmentService.profile;
-		if (profileName) {
-			const profile = userDataProfilesService.profiles.find(p => p.name === profileName);
-			if (profile) {
-				return profile;
-			}
-			return userDataProfilesService.createNamedProfile(profileName, undefined, workspace);
-		}
-		return userDataProfilesService.getProfileForWorkspace(workspace) ?? userDataProfilesService.defaultProfile;
 	}
 
 	private resolveWorkspace(): IAnyWorkspaceIdentifier {

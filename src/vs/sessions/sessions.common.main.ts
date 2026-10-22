@@ -101,8 +101,6 @@ import '../workbench/services/extensionRecommendations/common/extensionIgnoredRe
 import '../workbench/services/extensionRecommendations/common/workspaceExtensionsConfig.js';
 import '../workbench/services/extensionManagement/common/extensionFeaturesManagemetService.js';
 import '../workbench/services/notification/common/notificationService.js';
-import '../workbench/services/userDataSync/common/userDataSyncUtil.js';
-import '../workbench/services/userDataSync/common/disabledUserDataSyncServices.js';
 import '../workbench/services/userDataProfile/browser/userDataProfileImportExportService.js';
 import '../workbench/services/userDataProfile/common/remoteUserDataProfiles.js';
 import '../workbench/services/remote/common/remoteExplorerService.js';
@@ -166,7 +164,6 @@ import { IDownloadService } from '../platform/download/common/download.js';
 import { DownloadService } from '../platform/download/common/downloadService.js';
 import { OpenerService } from '../editor/browser/services/openerService.js';
 import { IOpenerService } from '../platform/opener/common/opener.js';
-import { IgnoredExtensionsManagementService, IIgnoredExtensionsManagementService } from '../platform/userDataSync/common/ignoredExtensions.js';
 import { ExtensionStorageService, IExtensionStorageService } from '../platform/extensionManagement/common/extensionStorage.js';
 import { IUserDataSyncLogService } from '../platform/userDataSync/common/userDataSync.js';
 import { UserDataSyncLogService } from '../platform/userDataSync/common/userDataSyncLog.js';
@@ -181,7 +178,6 @@ import { AgentHostMcpOAuthMetadataService, IAgentHostMcpOAuthMetadataService } f
 
 registerSingleton(IUserDataSyncLogService, UserDataSyncLogService, InstantiationType.Delayed);
 registerSingleton(IAllowedExtensionsService, AllowedExtensionsService, InstantiationType.Delayed);
-registerSingleton(IIgnoredExtensionsManagementService, IgnoredExtensionsManagementService, InstantiationType.Delayed);
 registerSingleton(IGlobalExtensionEnablementService, GlobalExtensionEnablementService, InstantiationType.Delayed);
 registerSingleton(IExtensionStorageService, ExtensionStorageService, InstantiationType.Delayed);
 registerSingleton(IContextViewService, ContextViewService, InstantiationType.Delayed);

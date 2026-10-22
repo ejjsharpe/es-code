@@ -173,8 +173,6 @@ export interface IExtensionsWorkbenchService {
 	getExtensionsNotification(): IExtensionsNotification | undefined;
 
 	// Sync APIs
-	isExtensionIgnoredToSync(extension: IExtension): boolean;
-	toggleExtensionIgnoredToSync(extension: IExtension): Promise<void>;
 	toggleApplyExtensionToAllProfiles(extension: IExtension): Promise<void>;
 }
 
