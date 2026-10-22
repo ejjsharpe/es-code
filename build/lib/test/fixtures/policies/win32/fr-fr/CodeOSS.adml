@@ -7,14 +7,12 @@
 			<string id="Application">Code - OSS</string>
 			<string id="Supported_1_101">Code - OSS &gt;= 1.101</string>
 			<string id="Supported_1_104">Code - OSS &gt;= 1.104</string>
-			<string id="Supported_1_67">Code - OSS &gt;= 1.67</string>
 			<string id="Supported_1_96">Code - OSS &gt;= 1.96</string>
 			<string id="Supported_1_99">Code - OSS &gt;= 1.99</string>
 			<string id="Category_interactiveSessionConfigurationTitle">Session interactive</string>
 			<string id="Category_extensionsConfigurationTitle">Extensions</string>
 			<string id="Category_terminalIntegratedConfigurationTitle">Terminal intégré</string>
 			<string id="Category_telemetryConfigurationTitle">Télémétrie</string>
-			<string id="Category_updateConfigurationTitle">Mettre à jour</string>
 			<string id="ChatAgentExtensionTools">ChatAgentExtensionTools</string>
 			<string id="ChatAgentExtensionTools_chat_extensionToolsEnabled">Autorisez l’utilisation d’outils fournis par des extensions tierces.</string>
 			<string id="ChatAgentMode">ChatAgentMode</string>
@@ -46,12 +44,6 @@ Cette fonctionnalité désactive [les protections de sécurité critiques](https
 			<string id="TelemetryLevel_telemetry_telemetryLevel_error">Envoie la télémétrie d'erreur générale et les rapports de plantage.</string>
 			<string id="TelemetryLevel_telemetry_telemetryLevel_crash">Envoie des rapports de plantage au niveau du système d'exploitation.</string>
 			<string id="TelemetryLevel_telemetry_telemetryLevel_off">Désactive toutes les données de télémétrie du produit.</string>
-			<string id="UpdateMode">UpdateMode</string>
-			<string id="UpdateMode_updateMode">Choisissez si vous voulez recevoir des mises à jour automatiques. Nécessite un redémarrage après le changement. Les mises à jour sont récupérées auprès d'un service en ligne Microsoft.</string>
-			<string id="UpdateMode_none">Aucun</string>
-			<string id="UpdateMode_manual">Désactivez la recherche de mises à jour automatique en arrière-plan. Les mises à jour sont disponibles si vous les rechercher manuellement.</string>
-			<string id="UpdateMode_start">Démarrer</string>
-			<string id="UpdateMode_default">Système</string>
 		</stringTable>
 		<presentationTable>
 			<presentation id="ChatAgentExtensionTools"><checkBox refId="ChatAgentExtensionTools">ChatAgentExtensionTools</checkBox></presentation>
@@ -65,7 +57,6 @@ Cette fonctionnalité désactive [les protections de sécurité critiques](https
 			<presentation id="ChatToolsTerminalEnableAutoApprove"><checkBox refId="ChatToolsTerminalEnableAutoApprove">ChatToolsTerminalEnableAutoApprove</checkBox></presentation>
 			<presentation id="EnableFeedback"><checkBox refId="EnableFeedback">EnableFeedback</checkBox></presentation>
 			<presentation id="TelemetryLevel"><dropdownList refId="TelemetryLevel" /></presentation>
-			<presentation id="UpdateMode"><dropdownList refId="UpdateMode" /></presentation>
 		</presentationTable>
 	</resources>
 </policyDefinitionResources>

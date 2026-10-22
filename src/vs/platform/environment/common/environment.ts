@@ -83,7 +83,6 @@ export interface IEnvironmentService {
 	serviceMachineIdResource: URI;
 
 	// --- agent sessions workspace
-	agentSessionsWorkspace: URI;
 	// --- Policy
 	policyFile?: URI;
 

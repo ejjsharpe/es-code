@@ -26,10 +26,10 @@ suite('BannerPart', () => {
 
 	test('updates same-id content and actions without accumulating old DOM or losing banner focus', () => {
 		const { banner, container } = createBanner();
-		const item: IBannerItem = { id: 'update', icon: undefined, message: 'Update required', actions: [{ label: 'Check for Updates', href: 'command:update.checkForUpdate' }], neutral: true };
+		const item: IBannerItem = { id: 'notice', icon: undefined, message: 'Action required', actions: [{ label: 'Open Details', href: 'command:workbench.action.openSettings' }], neutral: true };
 		banner.show(item);
 		banner.focusNextAction();
-		banner.show({ ...item, message: 'New minimum version', actions: [{ label: 'Restart to Update', href: 'command:update.restartToUpdate' }] });
+		banner.show({ ...item, message: 'New details', actions: [{ label: 'Review Details', href: 'command:workbench.action.openSettings' }] });
 		const updated = {
 			message: container.querySelector('.message-container')?.textContent,
 			actions: [...container.querySelectorAll('.message-actions-container a')].map(link => link.textContent),
@@ -37,9 +37,9 @@ suite('BannerPart', () => {
 			neutral: container.classList.contains('neutral'),
 			height: banner.minimumHeight,
 		};
-		banner.hide('update');
+		banner.hide('notice');
 		assert.deepStrictEqual({ updated, remaining: container.childElementCount, height: banner.minimumHeight }, {
-			updated: { message: 'New minimum version', actions: ['Restart to Update'], focused: true, neutral: true, height: 26 },
+			updated: { message: 'New details', actions: ['Restart to Update'], focused: true, neutral: true, height: 26 },
 			remaining: 0,
 			height: 0,
 		});
@@ -49,7 +49,7 @@ suite('BannerPart', () => {
 		const { banner, container } = createBanner();
 		let closed = 0;
 		const trust: IBannerItem = { id: 'trust', icon: undefined, message: 'Restricted Mode' };
-		const update: IBannerItem = { id: 'update', icon: undefined, message: 'Update required', priority: -1, onClose: () => closed++ };
+		const update: IBannerItem = { id: 'notice', icon: undefined, message: 'Action required', priority: -1, onClose: () => closed++ };
 		const messages: (string | null | undefined)[] = [];
 		const capture = () => messages.push(container.querySelector('.message-container')?.textContent);
 		banner.show(trust);
@@ -60,7 +60,7 @@ suite('BannerPart', () => {
 		banner.hide('trust');
 		capture();
 		banner.show(trust);
-		banner.hide('update');
+		banner.hide('notice');
 		capture();
 		banner.hide('trust');
 		banner.show(update);

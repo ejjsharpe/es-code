@@ -312,8 +312,7 @@ export async function getApplication({ recordVideo, workspacePath, userSettings,
 		extraEnv,
 	});
 	try {
-		await preseedUserData(application.userDataPath, userSettings, !!opts.web,
-			[...(extraArgs ?? []), ...(opts.electronArgs ?? '').split(' ')].includes('--agents'));
+		await preseedUserData(application.userDataPath, userSettings, !!opts.web);
 		await application.start();
 		return application;
 	} catch (error) {
@@ -340,7 +339,7 @@ async function removeProfileData(userDataPath: string | undefined): Promise<void
 	}
 }
 
-async function preseedUserData(userDataDir: string | undefined, userSettings: Record<string, JSONValue> | undefined, web: boolean, agents: boolean): Promise<void> {
+async function preseedUserData(userDataDir: string | undefined, userSettings: Record<string, JSONValue> | undefined, web: boolean): Promise<void> {
 	if (!userDataDir) {
 		throw new Error('Cannot pre-seed the isolated test profile without a user data directory.');
 	}
@@ -349,11 +348,6 @@ async function preseedUserData(userDataDir: string | undefined, userSettings: Re
 	fs.mkdirSync(userDir, { recursive: true });
 	if (userSettings) {
 		fs.writeFileSync(path.join(userDir, 'settings.json'), JSON.stringify(userSettings, undefined, 2));
-		if (agents && !web) {
-			const agentsUserDir = path.join(userDir, 'profiles', 'builtin', 'agents');
-			fs.mkdirSync(agentsUserDir, { recursive: true });
-			fs.writeFileSync(path.join(agentsUserDir, 'settings.json'), JSON.stringify(userSettings, undefined, 2));
-		}
 	}
 
 	const globalStorageDir = path.join(userDir, 'globalStorage');

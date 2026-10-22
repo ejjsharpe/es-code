@@ -59,7 +59,6 @@
     "inlineCompletionsAdditions",
     "devDeviceId",
     "languageModelProxy",
-    "agentSessionsWorkspace",
     "linkPresentation"
   ],
   "private": true,

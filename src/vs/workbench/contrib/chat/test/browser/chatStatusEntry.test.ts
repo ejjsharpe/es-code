@@ -22,7 +22,6 @@ import { InEditorZenModeContext } from '../../../../common/contextkeys.js';
 import { ChatQuotaResumeState, ChatStatusBarEntry, computeQuotaResumeState } from '../../browser/chatStatus/chatStatusEntry.js';
 import { IChatStatusItemService } from '../../browser/chatStatus/chatStatusItemService.js';
 import { ChatStatusPromo } from '../../browser/chatStatus/chatStatusPromo.js';
-import { UpdateTitleBarChatInProgressContext, UpdateTitleBarContext, UpdateTitleBarEditorVisibleContext } from '../../../update/common/update.js';
 import { CHAT_SETUP_ACTION_ID } from '../../browser/actions/chatActions.js';
 
 type Quotas = IChatEntitlementService['quotas'];
@@ -125,7 +124,7 @@ suite('ChatStatusBarEntry', () => {
 		};
 	}
 
-	function createEntry(opts: { quotas?: Quotas; entitlement?: ChatEntitlement; persisted?: ChatQuotaResumeState; updateTitleBar?: boolean; updateTitleBarChatInProgress?: boolean; inDebugMode?: boolean; inZenMode?: boolean; sentiment?: IChatSentiment; snoozed?: boolean; promo?: boolean }) {
+	function createEntry(opts: { quotas?: Quotas; entitlement?: ChatEntitlement; persisted?: ChatQuotaResumeState; inDebugMode?: boolean; inZenMode?: boolean; sentiment?: IChatSentiment; snoozed?: boolean; promo?: boolean }) {
 		const instantiationService = workbenchInstantiationService({
 			contextKeyService: () => new TestContextKeyService(),
 		}, store);
@@ -176,8 +175,6 @@ suite('ChatStatusBarEntry', () => {
 		});
 		instantiationService.stub(IMarkdownRendererService, { _serviceBrand: undefined });
 		const contextKeyService = instantiationService.get(IContextKeyService);
-		UpdateTitleBarContext.bindTo(contextKeyService).set(opts.updateTitleBar ?? false);
-		UpdateTitleBarChatInProgressContext.bindTo(contextKeyService).set(opts.updateTitleBarChatInProgress ?? false);
 		contextKeyService.createKey<boolean>('inDebugMode', false).set(opts.inDebugMode ?? false);
 		InEditorZenModeContext.bindTo(contextKeyService).set(opts.inZenMode ?? false);
 
@@ -193,7 +190,6 @@ suite('ChatStatusBarEntry', () => {
 			statusbar,
 			storageService,
 			lifecycle, promo, promoQueries, promoChanged, visibility,
-			updateTitleBarVisible: contextKeyService.contextMatchesRules(UpdateTitleBarEditorVisibleContext),
 		};
 	}
 
@@ -288,45 +284,9 @@ suite('ChatStatusBarEntry', () => {
 		assert.strictEqual(persistedState(storageService), 'blocked');
 	});
 
-	test('keeps Sign In visible in the status bar only while Update owns the title bar', () => {
-		const withoutUpdate = createEntry({ entitlement: ChatEntitlement.Unknown });
-		const withUpdate = createEntry({ entitlement: ChatEntitlement.Unknown, updateTitleBar: true });
-		const whileDebugging = createEntry({ entitlement: ChatEntitlement.Unknown, updateTitleBar: true, inDebugMode: true });
-		const whileChatInProgress = createEntry({ entitlement: ChatEntitlement.Unknown, updateTitleBar: true, updateTitleBarChatInProgress: true });
-		const inZenMode = createEntry({ entitlement: ChatEntitlement.Unknown, updateTitleBar: true, inZenMode: true });
-		const defaultStatusText = isWeb ? '$(copilot) Sign In' : '$(copilot)';
-
-		assert.deepStrictEqual({
-			text: {
-				withoutUpdate: withoutUpdate.statusbar.current?.text,
-				withUpdate: withUpdate.statusbar.current?.text,
-				whileDebugging: whileDebugging.statusbar.current?.text,
-				whileChatInProgress: whileChatInProgress.statusbar.current?.text,
-				inZenMode: inZenMode.statusbar.current?.text,
-			},
-			visibility: {
-				withoutUpdate: withoutUpdate.updateTitleBarVisible,
-				withUpdate: withUpdate.updateTitleBarVisible,
-				whileDebugging: whileDebugging.updateTitleBarVisible,
-				whileChatInProgress: whileChatInProgress.updateTitleBarVisible,
-				inZenMode: inZenMode.updateTitleBarVisible,
-			},
-		}, {
-			text: {
-				withoutUpdate: defaultStatusText,
-				withUpdate: '$(copilot) Sign In',
-				whileDebugging: defaultStatusText,
-				whileChatInProgress: defaultStatusText,
-				inZenMode: '$(copilot) Sign In',
-			},
-			visibility: {
-				withoutUpdate: false,
-				withUpdate: true,
-				whileDebugging: false,
-				whileChatInProgress: false,
-				inZenMode: false,
-			},
-		});
+	test('keeps Sign In visible in the status bar', () => {
+		const { statusbar } = createEntry({ entitlement: ChatEntitlement.Unknown });
+		assert.strictEqual(statusbar.current?.text, isWeb ? '$(copilot) Sign In' : '$(copilot)');
 	});
 
 	test('transitions to resumed when the limit resets while running', () => {

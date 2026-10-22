@@ -490,7 +490,6 @@ function launchCode(userDataDir: string, extensionsDir: string, workspace: strin
 		`--extensions-dir=${extensionsDir}`,
 		'--skip-welcome',
 		'--skip-release-notes',
-		'--disable-updates',
 		workspace,
 	];
 	const executable = resolveCodeExecutable();

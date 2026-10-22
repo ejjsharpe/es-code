@@ -28,7 +28,6 @@ import { IEditorPane, IResourceDiffEditorInput } from '../../../../common/editor
 import { IView, IViewDescriptor, IViewDescriptorService } from '../../../../common/views.js';
 import { IChatEntitlementService } from '../../../../services/chat/common/chatEntitlementService.js';
 import { IEditorService } from '../../../../services/editor/common/editorService.js';
-import { IWorkbenchEnvironmentService } from '../../../../services/environment/common/environmentService.js';
 import { IViewsService } from '../../../../services/views/common/viewsService.js';
 import { EditorSampleTryoutPresentation } from '../../browser/onboardingSamplePresentation.js';
 import { CommandTryoutPresentation, ViewTryoutPresentation } from '../../browser/onboardingTryoutActions.js';
@@ -299,7 +298,6 @@ suite('Onboarding tryout presentations', () => {
 					onDidChangeEntitlement: Event.None,
 					onDidChangeAnonymous: Event.None,
 				}),
-				upcastPartial<IWorkbenchEnvironmentService>({ isSessionsWindow: true }),
 				NullTelemetryService,
 			));
 			store.add(registerOnboardingTryoutPresentation(sample.presentation));

@@ -31,7 +31,6 @@ export interface IEnvironmentMainService extends INativeEnvironmentService {
 	readonly mainLockfile: string;
 
 	// --- config
-	readonly disableUpdates: boolean;
 	readonly isPortable: boolean;
 
 	// TODO@deepak1556 temporary until a real fix lands upstream
@@ -55,7 +54,6 @@ export class EnvironmentMainService extends NativeEnvironmentService implements 
 	get mainLockfile(): string { return join(this.userDataPath, 'code.lock'); }
 
 	@memoize
-	get disableUpdates(): boolean { return !!this.args['disable-updates']; }
 
 	@memoize
 	get isPortable(): boolean { return !!process.env['VSCODE_PORTABLE']; }

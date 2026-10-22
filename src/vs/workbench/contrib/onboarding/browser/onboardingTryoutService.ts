@@ -11,13 +11,12 @@ import { Disposable, DisposableStore, toDisposable } from '../../../../base/comm
 import { generateUuid, isUUID } from '../../../../base/common/uuid.js';
 import { localize } from '../../../../nls.js';
 import { IContextKeyService } from '../../../../platform/contextkey/common/contextkey.js';
-import { IOnboardingTryoutRunOptions, isOnboardingTryoutSource, OnboardingTryoutSource } from '../../../../platform/onboarding/common/onboardingTryoutHandoff.js';
+import { IOnboardingTryoutRunOptions, isOnboardingTryoutSource, OnboardingTryoutSource } from '../common/onboardingTryoutTypes.js';
 import { ITelemetryService } from '../../../../platform/telemetry/common/telemetry.js';
 import { IChatEntitlementService, chatRequiresSetup } from '../../../services/chat/common/chatEntitlementService.js';
-import { IWorkbenchEnvironmentService } from '../../../services/environment/common/environmentService.js';
 import { onboardingScenarioRegistry } from '../common/onboardingRegistry.js';
 import { IOnboardingRunResult, IOnboardingScenario } from '../common/onboardingScenario.js';
-import { AGENTS_WINDOW_TRYOUT_PRESENTATION_KIND, IOnboardingTryoutRunContext, IOnboardingTryoutScenario, IOnboardingTryoutService, IOnboardingTryoutUnavailable, onboardingTryoutPresentationRegistry, OnboardingTryoutAvailability, OnboardingTryoutResult, parseOnboardingTryoutArguments, RUN_ONBOARDING_TRYOUT_COMMAND_ID } from '../common/onboardingTryout.js';
+import { IOnboardingTryoutRunContext, IOnboardingTryoutScenario, IOnboardingTryoutService, IOnboardingTryoutUnavailable, onboardingTryoutPresentationRegistry, OnboardingTryoutAvailability, OnboardingTryoutResult, parseOnboardingTryoutArguments, RUN_ONBOARDING_TRYOUT_COMMAND_ID } from '../common/onboardingTryout.js';
 
 type TryoutEvent = {
 	tryoutId: string;
@@ -79,7 +78,6 @@ export class OnboardingTryoutService extends Disposable implements IOnboardingTr
 	constructor(
 		@IContextKeyService private readonly contextKeyService: IContextKeyService,
 		@IChatEntitlementService private readonly chatEntitlementService: IChatEntitlementService,
-		@IWorkbenchEnvironmentService private readonly environmentService: IWorkbenchEnvironmentService,
 		@ITelemetryService private readonly telemetryService: ITelemetryService,
 	) {
 		super();
@@ -106,7 +104,7 @@ export class OnboardingTryoutService extends Disposable implements IOnboardingTr
 			for (const key of scenario.when?.keys() ?? []) {
 				this.contextKeys.add(key);
 			}
-			kinds.add(this.getPresentationKind(scenario));
+			kinds.add(scenario.presentation.kind);
 		}
 		for (const kind of kinds) {
 			const presentation = onboardingTryoutPresentationRegistry.get(kind);
@@ -134,13 +132,6 @@ export class OnboardingTryoutService extends Disposable implements IOnboardingTr
 
 		if (scenario.tryout.isAI && this.chatEntitlementService.sentiment.hidden) {
 			return { kind: 'hidden' };
-		}
-
-		if (scenario.tryout.targetWindow === 'agents' && !this.environmentService.isSessionsWindow) {
-			const presentation = onboardingTryoutPresentationRegistry.get(AGENTS_WINDOW_TRYOUT_PRESENTATION_KIND);
-			return presentation
-				? presentation.getAvailability(scenario)
-				: { kind: 'unavailable', message: localize('onboarding.tryout.agentsUnavailable', "This example requires the desktop Agents window.") };
 		}
 
 		if (scenario.tryout.isAI) {
@@ -185,12 +176,6 @@ export class OnboardingTryoutService extends Disposable implements IOnboardingTr
 		return presentation.getAvailability(scenario);
 	}
 
-	private getPresentationKind(scenario: IOnboardingTryoutScenario): string {
-		return scenario.tryout.targetWindow === 'agents' && !this.environmentService.isSessionsWindow
-			? AGENTS_WINDOW_TRYOUT_PRESENTATION_KIND
-			: scenario.presentation.kind;
-	}
-
 	run(id: string, token = CancellationToken.None, options?: IOnboardingTryoutRunOptions): Promise<OnboardingTryoutResult> {
 		parseOnboardingTryoutArguments([id]);
 		if (options && (!isOnboardingTryoutSource(options.source) || options.runId !== undefined && !isUUID(options.runId))) {
@@ -216,7 +201,7 @@ export class OnboardingTryoutService extends Disposable implements IOnboardingTr
 			await Promise.resolve();
 			const scenario = this.getTryout(id);
 			const runOptions = { source: options?.source ?? 'direct', runId: options?.runId ?? generateUuid() } satisfies IOnboardingTryoutRunOptions;
-			const telemetryData: TryoutEvent | undefined = scenario && (scenario.tryout.targetWindow !== 'agents' || this.environmentService.isSessionsWindow)
+			const telemetryData: TryoutEvent | undefined = scenario
 				? { tryoutId: scenario.id, ...runOptions }
 				: undefined;
 			const startTime = Date.now();
@@ -258,7 +243,7 @@ export class OnboardingTryoutService extends Disposable implements IOnboardingTr
 					this.activeRun = undefined;
 				}
 				store.dispose();
-				if (telemetryData && result?.kind !== 'routed') {
+				if (telemetryData && result) {
 					this.telemetryService.publicLog2<TryoutOutcomeEvent, TryoutOutcomeClassification>('onboarding.tryoutOutcome', {
 						...telemetryData,
 						result: result?.kind ?? 'error',
@@ -287,7 +272,7 @@ export class OnboardingTryoutService extends Disposable implements IOnboardingTr
 			return this.asResult(availability);
 		}
 
-		const presentationKind = this.getPresentationKind(scenario);
+		const presentationKind = scenario.presentation.kind;
 		const presentation = onboardingTryoutPresentationRegistry.get(presentationKind);
 		if (!presentation) {
 			return this.unavailable();

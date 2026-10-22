@@ -37,8 +37,6 @@
 				<false/>
 				<key>TelemetryLevel</key>
 				<string>all</string>
-				<key>UpdateMode</key>
-				<string>none</string>
 			</dict>
 		</array>
 		<key>PayloadDescription</key>

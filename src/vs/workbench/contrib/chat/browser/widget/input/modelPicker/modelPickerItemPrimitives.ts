@@ -15,7 +15,6 @@ import { localize } from '../../../../../../../nls.js';
 import { ActionListItemKind, IActionListItem } from '../../../../../../../platform/actionWidget/browser/actionList.js';
 import { IActionWidgetDropdownAction } from '../../../../../../../platform/actionWidget/browser/actionWidgetDropdown.js';
 import { withSeverityPrefix } from '../../../../../../../platform/notification/common/notification.js';
-import { StateType } from '../../../../../../../platform/update/common/update.js';
 import { ChatEntitlement, IChatEntitlementService } from '../../../../../../services/chat/common/chatEntitlementService.js';
 import { getLanguageModelProviderDisplayName, getLanguageModelProviderIcon, IModelControlEntry, ILanguageModelChatMetadata, ILanguageModelChatMetadataAndIdentifier, ILanguageModelsService, LanguageModelProviderIcon } from '../../../../common/languageModels.js';
 import { languageModelSourcePresentationRegistry } from '../../../../common/languageModelSourcePresentation.js';
@@ -36,21 +35,8 @@ export function requiresNewerVSCode(
 	return !!entry?.minVSCodeVersion && !isVersionAtLeast(currentVSCodeVersion, entry.minVSCodeVersion);
 }
 
-function getUpdateHoverContent(updateState: StateType): MarkdownString {
-	const hoverContent = new MarkdownString('', { isTrusted: true, supportThemeIcons: true });
-	switch (updateState) {
-		case StateType.AvailableForDownload:
-			hoverContent.appendMarkdown(localize('chat.modelPicker.downloadUpdateHover', "This model requires a newer version of VS Code. [Download Update](command:update.downloadUpdate) to access it."));
-			break;
-		case StateType.Downloaded:
-		case StateType.Ready:
-			hoverContent.appendMarkdown(localize('chat.modelPicker.restartUpdateHover', "This model requires a newer version of VS Code. [Restart to Update](command:update.restartToUpdate) to access it."));
-			break;
-		default:
-			hoverContent.appendMarkdown(localize('chat.modelPicker.checkUpdateHover', "This model requires a newer version of VS Code. [Update VS Code](command:update.checkForUpdate) to access it."));
-			break;
-	}
-	return hoverContent;
+function getUpdateHoverContent(): MarkdownString {
+	return new MarkdownString(localize('chat.modelPicker.manualUpdateHover', "This model requires a newer version of ES Code. Install an updated app to access it."));
 }
 
 export type ProviderGroupKey = string;
@@ -186,7 +172,6 @@ export function createUnavailableModelItem(
 	entry: IModelControlEntry,
 	reason: 'upgrade' | 'update' | 'admin',
 	manageSettingsUrl: string | undefined,
-	updateStateType: StateType,
 	chatEntitlementService: IChatEntitlementService,
 ): IActionListItem<IActionWidgetDropdownAction> {
 	let description: string | MarkdownString | undefined;
@@ -209,7 +194,7 @@ export function createUnavailableModelItem(
 			hoverContent.appendMarkdown(localize('chat.modelPicker.upgradeHover', "[Upgrade to GitHub Copilot Pro](command:workbench.action.chat.upgradePlan \" \") to use the best models."));
 		}
 	} else if (reason === 'update') {
-		hoverContent = getUpdateHoverContent(updateStateType);
+		hoverContent = getUpdateHoverContent();
 	} else {
 		hoverContent = new MarkdownString('', { isTrusted: true, supportThemeIcons: true });
 		hoverContent.appendMarkdown(localize('chat.modelPicker.adminHover', "This model is not available. Contact your administrator to enable it."));

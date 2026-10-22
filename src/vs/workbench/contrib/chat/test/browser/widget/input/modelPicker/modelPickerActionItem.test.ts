@@ -25,7 +25,6 @@ import { IProductService } from '../../../../../../../../platform/product/common
 import { InMemoryStorageService, IStorageService } from '../../../../../../../../platform/storage/common/storage.js';
 import { ITelemetryService } from '../../../../../../../../platform/telemetry/common/telemetry.js';
 import { NullTelemetryService } from '../../../../../../../../platform/telemetry/common/telemetryUtils.js';
-import { IUpdateService } from '../../../../../../../../platform/update/common/update.js';
 import { IUriIdentityService } from '../../../../../../../../platform/uriIdentity/common/uriIdentity.js';
 import { IWorkspaceTrustManagementService, IWorkspaceTrustRequestService } from '../../../../../../../../platform/workspace/common/workspaceTrust.js';
 import { ChatEntitlement, IChatEntitlementService } from '../../../../../../../services/chat/common/chatEntitlementService.js';
@@ -87,7 +86,6 @@ suite('ModelPickerActionItem', () => {
 		const entitlementService = new TestChatEntitlementService();
 		entitlementService.entitlement = ChatEntitlement.Pro;
 		instantiationService.stub(IChatEntitlementService, entitlementService);
-		instantiationService.stub(IUpdateService, {});
 		instantiationService.stub(IUriIdentityService, {});
 		instantiationService.stub(IDefaultAccountService, {});
 		instantiationService.stub(IWorkspaceTrustManagementService, disposables.add(new TestWorkspaceTrustManagementService()));

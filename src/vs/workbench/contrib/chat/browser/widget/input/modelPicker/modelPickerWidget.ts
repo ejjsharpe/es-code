@@ -40,7 +40,6 @@ import { IModelPickerDelegate } from './modelPickerActionItem.js';
 import { CHAT_SETUP_ACTION_ID } from '../../../actions/chatActions.js';
 import { IUriIdentityService } from '../../../../../../../platform/uriIdentity/common/uriIdentity.js';
 import { GitHubPaths, IDefaultAccountService } from '../../../../../../../platform/defaultAccount/common/defaultAccount.js';
-import { IUpdateService } from '../../../../../../../platform/update/common/update.js';
 import { IInstantiationService } from '../../../../../../../platform/instantiation/common/instantiation.js';
 import { IWorkspaceTrustManagementService, IWorkspaceTrustRequestService } from '../../../../../../../platform/workspace/common/workspaceTrust.js';
 import { getCompactCodicon } from '../../../chatIcons.js';
@@ -196,7 +195,6 @@ export class ModelPickerWidget extends Disposable {
 		@ILanguageModelsService private readonly _languageModelsService: ILanguageModelsService,
 		@IProductService private readonly _productService: IProductService,
 		@IChatEntitlementService private readonly _entitlementService: IChatEntitlementService,
-		@IUpdateService private readonly _updateService: IUpdateService,
 		@IUriIdentityService private readonly _uriIdentityService: IUriIdentityService,
 		@IDefaultAccountService private readonly _defaultAccountService: IDefaultAccountService,
 		@IWorkspaceTrustManagementService private readonly _workspaceTrustManagementService: IWorkspaceTrustManagementService,
@@ -842,7 +840,6 @@ export class ModelPickerWidget extends Disposable {
 				show: presentation.showUnavailableFeatured,
 				currentVSCodeVersion: this._productService.version,
 				manageSettingsUrl,
-				updateStateType: this._updateService.state.type,
 			},
 			onUnavailableLinkClick: onLinkClick,
 			onSelect,

@@ -72,13 +72,6 @@ suite('UserDataProfileMainService', () => {
 		assert.deepStrictEqual(testObject.profiles.map(profile => profile.id), [testObject.defaultProfile.id]);
 	});
 
-	test('Agents profile cannot be assigned to a workspace or removed', async () => {
-		const agentsProfile = await testObject.createAgentsWindowProfile();
-		await assert.rejects(testObject.setProfileForWorkspace({ id: 'ordinary-window' }, agentsProfile), /Only the default profile is supported/);
-		await assert.rejects(testObject.removeProfile(agentsProfile), /Agents profile is internal/);
-		assert.deepStrictEqual(testObject.profiles.map(profile => profile.id), [testObject.defaultProfile.id, agentsProfile.id]);
-	});
-
 	test('legacy profile metadata and files are preserved but not loaded', async () => {
 		const legacyFolder = joinPath(testObject.profilesHome, 'legacy-id');
 		await fileService.createFolder(legacyFolder);
@@ -87,7 +80,6 @@ suite('UserDataProfileMainService', () => {
 		testObject.init();
 
 		assert.deepStrictEqual(testObject.profiles.map(profile => profile.id), [testObject.defaultProfile.id]);
-		await testObject.createAgentsWindowProfile();
 		await testObject.cleanUp();
 		assert.deepStrictEqual({
 			legacyFolderExists: await fileService.exists(legacyFolder),
@@ -95,37 +87,9 @@ suite('UserDataProfileMainService', () => {
 			associations: stateService.getItem('profileAssociations', {}),
 		}, {
 			legacyFolderExists: true,
-			storedNames: ['Legacy', 'Agents'],
+			storedNames: ['Legacy'],
 			associations: { workspaces: { 'file:///project': 'legacy-id' }, emptyWindows: { 'window-id': 'legacy-id' } },
 		});
-	});
-
-	test('creating agents window profile should return profile with agent window default flags', async () => {
-		const profile = await testObject.createAgentsWindowProfile();
-
-		assert.deepStrictEqual(profile.id, 'agents');
-		assert.deepStrictEqual(profile.name, 'Agents');
-		assert.deepStrictEqual(profile.isDefault, false);
-		assert.deepStrictEqual(profile.isAgentsWindowProfile, true);
-		assert.deepStrictEqual(profile.isInternal, true);
-		assert.deepStrictEqual(profile.useDefaultFlags, {
-			settings: true,
-			keybindings: true,
-			prompts: true,
-			mcp: true,
-			languageModels: true,
-			snippets: true,
-			tasks: true,
-			extensions: true,
-		});
-		assert.strictEqual(profile.settingsResource.toString(), testObject.defaultProfile.settingsResource.toString());
-		assert.strictEqual(profile.keybindingsResource.toString(), testObject.defaultProfile.keybindingsResource.toString());
-		assert.strictEqual(profile.snippetsHome.toString(), testObject.defaultProfile.snippetsHome.toString());
-		assert.strictEqual(profile.tasksResource.toString(), testObject.defaultProfile.tasksResource.toString());
-		assert.strictEqual(profile.extensionsResource.toString(), testObject.defaultProfile.extensionsResource.toString());
-		assert.strictEqual(profile.promptsHome.toString(), testObject.defaultProfile.promptsHome.toString());
-		assert.strictEqual(profile.mcpResource.toString(), testObject.defaultProfile.mcpResource.toString());
-		assert.strictEqual(profile.languageModelsResource.toString(), testObject.defaultProfile.languageModelsResource.toString());
 	});
 
 });

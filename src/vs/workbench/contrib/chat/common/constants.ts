@@ -6,13 +6,11 @@
 import { Schemas } from '../../../../base/common/network.js';
 import { IChatSessionsService, isAgentHostTarget, localChatSessionType, SessionType } from './chatSessionsService.js';
 import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
+import { RawContextKey } from '../../../../platform/contextkey/common/contextkey.js';
 import { IStorageService } from '../../../../platform/storage/common/storage.js';
 import { IWorkspace, IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js';
 import { isVirtualWorkspace } from '../../../../platform/workspace/common/virtualWorkspace.js';
 import { ServicesAccessor } from '../../../../platform/instantiation/common/instantiation.js';
-import { ContextKeyExpr, RawContextKey } from '../../../../platform/contextkey/common/contextkey.js';
-import { ChatEntitlementContextKeys } from '../../../services/chat/common/chatEntitlementService.js';
-import { IsAuxiliaryWindowContext, IsSessionsWindowContext } from '../../../common/contextkeys.js';
 import { URI } from '../../../../base/common/uri.js';
 import { getChatSessionType, getNewChatSessionResource } from './model/chatUri.js';
 import { clearUserSelectedSessionType, getRememberedSessionType, storeUserSelectedSessionType } from './chatSessionTypePreference.js';
@@ -60,7 +58,6 @@ export enum ChatConfiguration {
 	AgentSessionProjectionEnabled = 'chat.agentSessionProjection.enabled',
 	MigrateLegacyCopilotCliSessions = 'chat.agentSessions.migrateLegacyCopilotCli',
 	ShowExternalAgentSessions = 'chat.agentSessions.showExternal',
-	UnifiedWorkspacePicker = 'sessions.chat.unifiedWorkspacePicker.enabled',
 	AutoMarkAsDoneMergedSessionsAfterDays = 'chat.agentSessions.autoMarkAsDoneMergedSessionsAfterDays',
 	AutoDeleteMarkedAsDoneMergedSessionsAfterDays = 'chat.agentSessions.autoDeleteMarkedAsDoneMergedSessionsAfterDays',
 	ExtensionToolsEnabled = 'chat.extensionTools.enabled',
@@ -114,15 +111,6 @@ export enum ChatConfiguration {
 	GrowthNotificationEnabled = 'chat.growthNotification.enabled',
 	ChatClosedPromoNotification = 'chat.closedPromoNotification',
 	TitleBarSignInEnabled = 'chat.titleBar.signIn.enabled',
-	WelcomePageSignInEnabled = 'chat.welcomePage.signIn.enabled',
-	WelcomePageAgentsWindowGraphic = 'chat.welcomePage.agentsWindowGraphic',
-	WelcomePageAgentsWindowSectionStyle = 'chat.welcomePage.agentsWindowSectionStyle',
-	TitleBarOpenInAgentsWindowEnabled = 'chat.titleBar.openInAgentsWindow.enabled',
-	OpenInAgentsWindowTransferDraft = 'chat.experimental.openInAgentsWindow.transferDraft',
-	AgentsParallelWorkBannerEnabled = 'chat.agentsParallelWorkBanner.enabled',
-	AgentsWindowBannerEnabled = 'chat.agentsWindowBanner.enabled',
-	AgentsWindowBannerDeveloperMode = 'chat.agentsWindowBanner.developerMode',
-	AgentsWindowBannerRevealCurrentSession = 'chat.agentsWindowBanner.revealCurrentSession',
 	CopilotHarnessIntroductionMode = 'chat.copilotHarnessIntroduction.mode',
 	HarnessSwitchFeedbackSurveyEnabled = 'chat.harnessSwitchFeedbackSurvey.enabled',
 
@@ -152,9 +140,6 @@ export enum ChatConfiguration {
 	DefaultToCopilotHarness = 'chat.defaultToCopilotHarness',
 	TemporaryDefaultToLocalHarness = 'chat.temporaryDefaultToLocalHarness',
 	EditorLocalAgentEnabled = 'chat.editor.localAgent.enabled',
-	AgentsHandoffTipMode = 'chat.agentsHandoffTip.mode',
-	AgentsHandoffTipDelaySeconds = 'chat.agentsHandoffTip.delaySeconds',
-	BtwTipEnabled = 'chat.btwTip.enabled',
 
 	IncrementalRendering = 'chat.experimental.incrementalRendering.enabled',
 	IncrementalRenderingStyle = 'chat.experimental.incrementalRendering.animationStyle',
@@ -186,62 +171,7 @@ export const enum ChatClosedPromoNotification {
 	CopilotIconPopup = 'copilotIconPopup',
 }
 
-/** The graphic that explains the Agents window above the Agents window button on the Welcome page. */
-export const enum AgentsWindowGraphicVariant {
-	None = 'none',
-	/** The editor window and the Agents window side by side. */
-	WindowComparison = 'windowComparison',
-	/** Editor windows for several projects become one Agents window. */
-	ManyWindowsToOne = 'manyWindowsToOne',
-	/** {@link ManyWindowsToOne} when more than one editor window is open, and {@link WindowComparison} otherwise. */
-	Auto = 'auto',
-}
-
-export function getAgentsWindowGraphicVariant(configurationService: IConfigurationService): AgentsWindowGraphicVariant {
-	const variant = configurationService.getValue<AgentsWindowGraphicVariant>(ChatConfiguration.WelcomePageAgentsWindowGraphic);
-	switch (variant) {
-		case AgentsWindowGraphicVariant.WindowComparison:
-		case AgentsWindowGraphicVariant.ManyWindowsToOne:
-		case AgentsWindowGraphicVariant.Auto:
-			return variant;
-		default:
-			return AgentsWindowGraphicVariant.None;
-	}
-}
-
-/** How the Agents window graphic, its captions and the Agents window button are set apart from the rest of the Welcome page. */
-export const enum AgentsWindowSectionStyle {
-	None = 'none',
-	/** A subtle surface around the section, like the walkthrough tiles. */
-	Card = 'card',
-	/** A subtle border around the section. The default. */
-	Outline = 'outline',
-	/** A surface tinted with the accent color around the section. */
-	Tint = 'tint',
-	/** A subtle surface across the width of the page's content. */
-	Band = 'band',
-	/** Lines across the width of the page's content above and below the section. */
-	Separator = 'separator',
-}
-
-/** Reads the section style, falling back to the setting's default, {@link AgentsWindowSectionStyle.Outline}. */
-export function getAgentsWindowSectionStyle(configurationService: IConfigurationService): AgentsWindowSectionStyle {
-	const style = configurationService.getValue<AgentsWindowSectionStyle>(ChatConfiguration.WelcomePageAgentsWindowSectionStyle);
-	switch (style) {
-		case AgentsWindowSectionStyle.None:
-		case AgentsWindowSectionStyle.Card:
-		case AgentsWindowSectionStyle.Outline:
-		case AgentsWindowSectionStyle.Tint:
-		case AgentsWindowSectionStyle.Band:
-		case AgentsWindowSectionStyle.Separator:
-			return style;
-		default:
-			return AgentsWindowSectionStyle.Outline;
-	}
-}
-
 export const AGENT_SESSION_CLEANUP_SETTINGS_TAG = 'agentSessionCleanup';
-export const DEFAULT_AGENTS_HANDOFF_TIP_DELAY_SECONDS = 5;
 
 /**
  * The "kind" of agents for custom agents.
@@ -730,17 +660,6 @@ export function getAgentHostSessionResource(resource: URI): URI {
 	const query = resource.query.split('&').filter(part => !part.startsWith(`${CHAT_SUBAGENT_RESOURCE_QUERY_PARAM}=`)).join('&');
 	return resource.with({ query, fragment: '' });
 }
-
-export const OPEN_WORKSPACE_IN_AGENTS_WINDOW_COMMAND_ID = 'workbench.action.openWorkspaceInAgentsWindow';
-export const OPEN_AGENTS_WINDOW_COMMAND_ID = 'workbench.action.openAgentsWindow';
-export { AGENTS_WINDOW_TOTAL_SESSIONS_STORAGE_KEY } from '../../../../platform/chat/common/agentsWindowInvitation.js';
-export const OPEN_AGENTS_WINDOW_PRECONDITION = ContextKeyExpr.and(
-	ChatEntitlementContextKeys.Setup.hidden.negate(),
-	ChatEntitlementContextKeys.Setup.disabledInWorkspace.negate(),
-	IsSessionsWindowContext.negate(),
-	ContextKeyExpr.has(`config.${ChatConfiguration.AgentEnabled}`),
-	IsAuxiliaryWindowContext.negate()
-);
 
 export const ChatEditorTitleMaxLength = 30;
 

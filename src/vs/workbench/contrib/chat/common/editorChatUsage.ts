@@ -6,7 +6,7 @@
 import { IStorageService, StorageScope, StorageTarget } from '../../../../platform/storage/common/storage.js';
 import { isCopilotAgentHostProvider, parseRemoteAgentHostHarness } from '../../../../platform/agentHost/common/agentHostSessionType.js';
 import { SessionType } from './chatSessionsService.js';
-import { EDITOR_AGENT_HOST_SESSIONS_STORAGE_KEY } from '../../../../platform/chat/common/agentsWindowInvitation.js';
+export const EDITOR_AGENT_HOST_SESSIONS_STORAGE_KEY = 'chat.editorUsage.agentHostSessions';
 
 const storagePrefix = 'chat.editorUsage.';
 const providers = ['local', 'copilotcli', 'cloud', 'copilot', 'claude', 'codex', 'codexExtension', 'growth', 'remoteCopilot', 'remoteClaude', 'remoteCodex', 'other'] as const;

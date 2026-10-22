@@ -466,7 +466,7 @@ interface ISerializedGitHubState {
 
 interface ISerializedSession {
 	readonly session: string;
-	/** Clickable URI that opens the session in the Agents window. */
+	/** Clickable URI that opens the session in the ordinary editor. */
 	readonly openLink: string;
 	readonly title?: string;
 	readonly status?: string;
@@ -1009,7 +1009,7 @@ export interface ICreateSessionResult {
 	readonly relationship: CreateSessionRelationship;
 	readonly session: string;
 	readonly chat: string;
-	/** Clickable {@link AGENT_HOST_SESSION_LINK_SCHEME} URI that opens the session in the Agents window. */
+	/** Clickable {@link AGENT_HOST_SESSION_LINK_SCHEME} URI that opens the session in the ordinary editor. */
 	readonly openLink: string;
 }
 

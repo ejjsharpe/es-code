@@ -8,9 +8,11 @@ import * as fs from 'fs';
 import * as path from 'path';
 import es from 'event-stream';
 import vfs from 'vinyl-fs';
+import VinylFile from 'vinyl';
 import electron from '@vscode/gulp-electron';
 import * as util from './lib/util.ts';
 import { getVersion } from './lib/getVersion.ts';
+import { generatedSourceMapExclusionGlob, hasPackagedSourceMapReference, stripPackagedSourceMapReferences } from './lib/packageSourceMaps.ts';
 import { readISODate, writeISODate } from './lib/date.ts';
 import * as task from './lib/gulp/task.ts';
 import { inlineMeta } from './lib/inlineMeta.ts';
@@ -45,7 +47,9 @@ const commit = getVersion(root);
 const sourceMappingURLBase = `https://main.vscode-cdn.net/sourcemaps/${commit}`;
 const isCI = !!process.env['CI'] || !!process.env['BUILD_ARTIFACTSTAGINGDIRECTORY'] || !!process.env['GITHUB_WORKSPACE'];
 const useCdnSourceMapsForPackagingTasks = isCI;
-const stripSourceMapsInPackagingTasks = isCI;
+// Local release packages use the same source-map filter as CI packages. The
+// generated maps remain in out-* and .build for debugging and separate artifacts.
+const stripSourceMapsInPackagingTasks = true;
 
 task.task(task.define('core-ci', task.series(
 	checkApiProposalNamesTask,
@@ -71,11 +75,11 @@ task.task(task.define('core-ci', task.series(
  * @param filenames The paths to compute a checksum for.
  * @return A map of paths to checksums.
  */
-function computeChecksums(out: string, filenames: string[]): Record<string, string> {
+function computeChecksums(out: string, filenames: string[], stripSourceMapReferences: boolean): Record<string, string> {
 	const result: Record<string, string> = {};
 	filenames.forEach(function (filename) {
 		const fullPath = path.join(process.cwd(), out, filename);
-		result[filename] = computeChecksum(fullPath);
+		result[filename] = computeChecksum(fullPath, stripSourceMapReferences && hasPackagedSourceMapReference(filename));
 	});
 	return result;
 }
@@ -86,12 +90,15 @@ function computeChecksums(out: string, filenames: string[]): Record<string, stri
  * @param filename The absolute path to a filename.
  * @return The checksum for `filename`.
  */
-function computeChecksum(filename: string): string {
+function computeChecksum(filename: string, stripSourceMapReferences: boolean): string {
 	const contents = fs.readFileSync(filename);
+	const packagedContents = stripSourceMapReferences
+		? Buffer.from(stripPackagedSourceMapReferences(contents.toString('utf8')))
+		: contents;
 
 	const hash = crypto
 		.createHash('sha256')
-		.update(contents)
+		.update(packagedContents)
 		.digest('base64')
 		.replace(/=+$/, '');
 
@@ -109,7 +116,7 @@ function getFoundryLocalExcludeFilter(): string[] {
 }
 
 function packageTask(platform: string, arch: string, sourceFolderName: string, destinationFolderName: string, _opts?: { stats?: boolean }) {
-	const destination = path.join(path.dirname(root), destinationFolderName);
+	const destination = path.join(buildRoot, destinationFolderName);
 	platform = platform || process.platform;
 
 	const task = () => {
@@ -123,7 +130,7 @@ function packageTask(platform: string, arch: string, sourceFolderName: string, d
 			'vs/workbench/api/node/extensionHostProcess.js',
 			'vs/code/electron-browser/workbench/workbench.html',
 			'vs/code/electron-browser/workbench/workbench.js'
-		]);
+		], stripSourceMapsInPackagingTasks && !useCdnSourceMapsForPackagingTasks);
 
 		const src = gulp.src(out + '/**', { base: '.' })
 			.pipe(rename(function (path) { path.dirname = path.dirname!.replace(new RegExp('^' + out), 'out'); }))
@@ -141,10 +148,16 @@ function packageTask(platform: string, arch: string, sourceFolderName: string, d
 		const extensions = gulp.src(['.build/extensions/**', ...platformSpecificBuiltInExtensionsExclusions], { base: '.build', dot: true });
 
 		const sourceFilterPattern = stripSourceMapsInPackagingTasks
-			? ['**', '!**/*.{js,css}.map']
+			? ['**', generatedSourceMapExclusionGlob]
 			: ['**'];
 		const sources = es.merge(src, extensions)
-			.pipe(filter(sourceFilterPattern, { dot: true }));
+			.pipe(filter(sourceFilterPattern, { dot: true }))
+			.pipe(es.mapSync<VinylFile, VinylFile>(file => {
+				if (stripSourceMapsInPackagingTasks && !useCdnSourceMapsForPackagingTasks && file.isBuffer() && hasPackagedSourceMapReference(file.path)) {
+					file.contents = Buffer.from(stripPackagedSourceMapReferences(file.contents.toString('utf8')));
+				}
+				return file;
+			}));
 
 		let version = packageJson.version;
 		const quality = (product as { quality?: string }).quality;
@@ -204,7 +217,7 @@ function packageTask(platform: string, arch: string, sourceFolderName: string, d
 
 		const depFilterPattern = ['**', `!**/${config.version}/**`, '!**/bin/darwin-arm64-87/**', '!**/package-lock.json', '!**/yarn.lock'];
 		if (stripSourceMapsInPackagingTasks) {
-			depFilterPattern.push('!**/*.{js,css}.map');
+			depFilterPattern.push(generatedSourceMapExclusionGlob);
 		}
 
 		const cleanedDeps = gulp.src(dependenciesSrc, { base: '.', dot: true })
@@ -214,13 +227,20 @@ function packageTask(platform: string, arch: string, sourceFolderName: string, d
 		ensureOSProxyResolverPlatformPackage(platform, arch);
 		const osProxyResolverPlatformPackage = gulp.src(getOSProxyResolverPlatformFiles(platform, arch), { base: '.', dot: true, allowEmpty: true });
 		const deps = es.merge(cleanedDeps, osProxyResolverPlatformPackage)
+			.pipe(filter(depFilterPattern, { dot: true }))
 			.pipe(filter(['**', '!**/@github/copilot-sdk/**', '!**/@github/copilot-sdk-*/**', '!**/@vscode/copilot-api/**']))
 			.pipe(filter(getRipgrepExcludeFilter(platform, arch)))
 			.pipe(filter(getFoundryLocalExcludeFilter()))
 			.pipe(filter(getOSProxyResolverExcludeFilter(platform, arch)))
 			.pipe(jsFilter)
-			.pipe(util.rewriteSourceMappingURL(sourceMappingURLBase))
+			.pipe(useCdnSourceMapsForPackagingTasks ? util.rewriteSourceMappingURL(sourceMappingURLBase) : es.mapSync<VinylFile, VinylFile>(file => file))
 			.pipe(jsFilter.restore)
+			.pipe(es.mapSync<VinylFile, VinylFile>(file => {
+				if (stripSourceMapsInPackagingTasks && !useCdnSourceMapsForPackagingTasks && file.isBuffer() && hasPackagedSourceMapReference(file.path)) {
+					file.contents = Buffer.from(stripPackagedSourceMapReferences(file.contents.toString('utf8')));
+				}
+				return file;
+			}))
 			.pipe(createAsar(path.join(process.cwd(), 'node_modules'), [
 				'**/*.node',
 				'**/@vscode/ripgrep-universal/bin/**',
@@ -289,7 +309,6 @@ function packageTask(platform: string, arch: string, sourceFolderName: string, d
 				'resources/win32/react.ico',
 				'resources/win32/ruby.ico',
 				'resources/win32/sass.ico',
-				'resources/win32/sessions.ico',
 				'resources/win32/shell.ico',
 				'resources/win32/sql.ico',
 				'resources/win32/typescript.ico',
@@ -453,7 +472,7 @@ async function stripAuthenticodeSignature(filePath: string): Promise<void> {
 }
 
 function patchWin32DependenciesTask(destinationFolderName: string) {
-	const cwd = path.join(path.dirname(root), destinationFolderName);
+	const cwd = path.join(buildRoot, destinationFolderName);
 
 	return async () => {
 		const versionedResourcesFolder = util.getVersionedResourcesFolder('win32', commit!);
@@ -494,7 +513,7 @@ function patchWin32DependenciesTask(destinationFolderName: string) {
 }
 
 function generateNodeCompileCacheTask(platform: string, destinationFolderName: string) {
-	const outputDirectory = path.join(path.dirname(root), destinationFolderName);
+	const outputDirectory = path.join(buildRoot, destinationFolderName);
 
 	return () => generateNodeCompileCache(
 		platform,
@@ -504,7 +523,7 @@ function generateNodeCompileCacheTask(platform: string, destinationFolderName: s
 	);
 }
 
-const buildRoot = path.dirname(root);
+const buildRoot = process.env['VSCODE_BUILD_ROOT'] || path.dirname(root);
 
 const BUILD_TARGETS = [
 	{ platform: 'win32', arch: 'x64' },

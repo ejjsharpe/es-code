@@ -62,7 +62,6 @@ import { ILifecycleService, LifecyclePhase } from '../../../services/lifecycle/c
 import { IUserDataProfileService } from '../../../services/userDataProfile/common/userDataProfile.js';
 import { mainWindow } from '../../../../base/browser/window.js';
 import { IDialogService, IFileDialogService, IPromptButton } from '../../../../platform/dialogs/common/dialogs.js';
-import { IUpdateService, StateType } from '../../../../platform/update/common/update.js';
 import { isEngineValid } from '../../../../platform/extensions/common/extensionValidator.js';
 import { IUriIdentityService } from '../../../../platform/uriIdentity/common/uriIdentity.js';
 import { IWorkspaceContextService } from '../../../../platform/workspace/common/workspace.js';
@@ -1028,7 +1027,6 @@ export class ExtensionsWorkbenchService extends Disposable implements IExtension
 		@IUserDataProfilesService private readonly userDataProfilesService: IUserDataProfilesService,
 		@IStorageService private readonly storageService: IStorageService,
 		@IDialogService private readonly dialogService: IDialogService,
-		@IUpdateService private readonly updateService: IUpdateService,
 		@IUriIdentityService private readonly uriIdentityService: IUriIdentityService,
 		@IWorkspaceContextService private readonly workspaceContextService: IWorkspaceContextService,
 		@IViewsService private readonly viewsService: IViewsService,
@@ -1155,17 +1153,6 @@ export class ExtensionsWorkbenchService extends Disposable implements IExtension
 			}
 		}));
 		this._register(Event.debounce(this.onChange, () => undefined, 100)(() => this.hasOutdatedExtensionsContextKey.set(this.outdated.length > 0)));
-		this._register(this.updateService.onStateChange(e => {
-			if ((e.type === StateType.CheckingForUpdates && e.explicit) || e.type === StateType.AvailableForDownload || e.type === StateType.Downloaded) {
-				this.telemetryService.publicLog2<{}, {
-					owner: 'sandy081';
-					comment: 'Report when update check is triggered on product update';
-				}>('extensions:updatecheckonproductupdate');
-				if (this.isAutoCheckUpdatesEnabled()) {
-					this.checkForUpdates('Product update');
-				}
-			}
-		}));
 
 		this._register(this.allowedExtensionsService.onDidChangeAllowedExtensionsConfigValue(() => {
 			if (this.isAutoCheckUpdatesEnabled()) {
@@ -1817,24 +1804,6 @@ export class ExtensionsWorkbenchService extends Disposable implements IExtension
 					if (isSameExtensionRunning) {
 						// Different version or target platform of same extension is running. Requires reload to run the current version
 						if (!runningExtension.isUnderDevelopment && (extension.version !== runningExtension.version || extension.local.targetPlatform !== runningExtension.targetPlatform)) {
-							const productCurrentVersion = this.getProductCurrentVersion();
-							const productUpdateVersion = this.getProductUpdateVersion();
-							if (productUpdateVersion
-								&& !isEngineValid(extension.local.manifest.engines.vscode, productCurrentVersion.version, productCurrentVersion.date)
-								&& isEngineValid(extension.local.manifest.engines.vscode, productUpdateVersion.version, productUpdateVersion.date)
-							) {
-								const state = this.updateService.state;
-								if (state.type === StateType.AvailableForDownload) {
-									return { action: ExtensionRuntimeActionType.DownloadUpdate, reason: nls.localize('postUpdateDownloadTooltip', "Please update {0} to enable the updated extension.", this.productService.nameLong) };
-								}
-								if (state.type === StateType.Downloaded) {
-									return { action: ExtensionRuntimeActionType.ApplyUpdate, reason: nls.localize('postUpdateUpdateTooltip', "Please update {0} to enable the updated extension.", this.productService.nameLong) };
-								}
-								if (state.type === StateType.Ready) {
-									return { action: ExtensionRuntimeActionType.QuitAndInstall, reason: nls.localize('postUpdateRestartTooltip', "Please restart {0} to enable the updated extension.", this.productService.nameLong) };
-								}
-								return undefined;
-							}
 							return { action: reloadAction, reason: nls.localize('postUpdateTooltip', "Please {0} to enable the updated extension.", reloadActionLabel) };
 						}
 
@@ -2226,9 +2195,6 @@ export class ExtensionsWorkbenchService extends Disposable implements IExtension
 	}
 
 	private getUpdatesCheckInterval(): number {
-		if (this.productService.quality === 'insider' && this.getProductUpdateVersion()) {
-			return 1000 * 60 * 60 * 1; // 1 hour
-		}
 		return ExtensionsWorkbenchService.UpdatesCheckInterval;
 	}
 
@@ -2307,26 +2273,11 @@ export class ExtensionsWorkbenchService extends Disposable implements IExtension
 	}
 
 	private getProductVersion(): IProductVersion {
-		return this.getProductUpdateVersion() ?? this.getProductCurrentVersion();
+		return this.getProductCurrentVersion();
 	}
 
 	private getProductCurrentVersion(): IProductVersion {
 		return { version: this.productService.version, date: this.productService.date };
-	}
-
-	private getProductUpdateVersion(): IProductVersion | undefined {
-		switch (this.updateService.state.type) {
-			case StateType.AvailableForDownload:
-			case StateType.Downloaded:
-			case StateType.Updating:
-			case StateType.Ready: {
-				const version = this.updateService.state.update.productVersion;
-				if (version && semver.valid(version)) {
-					return { version, date: this.updateService.state.update.timestamp ? new Date(this.updateService.state.update.timestamp).toISOString() : undefined };
-				}
-			}
-		}
-		return undefined;
 	}
 
 	private shouldAutoUpdateExtension(extension: IExtension): boolean {

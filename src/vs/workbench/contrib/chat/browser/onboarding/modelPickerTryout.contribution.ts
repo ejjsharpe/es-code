@@ -20,7 +20,6 @@ export function createModelPickerTryout(): IOnboardingTryout<IGuidedTryoutPayloa
 		title: localize('chat.tryout.modelPicker.title', "Try Model and Provider Selection"),
 		description: localize('chat.tryout.modelPicker.description', "Open a safe, unsent Agents draft and compare available models, providers, and billing information."),
 		isAI: true,
-		targetWindow: 'agents',
 		when: ChatContextKeys.enabled,
 		unavailableMessage: localize('chat.tryout.modelPicker.unavailable', "The Agents draft opened, but its model picker is unavailable. Set up Chat or a model provider, then use Models in Chat or Agents to compare options and billing."),
 		setup: {

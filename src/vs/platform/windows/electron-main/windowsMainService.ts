@@ -19,7 +19,7 @@ import { basename, join, normalize, posix } from '../../../base/common/path.js';
 import { getMarks, mark } from '../../../base/common/performance.js';
 import { IProcessEnvironment, isMacintosh, isWindows, OS } from '../../../base/common/platform.js';
 import { cwd } from '../../../base/common/process.js';
-import { extUriBiasedIgnorePathCase, isEqual, isEqualAuthority, normalizePath, originalFSPath, removeTrailingPathSeparator } from '../../../base/common/resources.js';
+import { extUriBiasedIgnorePathCase, isEqualAuthority, normalizePath, originalFSPath, removeTrailingPathSeparator } from '../../../base/common/resources.js';
 import { assertReturnsDefined } from '../../../base/common/types.js';
 import { URI } from '../../../base/common/uri.js';
 import { getNLSLanguage, getNLSMessages, localize } from '../../../nls.js';
@@ -37,7 +37,7 @@ import product from '../../product/common/product.js';
 import { IProtocolMainService } from '../../protocol/electron-main/protocol.js';
 import { getRemoteAuthority } from '../../remote/common/remoteHosts.js';
 import { IStateService } from '../../state/node/state.js';
-import { AgentsWindowOpenSource, IAgentsWindowDraft, IAddRemoveFoldersRequest, INativeOpenFileRequest, INativeWindowConfiguration, IOpenEmptyWindowOptions, IPath, IPathsToWaitFor, isFileToOpen, isFolderToOpen, isWorkspaceToOpen, IWindowOpenable, IWindowSettings } from '../../window/common/window.js';
+import { IAddRemoveFoldersRequest, INativeOpenFileRequest, INativeWindowConfiguration, IOpenEmptyWindowOptions, IPath, IPathsToWaitFor, isFileToOpen, isFolderToOpen, isWorkspaceToOpen, IWindowOpenable, IWindowSettings } from '../../window/common/window.js';
 import { CodeWindow } from './windowImpl.js';
 import { IOpenConfiguration, IOpenEmptyConfiguration, IWindowsCountChangedEvent, IWindowsMainService, OpenContext, getLastFocused } from './windows.js';
 import { findWindowOnExtensionDevelopmentPath, findWindowOnFile, findWindowOnWorkspaceOrFolder } from './windowsFinder.js';
@@ -289,10 +289,6 @@ export class WindowsMainService extends Disposable implements IWindowsMainServic
 
 		// Handle `<app> chat`
 		this.handleChatRequest(openConfig, [window]);
-	}
-
-	async openAgentsWindow(_openConfig: IOpenConfiguration, _folderUri?: URI, _reveal?: URI | 'new', _source?: AgentsWindowOpenSource, _folderUriIsDefault = false, _draft?: IAgentsWindowDraft, _onboardingSessionResource?: URI): Promise<ICodeWindow[]> {
-		return [];
 	}
 
 	async open(openConfig: IOpenConfiguration): Promise<ICodeWindow[]> {
@@ -732,9 +728,6 @@ export class WindowsMainService extends Disposable implements IWindowsMainServic
 	private resolveContextWindow(openConfig: IOpenConfiguration, forceNewWindow: boolean): { windowToUse: ICodeWindow | undefined; forceNewWindow: boolean } {
 		if (!forceNewWindow && typeof openConfig.contextWindowId === 'number') {
 			const contextWindow = this.getWindowById(openConfig.contextWindowId);
-			if (contextWindow?.config?.isSessionsWindow) {
-				return { windowToUse: undefined, forceNewWindow: true }; // do not replace the agents window
-			}
 			return { windowToUse: contextWindow, forceNewWindow };
 		}
 		return { windowToUse: undefined, forceNewWindow };
@@ -1476,11 +1469,11 @@ export class WindowsMainService extends Disposable implements IWindowsMainServic
 		const lastActiveWindow = this.getLastActiveWindow();
 		const newWindowProfile = windowConfig?.newWindowProfile
 			? this.userDataProfilesMainService.profiles.find(profile => profile.name === windowConfig.newWindowProfile) : undefined;
-		const defaultProfile = newWindowProfile ?? (lastActiveWindow?.profile?.isAgentsWindowProfile ? undefined : lastActiveWindow?.profile) ?? this.userDataProfilesMainService.defaultProfile;
+		const defaultProfile = newWindowProfile ?? lastActiveWindow?.profile ?? this.userDataProfilesMainService.defaultProfile;
 
 		let window: ICodeWindow | undefined;
 		if (!options.forceNewWindow && !options.forceNewTabbedWindow) {
-			window = options.windowToUse || (lastActiveWindow?.config?.isSessionsWindow ? undefined : lastActiveWindow);
+			window = options.windowToUse || lastActiveWindow;
 			if (window) {
 				window.focus();
 			}
@@ -1556,7 +1549,6 @@ export class WindowsMainService extends Disposable implements IWindowsMainServic
 
 			cssModules: this.cssDevelopmentService.isEnabled ? await this.cssDevelopmentService.getCssModules() : undefined,
 
-			isSessionsWindow: isWorkspaceIdentifier(options.workspace) && isEqual(options.workspace.configPath, this.environmentMainService.agentSessionsWorkspace),
 		};
 
 		// New window
@@ -1569,7 +1561,6 @@ export class WindowsMainService extends Disposable implements IWindowsMainServic
 				state,
 				extensionDevelopmentPath: configuration.extensionDevelopmentPath,
 				isExtensionTestHost: !!configuration.extensionTestsPath,
-				isSessionsWindow: configuration.isSessionsWindow
 			});
 			mark('code/didCreateCodeWindow');
 
@@ -1681,11 +1672,7 @@ export class WindowsMainService extends Disposable implements IWindowsMainServic
 			}
 		}
 
-		if (configuration.isSessionsWindow) {
-			configuration.profiles.profile = this.userDataProfilesMainService.profiles.find(p => p.isAgentsWindowProfile) ?? await this.userDataProfilesMainService.createAgentsWindowProfile();
-		} else {
-			configuration.profiles.profile = defaultProfile;
-		}
+		configuration.profiles.profile = defaultProfile;
 
 		// Load it
 		window.load(configuration);

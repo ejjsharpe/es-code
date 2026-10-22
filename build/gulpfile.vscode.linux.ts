@@ -203,7 +203,6 @@ function prepareRpmPackage(arch: string) {
 			.pipe(replace('@@ARCHITECTURE@@', rpmArch))
 			.pipe(replace('@@LICENSE@@', product.licenseName))
 			.pipe(replace('@@QUALITY@@', (product as typeof product & { quality?: string }).quality || '@@QUALITY@@'))
-			.pipe(replace('@@UPDATEURL@@', (product as typeof product & { updateUrl?: string }).updateUrl || '@@UPDATEURL@@'))
 			.pipe(replace('@@DEPENDENCIES@@', dependencies.join(', ')))
 			.pipe(replace('@@RECOMMENDS@@', rpmRecommendedDependencies.join(', ')))
 			.pipe(replace('@@STRIP@@', stripBinary))

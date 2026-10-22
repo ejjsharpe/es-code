@@ -25,10 +25,8 @@ import { ITelemetryService } from '../../../../platform/telemetry/common/telemet
 import { ChatRequestAgentSubcommandPart, ChatRequestDynamicVariablePart, ChatRequestSlashCommandPart, IParsedChatRequest } from '../common/requestParser/chatParserTypes.js';
 import { IKeybindingService } from '../../../../platform/keybinding/common/keybinding.js';
 import { TipEligibilityTracker } from './chatTipEligibilityTracker.js';
-import { ChatTipExperiment, ChatTipTier, extractCommandIds, ITipBuildContext, ITipDefinition, TIP_CATALOG } from './chatTipCatalog.js';
+import { ChatTipTier, extractCommandIds, ITipBuildContext, ITipDefinition, TIP_CATALOG } from './chatTipCatalog.js';
 import { ChatTipStorageKeys, TipTrackingCommands } from './chatTipStorageKeys.js';
-import { IWorkbenchAssignmentService } from '../../../services/assignment/common/assignmentService.js';
-import { IsSessionsWindowContext } from '../../../common/contextkeys.js';
 import { IChatWidgetService } from './chat.js';
 
 type ChatTipEvent = {
@@ -235,14 +233,11 @@ export class ChatTipService extends Disposable implements IChatTipService {
 		@ICommandService private readonly _commandService: ICommandService,
 		@ITelemetryService private readonly _telemetryService: ITelemetryService,
 		@IKeybindingService private readonly _keybindingService: IKeybindingService,
-		@IWorkbenchAssignmentService private readonly _assignmentService: IWorkbenchAssignmentService,
 		@IChatWidgetService private readonly _chatWidgetService: IChatWidgetService,
 	) {
 		super();
 		this._tracker = this._register(instantiationService.createInstance(TipEligibilityTracker, TIP_CATALOG));
 		this._createSlashCommandsUsageTracker = this._register(new CreateSlashCommandsUsageTracker(this._chatService, this._storageService, () => this._contextKeyService));
-		this._fetchExperimentalTipMessages();
-		this._register(this._assignmentService.onDidRefetchAssignments(() => this._fetchExperimentalTipMessages()));
 		this._register(this._chatEntitlementService.onDidChangeQuotaExceeded(() => {
 			if (this._chatEntitlementService.quotas.chat?.percentRemaining === 0 && this._shownTip) {
 				this.hideTip();
@@ -339,8 +334,6 @@ export class ChatTipService extends Disposable implements IChatTipService {
 				return CREATE_SKILL_TRACKING_COMMAND;
 			case 'fork':
 				return FORK_CONVERSATION_TRACKING_COMMAND;
-			case 'btw':
-				return TipTrackingCommands.BtwUsed;
 			default:
 				return undefined;
 		}
@@ -572,8 +565,7 @@ export class ChatTipService extends Disposable implements IChatTipService {
 
 	private _hasSingleForegroundChatSurface(contextKeyService: IContextKeyService): boolean {
 		const foregroundSessionCount = contextKeyService.getContextKeyValue<number>(ChatContextKeys.foregroundSessionCount.key);
-		return foregroundSessionCount === 1
-			|| (foregroundSessionCount === 0 && contextKeyService.getContextKeyValue<boolean>(IsSessionsWindowContext.key) === true);
+		return foregroundSessionCount === 1;
 	}
 
 	private _findNextEligibleTip(currentTipId: string, contextKeyService: IContextKeyService): ITipDefinition | undefined {
@@ -921,14 +913,6 @@ export class ChatTipService extends Disposable implements IChatTipService {
 	private _isCopilotEnabled(): boolean {
 		const defaultChatAgent = this._productService.defaultChatAgent;
 		return !!defaultChatAgent?.chatExtensionId;
-	}
-
-	private _fetchExperimentalTipMessages(): void {
-		this._assignmentService.getTreatment<string>(ChatTipExperiment.OpenAgentsWindowTip).then(value => {
-			if (typeof value === 'string' && value.length > 0) {
-				this._experimentalTipMessages.set(ChatTipExperiment.OpenAgentsWindowTip, value);
-			}
-		});
 	}
 
 	private _createTip(tipDef: ITipDefinition): IChatTip {

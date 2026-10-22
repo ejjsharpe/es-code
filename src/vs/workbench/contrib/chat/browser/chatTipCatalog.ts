@@ -6,12 +6,10 @@
 import { MarkdownString } from '../../../../base/common/htmlContent.js';
 import { localize } from '../../../../nls.js';
 import { ContextKeyExpr, ContextKeyExpression } from '../../../../platform/contextkey/common/contextkey.js';
-import { IsWebContext } from '../../../../platform/contextkey/common/contextkeys.js';
 import { IKeybindingService } from '../../../../platform/keybinding/common/keybinding.js';
 import { MenuRegistry } from '../../../../platform/actions/common/actions.js';
-import { ChatConfiguration, ChatModeKind, OPEN_AGENTS_WINDOW_COMMAND_ID, OPEN_AGENTS_WINDOW_PRECONDITION, OPEN_WORKSPACE_IN_AGENTS_WINDOW_COMMAND_ID } from '../common/constants.js';
+import { ChatConfiguration, ChatModeKind } from '../common/constants.js';
 import { ChatContextKeys } from '../common/actions/chatContextKeys.js';
-import { IsSessionsWindowContext } from '../../../common/contextkeys.js';
 import { localChatSessionType } from '../common/chatSessionsService.js';
 import { ITipExclusionConfig } from './chatTipEligibilityTracker.js';
 import { TipTrackingCommands } from './chatTipStorageKeys.js';
@@ -33,7 +31,6 @@ export const enum ChatTipTier {
  * Treatment names for tip messages overridable via the workbench assignment service.
  */
 export const enum ChatTipExperiment {
-	OpenAgentsWindowTip = 'openagentswindowtip',
 }
 
 /**
@@ -288,7 +285,6 @@ export const TIP_CATALOG: readonly ITipDefinition[] = [
 				localize('tip.codeActions', "Select a code block in the editor and right-click to access more AI actions.")
 			);
 		},
-		when: IsSessionsWindowContext.negate(),
 		excludeWhenCommandsExecuted: ['inlineChat.start'],
 	},
 	{
@@ -318,23 +314,6 @@ export const TIP_CATALOG: readonly ITipDefinition[] = [
 		},
 		when: ChatContextKeys.chatModeKind.isEqualTo(ChatModeKind.Agent),
 		excludeWhenCommandsExecuted: ['workbench.action.chat.queueMessage', 'workbench.action.chat.steerWithMessage'],
-	},
-	{
-		id: 'tip.btw',
-		tier: ChatTipTier.Qol,
-		buildMessage() {
-			return new MarkdownString(
-				localize('tip.btw', "Use `/btw <question>` to ask a side question without adding it to the current conversation.")
-			);
-		},
-		when: ContextKeyExpr.and(
-			ContextKeyExpr.equals(`config.${ChatConfiguration.BtwTipEnabled}`, true),
-			IsSessionsWindowContext,
-			ContextKeyExpr.has('sessionIsCreated'),
-			ContextKeyExpr.not('sessionIsArchived'),
-			ContextKeyExpr.has('sessionSupportsSideChat'),
-		),
-		excludeWhenCommandsExecuted: [TipTrackingCommands.BtwUsed],
 	},
 	{
 		id: 'tip.forkConversation',
@@ -408,12 +387,9 @@ export const TIP_CATALOG: readonly ITipDefinition[] = [
 				)
 			);
 		},
-		when: ContextKeyExpr.and(
-			IsSessionsWindowContext.negate(),
-			ContextKeyExpr.or(
-				ChatContextKeys.chatModeKind.isEqualTo(ChatModeKind.Agent),
-				ChatContextKeys.chatModeKind.isEqualTo(ChatModeKind.Edit),
-			),
+		when: ContextKeyExpr.or(
+			ChatContextKeys.chatModeKind.isEqualTo(ChatModeKind.Agent),
+			ChatContextKeys.chatModeKind.isEqualTo(ChatModeKind.Edit),
 		),
 		excludeWhenSettingsChanged: ['chat.editing.autoAcceptDelay'],
 		dismissWhenCommandsClicked: ['workbench.action.openSettings'],
@@ -437,27 +413,6 @@ export const TIP_CATALOG: readonly ITipDefinition[] = [
 		excludeWhenToolsInvoked: ['listDebugEvents'],
 	},
 	{
-		id: 'tip.agentsWindow',
-		tier: ChatTipTier.Qol,
-		buildMessage(ctx) {
-			const defaultMessage = localize(
-				'tip.agentsWindow',
-				"Work across multiple projects at once in the [Agents window](command:{0} \"Open Agents Window\").",
-				OPEN_AGENTS_WINDOW_COMMAND_ID
-			);
-			const experimentalTemplate = ctx.experimentalTipMessages.get(ChatTipExperiment.OpenAgentsWindowTip);
-			const message = experimentalTemplate
-				? experimentalTemplate.replace(/\{0\}/g, OPEN_AGENTS_WINDOW_COMMAND_ID)
-				: defaultMessage;
-			return new MarkdownString(message);
-		},
-		when: ContextKeyExpr.and(IsWebContext.negate(), OPEN_AGENTS_WINDOW_PRECONDITION),
-		excludeWhenCommandsExecuted: [
-			OPEN_AGENTS_WINDOW_COMMAND_ID,
-			OPEN_WORKSPACE_IN_AGENTS_WINDOW_COMMAND_ID,
-		],
-	},
-	{
 		id: 'tip.copilotCli',
 		tier: ChatTipTier.Qol,
 		buildMessage() {
@@ -469,7 +424,6 @@ export const TIP_CATALOG: readonly ITipDefinition[] = [
 			);
 		},
 		when: ContextKeyExpr.and(
-			IsSessionsWindowContext.negate(),
 			ChatContextKeys.chatSessionType.isEqualTo(localChatSessionType),
 			ChatContextKeys.chatModeKind.isEqualTo(ChatModeKind.Agent),
 			ChatContextKeys.hasCanDelegateProviders,

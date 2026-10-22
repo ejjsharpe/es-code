@@ -33,7 +33,6 @@ import { IContextViewService } from '../../../../../../../platform/contextview/b
 import { defaultButtonStyles, defaultSelectBoxStyles } from '../../../../../../../platform/theme/browser/defaultStyles.js';
 import { IOpenerService } from '../../../../../../../platform/opener/common/opener.js';
 import { IStorageService, StorageScope, StorageTarget } from '../../../../../../../platform/storage/common/storage.js';
-import { StateType } from '../../../../../../../platform/update/common/update.js';
 import { URI } from '../../../../../../../base/common/uri.js';
 import { ChatEntitlement, IChatEntitlementService } from '../../../../../../services/chat/common/chatEntitlementService.js';
 import { ILanguageModelChatMetadataAndIdentifier, ILanguageModelsService, IModelControlEntry, isUserProvidedModel } from '../../../../common/languageModels.js';
@@ -86,7 +85,6 @@ export interface ITabbedModelPickerContext {
 		readonly show: boolean;
 		readonly currentVSCodeVersion: string;
 		readonly manageSettingsUrl: string | undefined;
-		readonly updateStateType: StateType;
 	};
 	/** Reports a click on an upgrade or contact-admin link in an unavailable model row. */
 	readonly onUnavailableLinkClick: (uri: URI) => void;
@@ -983,7 +981,6 @@ export class TabbedModelPicker extends Disposable {
 					unavailableEntry.entry,
 					this._getUnavailableReason(unavailableEntry, context),
 					unavailableContext.manageSettingsUrl,
-					unavailableContext.updateStateType,
 					this._entitlementService,
 				));
 			}

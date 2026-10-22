@@ -19,13 +19,11 @@ suite('Model picker tryout', () => {
 		assert.deepStrictEqual({
 			id: tryout.id,
 			isAI: tryout.isAI,
-			targetWindow: tryout.targetWindow,
 			when: tryout.when?.serialize(),
 			presentation: tryout.presentation,
 		}, {
 			id: MODEL_PICKER_TRYOUT_ID,
 			isAI: true,
-			targetWindow: 'agents',
 			when: 'chatIsEnabled',
 			presentation: {
 				kind: GUIDED_TRYOUT_PRESENTATION_KIND,

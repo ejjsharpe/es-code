@@ -1141,17 +1141,17 @@ suite('Configuration', () => {
 	test('Test compare and update application configuration', () => {
 		const testObject = new TestConfiguration(ConfigurationModel.createEmptyModel(new NullLogService()), ConfigurationModel.createEmptyModel(new NullLogService()), ConfigurationModel.createEmptyModel(new NullLogService()), ConfigurationModel.createEmptyModel(new NullLogService()));
 		testObject.updateApplicationConfiguration(toConfigurationModel({
-			'update.mode': 'on',
+			'editor.exampleMode': 'on',
 		}));
 
 		const actual = testObject.compareAndUpdateApplicationConfiguration(toConfigurationModel({
-			'update.mode': 'none',
+			'editor.exampleMode': 'none',
 			'[typescript]': {
 				'editor.wordWrap': 'off'
 			}
 		}));
 
-		assert.deepStrictEqual(actual, { keys: ['[typescript]', 'update.mode',], overrides: [['typescript', ['editor.wordWrap']]] });
+		assert.deepStrictEqual(actual, { keys: ['[typescript]', 'editor.exampleMode',], overrides: [['typescript', ['editor.wordWrap']]] });
 
 	});
 

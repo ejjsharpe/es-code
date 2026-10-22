@@ -97,13 +97,6 @@ const policies: ExportedPolicyDataDto = {
 				key: 'telemetryConfigurationTitle',
 				value: 'Telemetry'
 			}
-		},
-		{
-			key: 'Update',
-			name: {
-				key: 'updateConfigurationTitle',
-				value: 'Update'
-			}
 		}
 	],
 	policies: [
@@ -253,44 +246,6 @@ const policies: ExportedPolicyDataDto = {
 			default: true
 		},
 		{
-			key: 'update.mode',
-			name: 'UpdateMode',
-			category: 'Update',
-			minimumVersion: '1.67',
-			localization: {
-				description: {
-					key: 'updateMode',
-					value: 'Configure whether you receive automatic updates. Requires a restart after change. The updates are fetched from a Microsoft online service.'
-				},
-				enumDescriptions: [
-					{
-						key: 'none',
-						value: 'Disable updates.'
-					},
-					{
-						key: 'manual',
-						value: 'Disable automatic background update checks. Updates will be available if you manually check for updates.'
-					},
-					{
-						key: 'start',
-						value: 'Check for updates only on startup. Disable automatic background update checks.'
-					},
-					{
-						key: 'default',
-						value: 'Enable automatic update checks. Code will check for updates automatically and periodically.'
-					}
-				]
-			},
-			type: 'string',
-			default: 'default',
-			enum: [
-				'none',
-				'manual',
-				'start',
-				'default'
-			]
-		},
-		{
 			key: 'telemetry.telemetryLevel',
 			name: 'TelemetryLevel',
 			category: 'Telemetry',
@@ -362,7 +317,6 @@ const frenchTranslations = [
 				'extensionsConfigurationTitle': 'Extensions',
 				'terminalIntegratedConfigurationTitle': 'Terminal intégré',
 				'telemetryConfigurationTitle': 'Télémétrie',
-				'updateConfigurationTitle': 'Mettre à jour',
 				'chat.extensionToolsEnabled': 'Autorisez l’utilisation d’outils fournis par des extensions tierces.',
 				'chat.agent.enabled.description': 'Activez le mode Assistant pour la conversation. Lorsque cette option est activée, le mode Assistant peut être activé via la liste déroulante de la vue.',
 				'chat.mcp.access': 'Contrôle l’accès aux serveurs de protocole de contexte du modèle.',
@@ -382,12 +336,7 @@ Cette fonctionnalité désactive [les protections de sécurité critiques](https
 				'telemetry.telemetryLevel.default': `Envoie les données d'utilisation, les erreurs et les rapports d'erreur.`,
 				'telemetry.telemetryLevel.error': `Envoie la télémétrie d'erreur générale et les rapports de plantage.`,
 				'telemetry.telemetryLevel.crash': `Envoie des rapports de plantage au niveau du système d'exploitation.`,
-				'telemetry.telemetryLevel.off': 'Désactive toutes les données de télémétrie du produit.',
-				'updateMode': `Choisissez si vous voulez recevoir des mises à jour automatiques. Nécessite un redémarrage après le changement. Les mises à jour sont récupérées auprès d'un service en ligne Microsoft.`,
-				'none': 'Aucun',
-				'manual': 'Désactivez la recherche de mises à jour automatique en arrière-plan. Les mises à jour sont disponibles si vous les rechercher manuellement.',
-				'start': 'Démarrer',
-				'default': 'Système'
+				'telemetry.telemetryLevel.off': 'Désactive toutes les données de télémétrie du produit.'
 			}
 		}
 	}

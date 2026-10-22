@@ -33,7 +33,6 @@ import { HoverService } from '../../../../../platform/hover/browser/hoverService
 import { IMarkdownRendererService, MarkdownRendererService } from '../../../../../platform/markdown/browser/markdownRenderer.js';
 import { NullOpenerService } from '../../../../../platform/opener/test/common/nullOpenerService.js';
 import { IProductService } from '../../../../../platform/product/common/productService.js';
-import { IUpdateService, StateType } from '../../../../../platform/update/common/update.js';
 import { IUriIdentityService } from '../../../../../platform/uriIdentity/common/uriIdentity.js';
 import { ChatEntitlement, IChatEntitlementService } from '../../../../services/chat/common/chatEntitlementService.js';
 import { ILocalModelService } from '../../../../services/agentHost/common/localModelService.js';
@@ -559,7 +558,6 @@ export async function renderPicker(context: ComponentFixtureContext, options: IP
 			show: true,
 			currentVSCodeVersion: '1.100.0',
 			manageSettingsUrl: 'https://github.com/settings/copilot',
-			updateStateType: StateType.Idle,
 		},
 		onUnavailableLinkClick: () => { },
 		providerPlaceholders: options.providerPlaceholders ?? [],
@@ -713,7 +711,6 @@ function renderInputPicker(context: ComponentFixtureContext, initialModel = COPI
 			entitlement.entitlement = ChatEntitlement.Pro;
 			registration.defineInstance(IChatEntitlementService, entitlement);
 			registration.defineInstance(IProductService, upcastPartial<IProductService>({ version: '1.140.0' }));
-			registration.defineInstance(IUpdateService, upcastPartial<IUpdateService>({ state: { type: StateType.Uninitialized } }));
 			registration.defineInstance(IUriIdentityService, upcastPartial<IUriIdentityService>({ extUri }));
 			registration.defineInstance(IStorageService, disposableStore.add(new InMemoryStorageService()));
 		},

@@ -13,13 +13,12 @@ import { URI } from '../../../../base/common/uri.js';
 import { localize } from '../../../../nls.js';
 import { ContextKeyExpression } from '../../../../platform/contextkey/common/contextkey.js';
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
-import { IOnboardingTryoutRunOptions } from '../../../../platform/onboarding/common/onboardingTryoutHandoff.js';
+import { IOnboardingTryoutRunOptions } from './onboardingTryoutTypes.js';
 import { onboardingScenarioRegistry } from './onboardingRegistry.js';
 import { IOnboardingPresentationRef, IOnboardingRunResult, IOnboardingScenario } from './onboardingScenario.js';
 
 export const RUN_ONBOARDING_TRYOUT_COMMAND_ID = 'workbench.action.onboarding.tryFeature';
 export const ONBOARDING_TRYOUT_URL_AUTHORITY = 'tryout';
-export const AGENTS_WINDOW_TRYOUT_PRESENTATION_KIND = 'agentsWindow';
 
 export interface IOnboardingTryoutCommand {
 	readonly id: string;
@@ -35,7 +34,6 @@ export interface IOnboardingTryoutMetadata {
 	readonly title: string;
 	readonly description: string;
 	readonly isAI?: boolean;
-	readonly targetWindow?: 'agents';
 	/** Whether product-protocol links may request this tryout. Defaults to true and always requires confirmation. */
 	readonly allowExternalLaunch?: boolean;
 	readonly unavailableMessage?: string;
@@ -55,7 +53,6 @@ export type OnboardingTryoutAvailability =
 
 export type OnboardingTryoutResult =
 	| { readonly kind: 'opened' | 'executed' | 'prepared'; readonly targetScope?: string }
-	| { readonly kind: 'routed' }
 	| { readonly kind: 'cancelled' }
 	| IOnboardingTryoutUnavailable;
 

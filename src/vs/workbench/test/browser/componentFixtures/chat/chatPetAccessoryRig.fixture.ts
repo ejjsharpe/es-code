@@ -84,10 +84,6 @@ const productionAccessoryPreviews: readonly IChatPetProductionAccessoryPreview[]
 		shape: 'Paneled red crown with a long side-facing bill',
 	},
 	{
-		accessoryId: ChatPetAccessoryIds.PropellerHat,
-		shape: 'Multicolor beanie with a full-width gold propeller',
-	},
-	{
 		accessoryId: ChatPetAccessoryIds.TopHatMonocle,
 		shape: 'Extra-tall striped crown with a full-width brim and monocle',
 	},
@@ -98,10 +94,6 @@ const productionAccessoryPreviews: readonly IChatPetProductionAccessoryPreview[]
 	{
 		accessoryId: ChatPetAccessoryIds.SailorHat,
 		shape: 'White Dixie-cup cap with a balanced crown and subtle forward brim',
-	},
-	{
-		accessoryId: ChatPetAccessoryIds.DarkSailorHat,
-		shape: 'White sailor cap with a dark band and gold accent',
 	},
 	{
 		accessoryId: ChatPetAccessoryIds.SpinnerHat,

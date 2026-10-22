@@ -175,7 +175,6 @@ export class ReleaseNotesTryouts extends Disposable {
 				label,
 				customLabel && customLabel !== metadata?.title ? metadata?.title : '',
 				metadata?.description,
-				metadata?.targetWindow === 'agents' ? localize('releaseNotes.tryout.anotherWindow', "Opens in the Agents window.") : '',
 				metadata?.isAI ? localize('releaseNotes.tryout.noAutoSend', "Chat examples are prepared for review and are not sent automatically.") : '',
 				message,
 			].filter(Boolean).join(' '),

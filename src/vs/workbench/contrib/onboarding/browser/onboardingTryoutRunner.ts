@@ -10,7 +10,7 @@ import { localize } from '../../../../nls.js';
 import { ICommandService } from '../../../../platform/commands/common/commands.js';
 import { ILogService } from '../../../../platform/log/common/log.js';
 import { INotificationService, Severity } from '../../../../platform/notification/common/notification.js';
-import { IOnboardingTryoutRunOptions } from '../../../../platform/onboarding/common/onboardingTryoutHandoff.js';
+import { IOnboardingTryoutRunOptions } from '../common/onboardingTryoutTypes.js';
 import { IOnboardingTryoutService, OnboardingTryoutResult } from '../common/onboardingTryout.js';
 
 export async function runOnboardingTryout(

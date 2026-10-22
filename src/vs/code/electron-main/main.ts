@@ -3,7 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import '../../platform/update/common/update.config.contribution.js';
 
 import { app, dialog } from 'electron';
 import { unlinkSync, promises } from 'fs';
@@ -61,7 +60,7 @@ import { IStateReadService, IStateService } from '../../platform/state/node/stat
 import { NullTelemetryService } from '../../platform/telemetry/common/telemetryUtils.js';
 import { IThemeMainService } from '../../platform/theme/electron-main/themeMainService.js';
 import { IUserDataProfilesMainService, UserDataProfilesMainService } from '../../platform/userDataProfile/electron-main/userDataProfile.js';
-import { isInnoSetupInstall } from '../../platform/update/electron-main/win32UpdateType.js';
+import { isInnoSetupInstall } from '../../platform/windows/electron-main/innoSetup.js';
 import { IPolicyService, NullPolicyService } from '../../platform/policy/common/policy.js';
 import { NativePolicyService } from '../../platform/policy/node/nativePolicyService.js';
 import { FilePolicyService } from '../../platform/policy/common/filePolicyService.js';

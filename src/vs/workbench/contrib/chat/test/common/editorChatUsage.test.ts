@@ -5,9 +5,8 @@
 
 import assert from 'assert';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
-import { EDITOR_AGENT_HOST_SESSIONS_STORAGE_KEY } from '../../../../../platform/chat/common/agentsWindowInvitation.js';
 import { InMemoryStorageService, StorageScope, StorageTarget } from '../../../../../platform/storage/common/storage.js';
-import { EditorChatUsage } from '../../common/editorChatUsage.js';
+import { EditorChatUsage, EDITOR_AGENT_HOST_SESSIONS_STORAGE_KEY } from '../../common/editorChatUsage.js';
 import { SessionType } from '../../common/chatSessionsService.js';
 
 suite('EditorChatUsage', () => {

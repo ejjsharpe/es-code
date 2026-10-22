@@ -56,7 +56,7 @@ Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Configuration).regis
 		},
 		[CloudSandboxEnabledSettingId]: {
 			type: 'boolean',
-			description: localize('chat.agentHost.cloudSandbox.enabled', "Use GitHub Cloud for new Cloud sessions in the Agents Window instead of Copilot coding agent on GitHub Actions. Also enables discovering and opening GitHub Cloud sessions."),
+			description: localize('chat.agentHost.cloudSandbox.enabled', "Use GitHub Cloud for new Cloud sessions in the editor instead of Copilot coding agent on GitHub Actions. Also enables discovering and opening GitHub Cloud sessions."),
 			default: false,
 			scope: ConfigurationScope.APPLICATION,
 			tags: ['experimental', 'advanced'],
@@ -64,14 +64,14 @@ Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Configuration).regis
 		},
 		[CloudSandboxAutoConnectOnOpenSettingId]: {
 			type: 'boolean',
-			description: localize('chat.agentHost.cloudSandbox.autoConnectOnOpen', "Automatically connect to or wake a cloud sandbox environment in the background when opening or restoring its chat in the Agents Window. When disabled, connecting waits until you start composing or explicitly connect."),
+			description: localize('chat.agentHost.cloudSandbox.autoConnectOnOpen', "Automatically connect to or wake a cloud sandbox environment in the background when opening or restoring its chat in the editor. When disabled, connecting waits until you start composing or explicitly connect."),
 			default: true,
 			scope: ConfigurationScope.APPLICATION,
 			tags: ['experimental', 'advanced'],
 		},
 		[CloudSandboxEarlyPreparationSettingId]: {
 			type: 'boolean',
-			description: localize('chat.agentHost.cloudSandbox.earlyPreparation', "Prepare an eligible cloud environment while typing in a new Cloud chat in the editor or Agents Window. This can allocate cloud compute before you send a message."),
+			description: localize('chat.agentHost.cloudSandbox.earlyPreparation', "Prepare an eligible cloud environment while typing in a new Cloud chat in the editor. This can allocate cloud compute before you send a message."),
 			default: false,
 			scope: ConfigurationScope.APPLICATION,
 			restricted: true,

@@ -9,7 +9,6 @@ import { RawContextKey } from '../../../../platform/contextkey/common/contextkey
 import { IManagedSettingsCompatibilityError } from '../../../../platform/defaultAccount/common/defaultAccount.js';
 import { createDecorator } from '../../../../platform/instantiation/common/instantiation.js';
 import { IProductService } from '../../../../platform/product/common/productService.js';
-import { DisablementReason, State, StateType } from '../../../../platform/update/common/update.js';
 
 export const ManagedSettingsUpdateRequiredContext = new RawContextKey<boolean>('managedSettingsUpdateRequired', false);
 export const MANAGED_SETTINGS_UPDATE_VIEW_ID = 'workbench.panel.chat.updateRequired';
@@ -44,33 +43,10 @@ function getManagedSettingsUpdateMessage(error: IManagedSettingsCompatibilityErr
 	};
 }
 
-export function getManagedSettingsUpdateInfo(error: IManagedSettingsCompatibilityError, product: IProductService, state: State): IManagedSettingsUpdateInfo {
-	let action: IManagedSettingsUpdateInfo['action'];
-	let updateStatus: string | undefined;
-	switch (state.type) {
-		case StateType.Uninitialized:
-			updateStatus = localize('managedSettingsUpdate.initializing', "Update availability is not yet known.");
-			break;
-		case StateType.Idle:
-			action = { label: localize('managedSettingsUpdate.check', "Check for Updates"), href: 'command:update.checkForUpdate' };
-			break;
-		case StateType.AvailableForDownload:
-			action = { label: localize('managedSettingsUpdate.download', "Download Update"), href: 'command:update.downloadUpdate' };
-			break;
-		case StateType.Downloaded:
-			action = { label: localize('managedSettingsUpdate.install', "Install Update"), href: 'command:update.installUpdate' };
-			break;
-		case StateType.Ready:
-			action = { label: localize('managedSettingsUpdate.restart', "Restart to Update"), href: 'command:update.restartToUpdate' };
-			break;
-		case StateType.Disabled:
-			if (state.reason === DisablementReason.Policy) {
-				updateStatus = localize('managedSettingsUpdate.disabled', "Built-in updates are disabled by your organization. Contact your administrator for an approved update.");
-			}
-			break;
-		default:
-			updateStatus = localize('managedSettingsUpdate.progress', "An update operation is in progress.");
-			break;
-	}
-	return { ...getManagedSettingsUpdateMessage(error, product), action, updateStatus };
+export function getManagedSettingsUpdateInfo(error: IManagedSettingsCompatibilityError, product: IProductService): IManagedSettingsUpdateInfo {
+	return {
+		...getManagedSettingsUpdateMessage(error, product),
+		action: undefined,
+		updateStatus: localize('managedSettingsUpdate.manual', "Install an approved newer version manually or contact your administrator."),
+	};
 }

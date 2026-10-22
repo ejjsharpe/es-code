@@ -28,7 +28,6 @@ import { IProductService } from '../../../../../../../../platform/product/common
 import { InMemoryStorageService, IStorageService } from '../../../../../../../../platform/storage/common/storage.js';
 import { ITelemetryService } from '../../../../../../../../platform/telemetry/common/telemetry.js';
 import { TelemetryTrustedValue } from '../../../../../../../../platform/telemetry/common/telemetryUtils.js';
-import { IUpdateService, StateType } from '../../../../../../../../platform/update/common/update.js';
 import { IUriIdentityService } from '../../../../../../../../platform/uriIdentity/common/uriIdentity.js';
 import { IWorkspaceTrustManagementService, IWorkspaceTrustRequestService } from '../../../../../../../../platform/workspace/common/workspaceTrust.js';
 import { ChatEntitlement, IChatEntitlementService } from '../../../../../../../services/chat/common/chatEntitlementService.js';
@@ -290,7 +289,6 @@ suite('ModelPickerTelemetry', () => {
 		}();
 		entitlementService.entitlement = entitlement;
 		instantiationService.stub(IChatEntitlementService, entitlementService);
-		instantiationService.stub(IUpdateService, { state: { type: StateType.Uninitialized } });
 		instantiationService.stub(IUriIdentityService, { extUri });
 		instantiationService.stub(IDefaultAccountService, { resolveGitHubUrl: () => 'https://github.com/settings/copilot' });
 		const workspaceTrustManagementService = store.add(new TestWorkspaceTrustManagementService());

@@ -9,6 +9,5 @@
     "ExtensionGalleryServiceUrl": "",
     "ChatToolsTerminalEnableAutoApprove": false,
     "EnableFeedback": false,
-    "TelemetryLevel": "all",
-    "UpdateMode": "none"
+    "TelemetryLevel": "all"
 }

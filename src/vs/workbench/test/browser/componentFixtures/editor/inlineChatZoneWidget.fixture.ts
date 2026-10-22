@@ -77,7 +77,6 @@ import { IActionWidgetService } from '../../../../../platform/actionWidget/brows
 import { IFileDialogService } from '../../../../../platform/dialogs/common/dialogs.js';
 import { IFileService } from '../../../../../platform/files/common/files.js';
 import { ISharedWebContentExtractorService } from '../../../../../platform/webContentExtractor/common/webContentExtractor.js';
-import { IUpdateService, StateType } from '../../../../../platform/update/common/update.js';
 import { IUriIdentityService } from '../../../../../platform/uriIdentity/common/uriIdentity.js';
 import { IMarkdownRendererService, MarkdownRendererService } from '../../../../../platform/markdown/browser/markdownRenderer.js';
 import { constObservable, observableValue } from '../../../../../base/common/observable.js';
@@ -418,7 +417,6 @@ function renderInlineChatZoneWidget({ container, disposableStore, theme, focus }
 			}());
 			reg.defineInstance(IActionWidgetService, new class extends mock<IActionWidgetService>() { override show() { } override hide() { } override get isVisible() { return false; } }());
 			reg.defineInstance(IFileDialogService, new class extends mock<IFileDialogService>() { }());
-			reg.defineInstance(IUpdateService, new class extends mock<IUpdateService>() { override readonly onStateChange = Event.None; override get state() { return { type: StateType.Uninitialized as const }; } }());
 			reg.defineInstance(IUriIdentityService, new class extends mock<IUriIdentityService>() { }());
 		},
 	});

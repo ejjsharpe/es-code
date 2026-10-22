@@ -290,7 +290,6 @@ export const nodeModulesPath: AppResourcePath = 'vs/../../node_modules';
 export const nodeModulesAsarPath: AppResourcePath = 'vs/../../node_modules.asar';
 export const nodeModulesAsarUnpackedPath: AppResourcePath = 'vs/../../node_modules.asar.unpacked';
 
-export const AGENTS_AUTHORITY = 'agents';
 export const VSCODE_AUTHORITY = 'vscode-app';
 
 interface BrowserUriProvider {

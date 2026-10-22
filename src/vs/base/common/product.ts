@@ -118,7 +118,6 @@ export interface IProductConfiguration {
 	readonly featuredExtensions?: IFeaturedExtension[];
 
 	readonly downloadUrl?: string;
-	readonly updateUrl?: string;
 	readonly webUrl?: string;
 	readonly webEndpointUrlTemplate?: string;
 	readonly webviewContentExternalBaseUrlTemplate?: string;

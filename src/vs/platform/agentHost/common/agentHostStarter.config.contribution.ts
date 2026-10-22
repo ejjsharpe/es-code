@@ -229,7 +229,7 @@ configurationRegistry.registerConfiguration({
 		...artifactToolsConfigurationProperties,
 		[CanvasesEnabledSettingId]: {
 			type: 'boolean',
-			description: nls.localize('chat.canvases.enabled', "Controls whether local Agent Host Copilot sessions can open Canvases with interactive content in the Agents Window and the Editor Window. Newly created sessions pick up changes to this setting."),
+			description: nls.localize('chat.canvases.enabled', "Controls whether local Agent Host Copilot sessions can open Canvases with interactive content in the editor window. Newly created sessions pick up changes to this setting."),
 			default: false,
 			scope: ConfigurationScope.APPLICATION,
 			tags: ['preview'],

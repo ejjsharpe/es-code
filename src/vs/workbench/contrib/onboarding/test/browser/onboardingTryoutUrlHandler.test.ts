@@ -13,7 +13,7 @@ import { ICommandService } from '../../../../../platform/commands/common/command
 import { IConfirmation, IConfirmationResult, IDialogService } from '../../../../../platform/dialogs/common/dialogs.js';
 import { NullLogService } from '../../../../../platform/log/common/log.js';
 import { TestNotificationService } from '../../../../../platform/notification/test/common/testNotificationService.js';
-import { IOnboardingTryoutRunOptions } from '../../../../../platform/onboarding/common/onboardingTryoutHandoff.js';
+import { IOnboardingTryoutRunOptions } from '../../common/onboardingTryoutTypes.js';
 import { IProductService } from '../../../../../platform/product/common/productService.js';
 import { IURLHandler, IURLService } from '../../../../../platform/url/common/url.js';
 import { IHostService } from '../../../../services/host/browser/host.js';
