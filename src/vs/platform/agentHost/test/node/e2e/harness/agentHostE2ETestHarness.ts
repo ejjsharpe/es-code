@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 /**
- * Shared drivers and lifecycle helpers for bundled-provider Agent Host E2E tests.
+ * Shared drivers and lifecycle helpers for Agent Host E2E tests.
  */
 
 import assert from 'assert';
@@ -29,7 +29,6 @@ import {
 	type ChatErrorAction, type ChatToolCallCompleteAction, type ChatToolCallStartAction,
 } from '../../../../common/state/sessionActions.js';
 import type { AhpNotification } from '../../../../common/state/sessionProtocol.js';
-import { CopilotCliConfigKey } from '../../../../common/copilotCliConfig.js';
 import type { SessionMode } from '../../../../common/agentHostSchema.js';
 import { AgentHostSessionResidencyLimitEnvVar } from '../../../../common/agentService.js';
 import { CapiReplayMode, type ICapiReplayResponse, type IReplayVerificationOptions } from './capiReplayProxy.js';
@@ -198,24 +197,6 @@ const STALE_RECORDED_REQUEST_EXCEPTIONS = new Set<string>([
 	'claude:side chat receives bounded source context without copied history',
 ]);
 
-/** Captures whose providers can issue recorded parent and subagent turns concurrently. */
-const PROJECTED_REQUEST_MATCHING_CAPTURES = new Set<string>([
-	'copilotcli:retained background subagent completes repeated follow-up turns',
-]);
-
-const RECOVERABLE_RECORDING_MODEL_RESPONSE: ICapiReplayResponse = {
-	status: 400,
-	headers: {
-		'content-type': 'application/json',
-	},
-	body: '{"error":{"message":"Injected recoverable E2E failure.","type":"invalid_request_error","code":"invalid_request_error"}}',
-};
-
-const RECORDING_MODEL_RESPONSES = new Map<string, ICapiReplayResponse>([
-	['copilotcli:resumes a failed turn in place', RECOVERABLE_RECORDING_MODEL_RESPONSE],
-	['copilotcli:resumes the same turn after repeated failures', RECOVERABLE_RECORDING_MODEL_RESPONSE],
-]);
-
 /** Identifies one provider's capture of a test, matching `fixturePathFor`. */
 function captureKey(provider: string, testTitle: string): string {
 	return `${provider}:${testTitle}`;
@@ -231,11 +212,11 @@ export function capiReplayFor(provider: string, testTitle: string, modelTraffic:
 	const key = captureKey(provider, testTitle);
 	const allowPosixCommands = POSIX_COMMAND_EXCEPTIONS.has(key);
 	const allowStaleRecordedRequest = STALE_RECORDED_REQUEST_EXCEPTIONS.has(key);
-	const matchModelRequestsByProjection = PROJECTED_REQUEST_MATCHING_CAPTURES.has(key);
+	const matchModelRequestsByProjection = false;
 	if (modelTraffic === 'none') {
 		return { fixturePath: EMPTY_CAPTURE_PATH, real: true, mode: 'replay', allowPosixCommands, allowStaleRecordedRequest, matchModelRequestsByProjection };
 	}
-	return { fixturePath: fixturePathFor(provider, testTitle), real: true, mode: REPLAY_MODE, allowPosixCommands, allowStaleRecordedRequest, matchModelRequestsByProjection, recordingModelResponse: RECORDING_MODEL_RESPONSES.get(key) };
+	return { fixturePath: fixturePathFor(provider, testTitle), real: true, mode: REPLAY_MODE, allowPosixCommands, allowStaleRecordedRequest, matchModelRequestsByProjection };
 }
 
 // #endregion
@@ -268,7 +249,7 @@ export function resolveGitHubToken(): string {
 /**
  * Per-provider knobs for the shared agent host e2e suite. Lets us share the bulk of
  * the test bodies while parameterizing things that genuinely differ between
- * Copilot and Claude (tool names, URI scheme, server startup options).
+ * Claude and Codex (tool names, URI scheme, server startup options).
  */
 export interface IAgentHostE2EProviderConfig {
 	/** Suite title shown in the test runner. */
@@ -281,8 +262,7 @@ export interface IAgentHostE2EProviderConfig {
 	readonly scheme: string;
 	/**
 	 * Tool name used by the provider for an interactive shell command. Used
-	 * by the shell-permission and cd-prefix tests. (`bash` for Copilot,
-	 * `Bash` for Claude.)
+	 * by the shell-permission and cd-prefix tests. (`Bash` for Claude, `shell` for Codex.)
 	 */
 	readonly shellToolName: string;
 	/** How file-operation scenarios should drive this provider. */
@@ -290,14 +270,13 @@ export interface IAgentHostE2EProviderConfig {
 	/**
 	 * Tool names the provider uses to dispatch a subagent. The first entry
 	 * is used in the subagent-routing prompt; all entries are exempted from
-	 * the "parent must not contain inner tool calls" assertion. (`['task']`
-	 * for Copilot; Claude exposes both `Task` and `Agent` as subagent-kind
-	 * tools and the model may pick either.)
+	 * the "parent must not contain inner tool calls" assertion. Claude exposes
+	 * both `Task` and `Agent` as subagent-kind tools and may pick either.
 	 */
 	readonly subagentToolNames: readonly string[];
 	/**
 	 * Tool name used by the provider to confirm the user is ready to leave
-	 * plan mode. (`exit_plan_mode` for Copilot, `ExitPlanMode` for Claude.)
+	 * plan mode. (`ExitPlanMode` for Claude, `exit_plan_mode` for Codex.)
 	 */
 	readonly exitPlanModeToolName: string;
 	/** File-creation tool that exposes model-generated argument deltas, when supported. */
@@ -361,18 +340,15 @@ export interface IAgentHostE2EProviderConfig {
 	/**
 	 * Provider implements `config.isolation: 'worktree'` and resolves the
 	 * working directory to a `.worktrees/...` path on materialization. Now
-	 * shared across all agents (Copilot, Codex, Claude) via the host-owned
+	 * shared across Claude and Codex via the host-owned
 	 * worktree isolation controller.
 	 */
 	readonly supportsWorktreeIsolation: boolean;
 	/**
-	 * Provider routes shell commands through the host-managed custom terminal
-	 * tool (gated by {@link CopilotCliConfigKey.EnableCustomTerminalTool}),
-	 * which exposes a terminal resource whose `cwd` / `pwd` output can be
-	 * asserted. Currently true only for Copilot — Codex and Claude run shell
-	 * commands inside their own SDK subprocess and never surface a host
-	 * terminal resource, so the worktree suite verifies isolation via the
-	 * resolved working directory alone for them.
+	 * Provider routes shell commands through a host-managed terminal resource
+	 * whose working directory can be asserted. Claude and Codex run shell
+	 * commands inside their SDK subprocesses, so the worktree suite checks
+	 * their resolved working directory.
 	 */
 	readonly supportsHostTerminalTool: boolean;
 	/**
@@ -922,9 +898,6 @@ export class AgentHostE2EServerLease {
 			...this._createDataDirectories(),
 			env: {
 				[AgentHostSessionResidencyLimitEnvVar]: '0',
-				// Keep replay deterministic when tests run inside a Copilot app process
-				// that has local experimental CLI tools enabled.
-				COPILOT_CLI_ENABLED_FEATURE_FLAGS: '',
 				...startOptions.env,
 			},
 		};
@@ -968,9 +941,7 @@ export class AgentHostE2EServerLease {
 				matchModelRequestsByProjection: capiReplay.matchModelRequestsByProjection,
 			});
 		} else {
-			// Only the Copilot CLI provider writes the `@github/copilot` runtime logs we
-			// capture, so only it is run verbosely; Claude/Codex use their own runtimes.
-			this._server = await this._target.launch({ ...this._startOptions, capiReplay, logLevel: this._isCopilotProvider ? 'trace' : undefined });
+			this._server = await this._target.launch({ ...this._startOptions, capiReplay });
 			this._modelBackedTestsOnCurrentServer = 0;
 			this._testsOnCurrentServer = 0;
 		}
@@ -1026,7 +997,6 @@ export class AgentHostE2EServerLease {
 				...this._startOptions,
 				capiReplay,
 				existingCapiReplay: proxy,
-				logLevel: this._isCopilotProvider ? 'trace' : undefined,
 			});
 		} catch (error) {
 			await proxy.close();
@@ -1085,15 +1055,7 @@ export class AgentHostE2EServerLease {
 		return this._server?.capiReplay?.observedModelRequestBodies ?? [];
 	}
 
-	/** The bundled `@github/copilot` CLI is the only provider whose own runtime logs we capture / run verbosely. */
-	private get _isCopilotProvider(): boolean {
-		return this._config.provider === 'copilotcli';
-	}
-
-	/**
-	 * Tail the Agent Host log and, for Copilot, the bundled CLI log into the test
-	 * output. Best-effort: never throws because it runs during failed-test teardown.
-	 */
+	/** Preserve and report the Agent Host log during failed-test teardown. */
 	dumpRuntimeLogsOnFailure(label: string): void {
 		const destination = join(process.cwd(), '.build', 'logs', 'integration-tests', `agent-host-e2e-${process.pid}-${basename(this._startOptions.homeDir)}`);
 		try {
@@ -1102,39 +1064,6 @@ export class AgentHostE2EServerLease {
 			process.stdout.write(`[agent-host-e2e] Failed to preserve logs for "${label}": ${error}\n`);
 		}
 		this._dumpAgentHostLogOnFailure(label);
-		if (!this._isCopilotProvider) {
-			return;
-		}
-		try {
-			const logsDir = join(this._startOptions.homeDir, '.copilot', 'logs');
-			let entries: string[];
-			try {
-				entries = readdirSync(logsDir);
-			} catch {
-				// No log dir at all — the CLI never spawned. That itself is a signal.
-				process.stdout.write(`[agent-host-e2e] no Copilot runtime logs for failed test "${label}" (CLI never spawned; ${logsDir} absent)\n`);
-				return;
-			}
-			const newest = entries
-				.filter(name => /^process-.*\.log$/.test(name))
-				.map(name => {
-					const full = join(logsDir, name);
-					try {
-						return { full, mtimeMs: statSync(full).mtimeMs };
-					} catch {
-						return undefined;
-					}
-				})
-				.filter((v): v is { full: string; mtimeMs: number } => v !== undefined)
-				.sort((a, b) => b.mtimeMs - a.mtimeMs)[0];
-			if (!newest) {
-				process.stdout.write(`[agent-host-e2e] no Copilot runtime process-*.log for failed test "${label}" under ${logsDir}\n`);
-				return;
-			}
-			this._dumpLogTail('Copilot runtime', label, newest.full);
-		} catch {
-			// never let diagnostics break teardown
-		}
 	}
 
 	private _dumpAgentHostLogOnFailure(label: string): void {

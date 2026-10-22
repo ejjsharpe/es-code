@@ -23,15 +23,12 @@ import { defineMcpPluginTests } from './mcpPluginSuite.js';
 import { defineMcpSideChannelTests } from './mcpSideChannelSuite.js';
 import { defineProviderCheckpointTests } from './providerCheckpointSuite.js';
 import { defineProviderErrorTests } from './providerErrorSuite.js';
-import { defineCopilotRuntimeMcpTests } from './copilotRuntimeMcpSuite.js';
 import { defineStateOperationsTests } from './stateOperationsSuite.js';
 import { defineSubagentTests } from './subagentSuite.js';
 import { defineTurnLifecycleTests } from './turnLifecycleSuite.js';
 import { defineWorkspaceTests } from './workspaceSuite.js';
 import { defineWorkingDirectoriesTests } from './workingDirectoriesSuite.js';
 import { defineWorkspaceConversionTests } from './workspaceConversionSuite.js';
-import { defineCopilotCoverageTests } from './copilotCoverageSuite.js';
-import { defineCopilotRuntimeToolsTests } from './copilotRuntimeToolsSuite.js';
 import { defineManagementExtensionTests } from './managementExtensionsSuite.js';
 import { defineAutomationsTests } from './automationsSuite.js';
 import { defineDetachedWorktreeTests } from './detachedWorktreeSuite.js';
@@ -176,10 +173,7 @@ function defineSuite(config: IAgentHostE2EProviderConfig, options: IDefineOption
 		// Suites that contain only parity-tier scenarios.
 		if (options.tier === 'parity') {
 			defineCoreTests(context);
-			defineCopilotRuntimeMcpTests(context);
 			defineHostFeaturesTests(context);
-			defineCopilotCoverageTests(context);
-			defineCopilotRuntimeToolsTests(context);
 			defineFileOperationsTests(context);
 			defineTurnLifecycleTests(context);
 			defineWorkspaceTests(context);
