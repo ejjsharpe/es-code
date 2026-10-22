@@ -18,6 +18,7 @@ export async function withdrawLegacyRemoteTunnel(
 	environmentService: INativeEnvironmentService,
 	productService: IProductService,
 	logService: ILogService,
+	uninstallService?: () => Promise<number>,
 ): Promise<void> {
 	const wasService = storageService.getBoolean(legacyServiceKey, StorageScope.APPLICATION, false);
 	storageService.remove(legacySessionKey, StorageScope.APPLICATION);
@@ -25,14 +26,16 @@ export async function withdrawLegacyRemoteTunnel(
 		storageService.remove(legacyServiceKey, StorageScope.APPLICATION);
 		return;
 	}
-	const cli = new CodeTunnelCli({
-		appRoot: environmentService.appRoot,
-		isBuilt: environmentService.isBuilt,
-		tunnelApplicationName: productService.tunnelApplicationName,
-		win32VersionedUpdate: !!productService.win32VersionedUpdate,
-	});
 	try {
-		const result = await cli.run('legacyTunnelUninstall', ['tunnel', 'service', 'uninstall'], message => logService.info(message)).result;
+		const result = await (uninstallService ?? (() => {
+			const cli = new CodeTunnelCli({
+				appRoot: environmentService.appRoot,
+				isBuilt: environmentService.isBuilt,
+				tunnelApplicationName: productService.tunnelApplicationName,
+				win32VersionedUpdate: !!productService.win32VersionedUpdate,
+			});
+			return cli.run('legacyTunnelUninstall', ['tunnel', 'service', 'uninstall'], message => logService.info(message)).result;
+		}))();
 		if (result !== 0) {
 			throw new Error(`Tunnel service uninstall exited with code ${result}`);
 		}

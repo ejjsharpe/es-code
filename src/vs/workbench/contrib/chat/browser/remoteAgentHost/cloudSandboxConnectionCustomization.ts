@@ -6,7 +6,6 @@
 import { Event } from '../../../../../base/common/event.js';
 import { DisposableStore } from '../../../../../base/common/lifecycle.js';
 import { AgentHostProtocolClient } from '../../../../../platform/agentHost/browser/agentHostProtocolClient.js';
-import { GITHUB_COPILOT_PROTECTED_RESOURCE } from '../../../../../platform/agentHost/common/agentService.js';
 import { AuthRequiredReason } from '../../../../../platform/agentHost/common/state/sessionActions.js';
 import {
 	CLOUD_SANDBOX_ADDRESS_PREFIX,
@@ -49,8 +48,6 @@ function isGitHubResource(resource: string): boolean {
 export function createCloudSandboxConnectionCustomization(
 	address: string,
 	sandboxService: ICloudSandboxAgentHostService,
-	userLocal = false,
-	sealUserLocal?: (request: IAgentHostAuthenticateRequest) => Promise<IAgentHostAuthenticateRequest>,
 ): IRemoteAgentHostConnectionCustomization | undefined {
 	const environmentId = cloudSandboxEnvironmentId(address);
 	if (environmentId === undefined) {
@@ -74,20 +71,14 @@ export function createCloudSandboxConnectionCustomization(
 			if (reason !== AuthRequiredReason.Expired && isCloudSandboxSealedToken(request.token)) {
 				return request;
 			}
-			if (userLocal && (request.target || new URL(request.resource).origin !== new URL(GITHUB_COPILOT_PROTECTED_RESOURCE.resource).origin)) {
-				if (!sealUserLocal) {
-					throw new Error('User-local Mission Control sealing is unavailable.');
-				}
-				return sealUserLocal(request);
-			}
 			const authentication = await resolveAuthentication(request.resource, request.scopes, reason === AuthRequiredReason.Expired);
 			return request.target ? { ...authentication, target: request.target } : authentication;
 		},
-		renewAuthentication: userLocal ? undefined : resource => resolveAuthentication(resource.resource, resource.scopes_supported, true),
+		renewAuthentication: resource => resolveAuthentication(resource.resource, resource.scopes_supported, true),
 		backendSessionScheme: (provider: string): string | undefined =>
-			provider === CLOUD_SANDBOX_AGENT_PROVIDER || (userLocal && provider === 'copilotcli') ? CLOUD_SANDBOX_SESSION_SCHEME : undefined,
-		retainConsumedSteeringMessages: provider => !userLocal && provider === CLOUD_SANDBOX_AGENT_PROVIDER,
-		createSessionPreparation: userLocal ? undefined : (connection, owner) => {
+			provider === CLOUD_SANDBOX_AGENT_PROVIDER ? CLOUD_SANDBOX_SESSION_SCHEME : undefined,
+		retainConsumedSteeringMessages: provider => provider === CLOUD_SANDBOX_AGENT_PROVIDER,
+		createSessionPreparation: (connection, owner) => {
 			if (!(connection instanceof AgentHostProtocolClient)) {
 				throw new Error('Cloud sandbox session preparation requires a protocol client.');
 			}

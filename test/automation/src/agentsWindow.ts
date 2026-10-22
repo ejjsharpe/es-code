@@ -191,15 +191,6 @@ export class AgentsWindow {
 		await this.selectRemoteFolder(options.name, workspacePath);
 	}
 
-	async connectTunnelHost(name: string, workspacePath: string): Promise<void> {
-		const page = this.code.driver.currentPage;
-		await this.quickaccess.runCommand('workbench.action.sessions.connectViaTunnel', { keepOpen: true });
-		await page.locator('.quick-input-widget:visible .quick-input-list .monaco-list-row').filter({
-			has: page.getByText(name, { exact: true }),
-		}).click({ timeout: 120_000 });
-		await this.selectRemoteFolder(name, workspacePath);
-	}
-
 	async connectWSLHost(distro: string, workspacePath: string): Promise<void> {
 		const page = this.code.driver.currentPage;
 		this.code.logger.log(`[agentsWindow] WSL connection: executing Connect via WSL for ${distro}`);

@@ -140,10 +140,6 @@ import '../workbench/contrib/preferences/browser/keyboardLayoutPicker.js';
 import '../workbench/contrib/debug/browser/extensionHostDebugService.js';
 import '../workbench/contrib/welcomeBanner/browser/welcomeBanner.contribution.js';
 
-// Web tunnel agent host — discovers tunnels via Dev Tunnels REST API and connects via relay
-
-// Tunnel agent host — reconciles discovered tunnels into session providers
-
 // WSL agent host — reconciles cached WSL distros into session providers
 import './contrib/providers/remoteAgentHost/browser/wslAgentHost.contribution.js';
 

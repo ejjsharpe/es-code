@@ -22,8 +22,12 @@ export const enum AgentHostClientConnectionKind {
 	DevContainer = 'dev_container',
 	SSH = 'ssh',
 	WSL = 'wsl',
+	/** Legacy wire value from older clients. */
+	DevTunnel = 'dev_tunnel',
 	RemoteExtensionHost = 'remote_extension_host',
 	WebPubSub = 'web_pub_sub',
+	/** Legacy wire value from older clients. */
+	MissionControl = 'mission_control',
 	Unknown = 'unknown',
 }
 
@@ -33,8 +37,10 @@ export const agentHostClientConnectionKindValidator = vEnum(
 	AgentHostClientConnectionKind.DevContainer,
 	AgentHostClientConnectionKind.SSH,
 	AgentHostClientConnectionKind.WSL,
+	AgentHostClientConnectionKind.DevTunnel,
 	AgentHostClientConnectionKind.RemoteExtensionHost,
 	AgentHostClientConnectionKind.WebPubSub,
+	AgentHostClientConnectionKind.MissionControl,
 	AgentHostClientConnectionKind.Unknown,
 );
 

@@ -309,7 +309,6 @@ function setupAgentHostSuite(logger: Logger, config: {
 		}
 		this.app = createApp(defaultOptions, opts => ({
 			...opts,
-			sourceAppRoot: remoteFixture?.sourceAppRoot ?? opts.sourceAppRoot,
 			extraArgs: [...(opts.extraArgs ?? []), ...(remoteFixture?.extraArgs ?? [])],
 			extraEnv: {
 				...(opts.extraEnv ?? {}),
@@ -319,7 +318,6 @@ function setupAgentHostSuite(logger: Logger, config: {
 				// agent-host harnesses for model discovery + requests) at the mock
 				// instead of api.github.com, which would 401 with the fake token.
 				VSCODE_AGENT_HOST_CAPI_URL_OVERRIDE: getMockLlmServerUrl(mockServer),
-				VSCODE_SMOKE_TEST_TUNNEL_TOKEN: undefined,
 				...remoteFixture?.extraEnv,
 			},
 		}));

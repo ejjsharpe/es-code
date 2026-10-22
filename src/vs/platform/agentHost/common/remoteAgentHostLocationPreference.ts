@@ -21,7 +21,7 @@ export const IRemoteAgentHostLocationPreferenceService = createDecorator<IRemote
 
 /**
  * Tracks the user's preferred agent run location per remote host, keyed by a
- * stable host key (e.g. `ssh:<alias>` or `tunnel:<tunnelId>`). Setting a
+ * stable host key (e.g. `ssh:<alias>`). Setting a
  * preference only persists it; it does not itself connect, disconnect, or
  * migrate any running session.
  */

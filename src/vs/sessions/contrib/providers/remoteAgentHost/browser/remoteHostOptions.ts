@@ -265,20 +265,19 @@ const SSH_ADDRESS_PREFIX = 'ssh:';
 
 /**
  * Whether `preferenceKey` identifies a host that can have a preferred agent
- * run location. Only SSH and tunnel preference keys are supported today —
+ * run location. Only SSH preference keys are supported today —
  * WebSocket, WSL, and cloud-sandbox addresses are not stable/dedicated-host-capable
  * targets for {@link IRemoteAgentHostLocationPreferenceService}.
  *
  * `preferenceKey` must be the host's *stable* preference key (e.g. an SSH
- * host's `ssh:<alias>` from `computeSSHConnectionKey`, or `tunnel:<id>`),
+ * host's `ssh:<alias>` from `computeSSHConnectionKey`),
  * NOT its live connection address — a real SSH provider's `remoteAddress`
  * is a forwarded local endpoint (e.g. `localhost:4321`) that never starts
  * with `ssh:`, so passing it here would wrongly suppress this feature for
  * every SSH host.
  *
  * The preference service and its shared modal are desktop-only (registered
- * in `sessions.desktop.main.ts`; the web tunnel service does not consult a
- * preference at all), so this always reports `false` on web regardless of
+ * in `sessions.desktop.main.ts`), so this always reports `false` on web regardless of
  * key shape. `isWebPlatform` defaults to the ambient {@link isWeb}
  * constant but can be passed explicitly so tests can cover both the
  * desktop and web branches without depending on ambient platform state.
@@ -317,7 +316,7 @@ export interface IBuildRemoteHostOptionItemsOptions {
 	 * {@link supportsRemoteAgentHostLocationPreference}), when it differs
 	 * from {@link address} - e.g. an SSH host's `ssh:<alias>` key versus its
 	 * live forwarded address. Defaults to {@link address} for hosts with no
-	 * separate stable identity (tunnels, WSL, cloud sandbox).
+	 * separate stable identity (WSL, cloud sandbox).
 	 */
 	readonly preferenceKey?: string;
 	readonly isConnected: boolean;
@@ -362,7 +361,7 @@ export interface IChangeRemoteAgentHostLocationPreferenceOptions {
 	/**
 	 * Stable preference key persisted via
 	 * {@link IRemoteAgentHostLocationPreferenceService} (e.g. an SSH host's
-	 * `ssh:<alias>` key, or `tunnel:<id>`). NOT the live connection
+	 * `ssh:<alias>` key). NOT the live connection
 	 * address - {@link provider}, when present, already carries its own
 	 * live address for reconnection.
 	 */
@@ -373,7 +372,7 @@ export interface IChangeRemoteAgentHostLocationPreferenceOptions {
 	 * The live provider for this host, when one can be resolved. Reconnected
 	 * immediately after the preference is persisted. `undefined` only for the
 	 * exceptional race where the target host is known (e.g. from configured
-	 * SSH entries or cached tunnels) but has no corresponding provider right
+	 * SSH entries) but has no corresponding provider right
 	 * now - the preference is still saved, but nothing is reconnected.
 	 */
 	readonly provider: IAgentHostSessionsProvider | undefined;
@@ -392,7 +391,7 @@ export interface IChangeRemoteAgentHostLocationPreferenceOptions {
  *
  * Does nothing if the user cancels the modal. Otherwise persists the
  * preference first, then reconnects the matching host via
- * {@link reconnectRemoteHost} (respecting provider-specific SSH/tunnel
+ * {@link reconnectRemoteHost} (respecting provider-specific SSH
  * connect callbacks) under a progress notification, reporting success or
  * failure. If no {@link IChangeRemoteAgentHostLocationPreferenceOptions.provider}
  * can be resolved, the preference is still saved and a warning explains it
@@ -459,8 +458,7 @@ export async function showRemoteHostOptions(accessor: ServicesAccessor, provider
 	const sshService = accessor.get(ISSHRemoteAgentHostService);
 	const editorService = accessor.get(IEditorService);
 	// IRemoteAgentHostLocationPreferenceService is only registered on
-	// desktop (see sessions.desktop.main.ts) - the web tunnel service does
-	// not honor a preference at all, so avoid resolving an unregistered
+	// desktop (see sessions.desktop.main.ts), so avoid resolving an unregistered
 	// service on web. buildRemoteHostOptionItems() likewise never offers
 	// the 'locationPreference' item on web, so this only gates the eager
 	// DI lookup, not user-visible behavior.
@@ -471,7 +469,7 @@ export async function showRemoteHostOptions(accessor: ServicesAccessor, provider
 	const upgradeMethod = RemoteAgentHostConnectionStatus.isIncompatible(status) ? status.vscodeUpgradeMethod : undefined;
 	// Distinct from `address` for SSH hosts, whose live address is a
 	// forwarded local endpoint - falls back to `address` for hosts with no
-	// separate stable identity (tunnels, WSL, cloud sandbox).
+	// separate stable identity (WSL, cloud sandbox).
 	const preferenceKey = provider.remoteLocationPreferenceKey ?? address;
 
 	const items = buildRemoteHostOptionItems({ address, preferenceKey, isConnected, upgradeMethod, canRemove: provider.canRemove, removeLabel: provider.removeLabel, disconnectLabel: provider.disconnectLabel });

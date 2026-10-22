@@ -437,7 +437,6 @@ suite('Dev Container Agent Host Connector', () => {
 
 	for (const entry of [
 		{ name: 'SSH Host', connection: { type: RemoteAgentHostEntryType.SSH, address: 'ssh:server', hostName: 'server' } },
-		{ name: 'Tunnel Host', connection: { type: RemoteAgentHostEntryType.Tunnel, tunnelId: 'server', clusterId: 'region' } },
 		{ name: 'WSL Host', connection: { type: RemoteAgentHostEntryType.WSL, address: 'wsl:Ubuntu', distro: 'Ubuntu' } },
 	] satisfies IRemoteAgentHostEntry[]) {
 		test(`checks Docker and starts containers on the ${entry.name}, not the desktop`, async () => {

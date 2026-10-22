@@ -160,7 +160,6 @@ suite('VS Code Actions', () => {
 
 	for (const connection of [
 		{ type: RemoteAgentHostEntryType.SSH, address: 'ssh:host', hostName: 'host' },
-		{ type: RemoteAgentHostEntryType.Tunnel, tunnelId: 'host', clusterId: 'region' },
 		{ type: RemoteAgentHostEntryType.WSL, address: 'wsl:Ubuntu', distro: 'Ubuntu' },
 		{ type: RemoteAgentHostEntryType.DevContainer, address: 'devcontainer:host', hostPath: '/source/project' },
 	] satisfies IRemoteAgentHostEntry['connection'][]) {
@@ -191,42 +190,6 @@ suite('VS Code Actions', () => {
 			});
 		});
 	}
-
-	test('preserves Windows remote labels for every folder opened through a tunnel', async () => {
-		const calls: { uri: URI; label: string | undefined; title: string | undefined }[][] = [];
-		const authority = agentHostAuthority('test:host');
-		const folders = ['/c:/remote/project', '/d:/other/repository'].map(path => toAgentHostUri(URI.from({ scheme: 'file', path }), authority));
-		const formatter = agentHostLabelFormatter(authority, OperatingSystem.Windows);
-		disposables.add(labelService.registerFormatter({
-			...formatter,
-			formatting: { ...formatter.formatting, workspaceSuffix: 'Windows dev box' },
-		}));
-		const provider: ISessionsProvider = upcastPartial<IAgentHostSessionsProvider>({ id: 'agenthost-test', remoteAddress: 'test:host' });
-		instantiationService.stub(INativeHostService, new class extends mock<INativeHostService>() {
-			override async openWindow(toOpen?: IOpenEmptyWindowOptions | IWindowOpenable[]): Promise<void> {
-				calls.push(Array.isArray(toOpen) ? toOpen.filter(isFolderToOpen).map(openable => ({
-					uri: openable.folderUri,
-					label: openable.label,
-					title: openable.label && splitRecentLabel(openable.label).name,
-				})) : []);
-			}
-		}());
-		instantiationService.stub(ISessionsProvidersService, { getProvider: <T extends ISessionsProvider>() => provider as T });
-		instantiationService.stub(IRemoteAgentHostService, {
-			getEntryByAddress: () => ({ name: 'Windows dev box', connection: { type: RemoteAgentHostEntryType.Tunnel, tunnelId: 'host', clusterId: 'region', label: 'my-tunnel' } }),
-		});
-		await instantiationService.invokeFunction(openSessionInVSCode, createSession('remote', true, folders));
-
-		assert.deepStrictEqual(calls, [[{
-			uri: URI.from({ scheme: 'vscode-remote', authority: 'tunnel+my-tunnel', path: '/c:/remote/project' }),
-			label: 'C:\\remote\\project [Windows dev box]',
-			title: 'project [Windows dev box]',
-		}, {
-			uri: URI.from({ scheme: 'vscode-remote', authority: 'tunnel+my-tunnel', path: '/d:/other/repository' }),
-			label: 'D:\\other\\repository [Windows dev box]',
-			title: 'repository [Windows dev box]',
-		}]]);
-	});
 
 	test('propagates a failure to open the fallback Editor window', async () => {
 		const error = new Error('Editor window could not be opened');

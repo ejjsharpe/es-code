@@ -18,7 +18,7 @@ import { AgentHostClientConnectionKind } from '../../../../../platform/agentHost
 import { formatConnectionDiagnosticError, getConnectionDiagnosticError, traceConnectionOperation, type IConnectionDiagnosticEvent } from '../../../../../platform/agentHost/common/connectionDiagnostics.js';
 import { WebPubSubRelayTransport } from '../../../../../platform/agentHost/browser/webPubSubRelayTransport.js';
 import { AhpJsonlLogger } from '../../../../../platform/agentHost/common/ahpJsonlLogger.js';
-import { GITHUB_COPILOT_PROTECTED_RESOURCE, AgentHostAhpJsonlLoggingSettingId, IAgentHostService } from '../../../../../platform/agentHost/common/agentService.js';
+import { GITHUB_COPILOT_PROTECTED_RESOURCE, AgentHostAhpJsonlLoggingSettingId } from '../../../../../platform/agentHost/common/agentService.js';
 import {
 	buildWpsUrl,
 	cloudSandboxAddress,
@@ -372,6 +372,9 @@ export class CloudSandboxAgentHostService extends Disposable implements ICloudSa
 	}
 
 	async connect(options: ICloudSandboxConnectOptions, token: CancellationToken): Promise<string> {
+		if (options.environmentKind === 'user-local') {
+			throw new Error('User-local Mission Control relay connections are no longer supported.');
+		}
 		if (!this._configurationService.getValue<boolean>(CloudSandboxEnabledSettingId)) {
 			throw new Error('Copilot cloud sandbox connections are not enabled.');
 		}

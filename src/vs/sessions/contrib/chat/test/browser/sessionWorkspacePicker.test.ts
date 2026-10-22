@@ -23,7 +23,6 @@ import { runWithFakedTimers } from '../../../../../base/test/common/timeTravelSc
 import { IActionWidgetService } from '../../../../../platform/actionWidget/browser/actionWidget.js';
 import { ActionListItemKind, IActionListDelegate, IActionListItem, IActionListOptions } from '../../../../../platform/actionWidget/browser/actionList.js';
 import { RemoteAgentHostConnectionStatus, IRemoteAgentHostService, RemoteAgentHostsEnabledSettingId } from '../../../../../platform/agentHost/common/remoteAgentHostService.js';
-import { TUNNEL_ADDRESS_PREFIX } from '../../../../../platform/agentHost/common/tunnelAgentHost.js';
 import { cloudSandboxAddress } from '../../../../../platform/agentHost/common/cloudSandboxAgentHost.js';
 import { AGENT_HOST_SCHEME, agentHostAuthority } from '../../../../../platform/agentHost/common/agentHostUri.js';
 import { devContainerSamples, devContainerSampleUri, findDevContainerSample } from '../../../../../platform/agentHost/common/devContainerSamples.js';
@@ -1274,125 +1273,6 @@ suite('WorkspacePicker - Connection Status', () => {
 			],
 			submenuOnRemove: undefined,
 		})));
-	});
-
-	test('shows active session counts for remote providers', () => {
-		const createSession = (status: SessionStatus, isArchived = false): ISession => upcastPartial<ISession>({
-			status: constObservable(status),
-			isArchived: constObservable(isArchived),
-		});
-		const connected = () => observableValue<RemoteAgentHostConnectionStatus>('status', RemoteAgentHostConnectionStatus.connected);
-		const tunnelWithOneSession = createMockProvider('agenthost-tunnel-one', {
-			connectionStatus: connected(),
-			remoteAddress: `${TUNNEL_ADDRESS_PREFIX}one`,
-			getSessions: () => [createSession(SessionStatus.InProgress)],
-		});
-		const tunnelWithTwoSessions = createMockProvider('agenthost-tunnel-two', {
-			connectionStatus: connected(),
-			remoteAddress: `${TUNNEL_ADDRESS_PREFIX}two`,
-			getSessions: () => [
-				createSession(SessionStatus.InProgress),
-				createSession(SessionStatus.NeedsInput),
-				createSession(SessionStatus.Completed),
-				createSession(SessionStatus.InProgress, true),
-			],
-		});
-		const tunnelWithoutActiveSessions = createMockProvider('agenthost-tunnel-idle', {
-			connectionStatus: connected(),
-			remoteAddress: `${TUNNEL_ADDRESS_PREFIX}idle`,
-			getSessions: () => [createSession(SessionStatus.Completed)],
-		});
-		const sshWithActiveSession = createMockProvider('agenthost-ssh', {
-			connectionStatus: connected(),
-			remoteAddress: 'ssh:host',
-			getSessions: () => [createSession(SessionStatus.InProgress)],
-		});
-		const wslWithActiveSessions = createMockProvider('agenthost-wsl', {
-			connectionStatus: connected(),
-			remoteAddress: 'wsl:Ubuntu',
-			getSessions: () => [
-				createSession(SessionStatus.InProgress),
-				createSession(SessionStatus.NeedsInput),
-			],
-		});
-		providersService.setProviders([tunnelWithOneSession, tunnelWithTwoSessions, tunnelWithoutActiveSessions, sshWithActiveSession, wslWithActiveSessions]);
-		const tabbedPicker = createTestablePicker(disposables, providersService, true, { restoreFromSessions: false });
-		tabbedPicker.selectTab(SESSION_WORKSPACE_GROUP_REMOTE);
-		const unifiedPicker = createTestablePicker(disposables, providersService, true, { restoreFromSessions: false }, undefined, undefined, true);
-		const getRemoteItems = (picker: TestablePicker) => picker.getItems()
-			.filter(item => item.label?.startsWith('Provider agenthost-'))
-			.map(item => ({ label: item.label, description: item.description, ariaLabel: item.item?.ariaLabel }));
-		const unifiedRemoteItem = unifiedPicker.getItems().find(item => item.label === 'Remote');
-		const unifiedRemoteActions = unifiedRemoteItem?.submenuActions?.[0];
-
-		assert.deepStrictEqual({
-			tabbed: getRemoteItems(tabbedPicker),
-			unifiedTopLevel: getRemoteItems(unifiedPicker),
-			tabbedListOptions: {
-				submenuHoverDelay: tabbedPicker.getListOptions().submenuHoverDelay,
-			},
-			unifiedListOptions: {
-				submenuPointerIntent: unifiedPicker.getListOptions().submenuPointerIntent,
-				submenuHoverDelay: unifiedPicker.getListOptions().submenuHoverDelay,
-				preserveVerticalPosition: unifiedRemoteItem?.hover?.preserveVerticalPosition,
-				alignToAnchorTop: unifiedRemoteItem?.hover?.alignToAnchorTop,
-				submenuFilter: unifiedRemoteItem?.submenuOptions?.showFilter,
-				submenuFilterPlaceholder: unifiedRemoteItem?.submenuOptions?.filterPlaceholder,
-				submenuFocusFilterOnOpen: unifiedRemoteItem?.submenuOptions?.focusFilterOnOpen,
-				submenuWidth: {
-					min: unifiedRemoteItem?.submenuOptions?.minWidth,
-					max: unifiedRemoteItem?.submenuOptions?.maxWidth,
-				},
-				openSubmenuOnClick: unifiedRemoteItem?.openSubmenuOnClick,
-			},
-			unifiedFilteredRemoteItems: unifiedRemoteItem?.filterItems?.map(item => ({
-				label: item.label,
-				ariaLabel: item.item?.ariaLabel,
-			})),
-			unifiedSubmenu: unifiedRemoteActions instanceof SubmenuAction
-				? unifiedRemoteActions.actions.map(action => ({
-					label: action.label,
-					icon: (action as { icon?: ThemeIcon }).icon?.id,
-				}))
-				: undefined,
-		}, {
-			tabbed: [
-				{ label: 'Provider agenthost-tunnel-one', description: 'Online · 1 active session', ariaLabel: 'Provider agenthost-tunnel-one, Online · 1 active session' },
-				{ label: 'Provider agenthost-tunnel-two', description: 'Online · 2 active sessions', ariaLabel: 'Provider agenthost-tunnel-two, Online · 2 active sessions' },
-				{ label: 'Provider agenthost-tunnel-idle', description: 'Online', ariaLabel: 'Provider agenthost-tunnel-idle, Online' },
-				{ label: 'Provider agenthost-ssh', description: 'Online · 1 active session', ariaLabel: 'Provider agenthost-ssh, Online · 1 active session' },
-				{ label: 'Provider agenthost-wsl', description: 'Online · 2 active sessions', ariaLabel: 'Provider agenthost-wsl, Online · 2 active sessions' },
-			],
-			unifiedTopLevel: [],
-			tabbedListOptions: {
-				submenuHoverDelay: undefined,
-			},
-			unifiedListOptions: {
-				submenuPointerIntent: true,
-				submenuHoverDelay: 0,
-				preserveVerticalPosition: true,
-				alignToAnchorTop: true,
-				submenuFilter: true,
-				submenuFilterPlaceholder: 'Search Remote',
-				submenuFocusFilterOnOpen: true,
-				submenuWidth: { min: 180, max: undefined },
-				openSubmenuOnClick: true,
-			},
-			unifiedFilteredRemoteItems: [
-				{ label: 'Manage Provider agenthost-tunnel-one', ariaLabel: 'Provider agenthost-tunnel-one, Online · 1 active session' },
-				{ label: 'Manage Provider agenthost-tunnel-two', ariaLabel: 'Provider agenthost-tunnel-two, Online · 2 active sessions' },
-				{ label: 'Manage Provider agenthost-tunnel-idle', ariaLabel: 'Provider agenthost-tunnel-idle, Online' },
-				{ label: 'Manage Provider agenthost-ssh', ariaLabel: 'Provider agenthost-ssh, Online · 1 active session' },
-				{ label: 'Manage Provider agenthost-wsl', ariaLabel: 'Provider agenthost-wsl, Online · 2 active sessions' },
-			],
-			unifiedSubmenu: [
-				{ label: 'Manage Provider agenthost-tunnel-one', icon: Codicon.cloud.id },
-				{ label: 'Manage Provider agenthost-tunnel-two', icon: Codicon.cloud.id },
-				{ label: 'Manage Provider agenthost-tunnel-idle', icon: Codicon.cloud.id },
-				{ label: 'Manage Provider agenthost-ssh', icon: Codicon.remote.id },
-				{ label: 'Manage Provider agenthost-wsl', icon: Codicon.remote.id },
-			],
-		});
 	});
 
 	test('shows cached remote hosts immediately and refreshes once per fresh picker open', async () => {

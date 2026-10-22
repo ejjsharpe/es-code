@@ -10,14 +10,12 @@ import * as net from 'net';
 import * as os from 'os';
 import * as path from 'path';
 import * as readline from 'readline';
-import { isAxiosError } from 'axios';
 import { Server, Connection, utils as sshUtils } from 'ssh2';
 import treeKill = require('tree-kill');
 import WebSocket = require('ws');
-import { CancellationToken, CancellationTokenSource } from 'vscode-jsonrpc';
 import { ApplicationOptions, getBuildElectronPath, getBuildProductPath, getDevElectronPath, Logger } from '../../../../automation';
 
-export type RemoteDevContainerTransport = 'ssh' | 'tunnel' | 'wsl';
+export type RemoteDevContainerTransport = 'ssh' | 'wsl';
 
 export interface IRemoteDevContainerFixtureOptions {
 	transport: RemoteDevContainerTransport;
@@ -33,7 +31,6 @@ export interface IRemoteDevContainerFixture {
 	readonly settings: Record<string, unknown>;
 	readonly extraEnv?: Record<string, string | undefined>;
 	readonly extraArgs?: string[];
-	readonly sourceAppRoot?: string;
 	readonly workspacePath?: string;
 	readonly ssh?: { host: string; port: number; username: string; password: string; fingerprint: string };
 	verifyMockServerRouting?(): Promise<void>;
@@ -44,8 +41,6 @@ export interface IRemoteDevContainerFixture {
 const repositoryRoot = path.resolve(__dirname, '../../../../..');
 const startupTimeout = 90_000;
 const fakeModelToken = 'smoketest-fake-agent-host-token';
-const tunnelTokenEnvironmentKey = 'VSCODE_SMOKE_TEST_TUNNEL_TOKEN';
-const tunnelPorts = [31545, 31546];
 
 /** Provision a matching CLI when published, otherwise a same-quality fallback for unpublished builds. */
 export function getDevContainerCliInstallCommand(codePath?: string): string {
@@ -129,80 +124,10 @@ async function readConnectionLogTail(file: string): Promise<string> {
 	}
 }
 
-interface ITunnelCli {
-	executable: string;
-	consentFile?: string;
-}
-
-function findTunnelCli(): ITunnelCli {
-	const explicit = process.env.VSCODE_SMOKE_TEST_TUNNEL_CLI;
-	const executableNames = process.platform === 'win32'
-		? ['code-tunnel-insiders.exe', 'code-tunnel.exe', 'code-insiders.exe', 'code.exe']
-		: ['code-tunnel-insiders', 'code-tunnel', 'code-insiders', 'code'];
-	const candidates = explicit ? [path.resolve(explicit)] : [
-		...(process.env.PATH ?? '').split(path.delimiter).filter(Boolean).flatMap(directory => executableNames.map(name => path.join(directory, name))),
-		...(process.platform === 'darwin' ? [
-			'/Applications/Visual Studio Code - Insiders.app/Contents/Resources/app/bin/code-tunnel-insiders',
-			'/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code-tunnel',
-		] : []),
-	];
-	for (const executable of new Set(candidates)) {
-		if (!fs.existsSync(executable)) {
-			continue;
-		}
-		// These flags are hidden in some releases. Parsing them with --help
-		// checks compatibility without logging in, hosting, or downloading a CLI.
-		const result = cp.spawnSync(executable, ['tunnel', '--machine-status', '--parent-process-id', String(process.pid),
-			'--tunnel-id', 'smoke-capability-probe', '--cluster', 'euw', '--host-token', 'smoke-capability-probe', '--help'], {
-			encoding: 'utf8', timeout: 10_000, windowsHide: true,
-			env: withoutSecrets(process.env),
-		});
-		if (result.status === 0 && /Usage:.*tunnel/.test(result.stdout)) {
-			const consentFile = [
-				process.env.VSCODE_CLI_DATA_DIR,
-				path.join(os.homedir(), '.vscode-insiders', 'cli'),
-				path.join(os.homedir(), '.vscode', 'cli'),
-				path.join(os.homedir(), '.vscode-oss', 'cli'),
-				path.join(os.homedir(), '.vscode-cli-insiders'),
-				path.join(os.homedir(), '.vscode-cli'),
-				path.join(os.homedir(), '.vscode-cli-oss'),
-			].filter((value): value is string => !!value)
-				.map(directory => path.join(directory, 'license_consent.json'))
-				.find(file => {
-					try {
-						return (JSON.parse(fs.readFileSync(file, 'utf8')) as { consented?: boolean }).consented === true;
-					} catch {
-						return false;
-					}
-				});
-			return { executable, consentFile };
-		}
-	}
-	throw new Error('Set VSCODE_SMOKE_TEST_TUNNEL_CLI to an installed CLI supporting tunnel --machine-status and the schema-2 endpoint registry.');
-}
-
-function assertTunnelPorts(tunnel: import('@microsoft/dev-tunnels-contracts').Tunnel): void {
-	if (tunnel.ports?.length !== tunnelPorts.length || tunnelPorts.some(portNumber => !tunnel.ports?.some(port => port.portNumber === portNumber))) {
-		throw new Error('The fixture tunnel must expose exactly the editor control port 31545 and agent-host port 31546.');
-	}
-}
-
-export function getTunnelSmokeTestAvailability(): { available: boolean; reason?: string } {
-	if (!process.env[tunnelTokenEnvironmentKey]?.trim()) {
-		return { available: false, reason: `Real tunnel smoke tests require an explicitly supplied ${tunnelTokenEnvironmentKey}.` };
-	}
-	try {
-		findTunnelCli();
-		return { available: true };
-	} catch (error) {
-		return { available: false, reason: error instanceof Error ? error.message : 'No compatible tunnel CLI found.' };
-	}
-}
-
 function withoutSecrets(environment: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
 	const result = { ...environment };
 	for (const key of [
-		tunnelTokenEnvironmentKey, 'VSCODE_CLI_ACCESS_TOKEN', 'VSCODE_CLI_REFRESH_TOKEN',
+		'VSCODE_CLI_ACCESS_TOKEN', 'VSCODE_CLI_REFRESH_TOKEN',
 		'GH_TOKEN', 'GITHUB_TOKEN', 'GITHUB_PAT', 'GITHUB_COPILOT_API_TOKEN',
 		'VSCODE_COPILOT_CHAT_TOKEN', 'ANTHROPIC_API_KEY', 'OPENAI_API_KEY',
 		'AZURE_OPENAI_API_KEY', 'SSH_AUTH_SOCK', 'NODE_OPTIONS',
@@ -410,7 +335,7 @@ function createAppEnvironment(options: IRemoteDevContainerFixtureOptions, resour
 		XDG_STATE_HOME: state, XDG_CONFIG_HOME: path.join(home, '.config'), XDG_CACHE_HOME: path.join(home, '.cache'),
 		CODEX_HOME: path.join(state, '.codex'), SSH_AUTH_SOCK: undefined,
 		VSCODE_CLI_DATA_DIR: path.join(resources.root, 'app-cli'), VSCODE_CLI_USE_FILE_KEYCHAIN: '1',
-		[tunnelTokenEnvironmentKey]: undefined, VSCODE_CLI_ACCESS_TOKEN: undefined, VSCODE_CLI_REFRESH_TOKEN: undefined,
+		VSCODE_CLI_ACCESS_TOKEN: undefined, VSCODE_CLI_REFRESH_TOKEN: undefined,
 		GH_TOKEN: undefined, GITHUB_TOKEN: undefined, GITHUB_PAT: 'smoketest-fake-pat',
 		GITHUB_COPILOT_API_TOKEN: fakeModelToken, COPILOT_API_URL: options.mockServerUrl,
 		COPILOT_DEBUG_GITHUB_API_URL: options.mockServerUrl, VSCODE_AGENT_HOST_CAPI_URL_OVERRIDE: options.mockServerUrl,
@@ -648,238 +573,7 @@ async function createSshFixture(options: IRemoteDevContainerFixtureOptions, reso
 	return {
 		name, settings: { 'chat.sshRemoteAgentHostCommand': command },
 		ssh: { host: '127.0.0.1', port, username, password, fingerprint },
-		extraEnv: { [tunnelTokenEnvironmentKey]: undefined, VSCODE_CLI_ACCESS_TOKEN: undefined },
-		dispose: () => resources.dispose(),
-	};
-}
-
-async function tunnelRequest<T>(request: (cancellation: CancellationToken) => Promise<T>): Promise<T> {
-	const cancellation = new CancellationTokenSource();
-	const timer = setTimeout(() => cancellation.cancel(), 30_000);
-	try {
-		return await request(cancellation.token);
-	} finally {
-		clearTimeout(timer);
-		cancellation.dispose();
-	}
-}
-
-interface ITunnelSmokeProduct {
-	tunnelApplicationConfig?: {
-		authenticationProviders?: Record<string, { scopes: string[] }>;
-		editorWebUrl?: string;
-		extension?: { extensionId: string; friendlyName: string };
-	};
-}
-
-function createTunnelSourceAppRoot(options: IRemoteDevContainerFixtureOptions, resources: FixtureResources): string | undefined {
-	const productPath = options.appOptions.codePath ? getBuildProductPath(options.appOptions.codePath) : path.join(repositoryRoot, 'product.json');
-	const product = JSON.parse(fs.readFileSync(productPath, 'utf8')) as ITunnelSmokeProduct;
-	const overridesPath = path.join(repositoryRoot, 'product.overrides.json');
-	const overrides = !options.appOptions.codePath && fs.existsSync(overridesPath)
-		? JSON.parse(fs.readFileSync(overridesPath, 'utf8')) as ITunnelSmokeProduct
-		: {};
-	const tunnelConfig = overrides.tunnelApplicationConfig ?? product.tunnelApplicationConfig;
-	if (tunnelConfig?.authenticationProviders?.github?.scopes.length) {
-		return undefined;
-	}
-	if (options.appOptions.codePath) {
-		throw new Error('The selected --build has no GitHub tunnel authentication scopes. Use a product-configured build or run from source with the isolated smoke product overlay.');
-	}
-	const appRoot = path.join(resources.root, 'source-app');
-	const outputRoot = path.join(appRoot, 'out');
-	fs.mkdirSync(outputRoot, { recursive: true, mode: 0o700 });
-	fs.copyFileSync(path.join(repositoryRoot, 'package.json'), path.join(appRoot, 'package.json'));
-	fs.copyFileSync(productPath, path.join(appRoot, 'product.json'));
-	fs.writeFileSync(path.join(appRoot, 'product.overrides.json'), JSON.stringify({
-		...overrides,
-		tunnelApplicationConfig: {
-			...tunnelConfig,
-			editorWebUrl: tunnelConfig?.editorWebUrl ?? 'https://vscode.dev',
-			extension: tunnelConfig?.extension ?? { extensionId: 'ms-vscode.remote-server', friendlyName: 'Remote - Tunnels' },
-			authenticationProviders: {
-				...tunnelConfig?.authenticationProviders,
-				github: { scopes: ['read:user', 'user:email', 'read:org'] },
-			},
-		},
-	}), { mode: 0o600 });
-	// CSSDevelopmentService discovers CSS with ripgrep without following
-	// symlinks. Keep a real compiled asset tree, using copy-on-write where
-	// supported; this also keeps bootstrap import.meta.url inside the overlay.
-	fs.cpSync(path.join(repositoryRoot, 'out'), outputRoot, { recursive: true, mode: fs.constants.COPYFILE_FICLONE });
-	for (const directory of ['node_modules', 'extensions', 'resources', '.build']) {
-		fs.symlinkSync(path.join(repositoryRoot, directory), path.join(appRoot, directory), 'dir');
-	}
-	resources.log('Created an isolated source-app product overlay with GitHub tunnel scopes; shared checkout files are unchanged.');
-	return appRoot;
-}
-
-async function createTunnelFixture(options: IRemoteDevContainerFixtureOptions, resources: FixtureResources, runtime: IHostRuntime): Promise<IRemoteDevContainerFixture> {
-	const token = process.env[tunnelTokenEnvironmentKey]?.trim();
-	if (!token) {
-		throw new Error(`Explicit ${tunnelTokenEnvironmentKey} is required; ordinary runs never read GitHub or CLI credentials.`);
-	}
-	resources.addSecret(token);
-	const cli = findTunnelCli();
-	const acceptedTerms = process.env.VSCODE_SMOKE_TEST_TUNNEL_ACCEPT_SERVER_LICENSE_TERMS === '1';
-	if (!acceptedTerms && !cli.consentFile) {
-		throw new Error('Tunnel license consent is required. Explicitly set VSCODE_SMOKE_TEST_TUNNEL_ACCEPT_SERVER_LICENSE_TERMS=1 after reviewing the server license, or consent with the installed CLI first.');
-	}
-	const sourceAppRoot = createTunnelSourceAppRoot(options, resources);
-	const cliData = path.join(resources.root, 'cli');
-	fs.mkdirSync(cliData, { mode: 0o700 });
-	if (!acceptedTerms && cli.consentFile) {
-		fs.copyFileSync(cli.consentFile, path.join(cliData, 'license_consent.json'));
-	}
-	const response = await fetch('https://api.github.com/user', {
-		headers: { Authorization: `Bearer ${token}`, 'User-Agent': 'vscode-remote-devcontainer-smoke', Accept: 'application/vnd.github+json' },
-		signal: AbortSignal.timeout(30_000),
-	});
-	if (!response.ok) {
-		throw new Error(`The explicitly supplied tunnel GitHub token was rejected (HTTP ${response.status}).`);
-	}
-	const account = await response.json() as { id?: number; login?: string };
-	if (!account.id || !account.login) {
-		throw new Error('The tunnel token did not resolve to a GitHub account.');
-	}
-	const authFile = path.join(resources.root, 'github-auth.json');
-	fs.writeFileSync(authFile, JSON.stringify({ token, account: { id: String(account.id), label: account.login } }), { mode: 0o600 });
-	const extension = path.join(resources.root, 'tunnel-authentication');
-	fs.mkdirSync(extension, { mode: 0o700 });
-	fs.copyFileSync(path.join(repositoryRoot, 'test/smoke/src/areas/agentsWindow/fixtures/tunnelAuthentication/package.json'), path.join(extension, 'package.json'));
-	fs.copyFileSync(path.join(__dirname, 'fixtures/tunnelAuthentication/extension.js'), path.join(extension, 'extension.js'));
-	const host = await startHost(options, resources, runtime);
-	const name = `smoke-dc-${randomBytes(5).toString('hex')}`;
-	const instanceId = randomUUID();
-	const registryRoot = path.join(resources.root, 'registry');
-	const entries = path.join(registryRoot, 'agent-host/local-endpoint/entries');
-	fs.mkdirSync(entries, { recursive: true, mode: 0o700 });
-	const hash = createHash('sha256').update(`standalone\0${host.child.pid}\0${instanceId}`).digest('hex');
-	fs.writeFileSync(path.join(entries, `${hash}.json`), JSON.stringify({
-		schemaVersion: 2, type: 'standalone', pid: host.child.pid, instanceId, protocolVersion: host.protocolVersion,
-		connectionToken: runtime.token, endpoint: { type: 'tcp', host: '127.0.0.1', port: host.port }, tunnelName: name,
-	}), { mode: 0o600 });
-	const cliEnv: NodeJS.ProcessEnv = {
-		...withoutSecrets(runtime.env), ELECTRON_RUN_AS_NODE: undefined, VSCODE_DEV: undefined,
-		VSCODE_CLI_USE_FILE_KEYCHAIN: '1', VSCODE_CLI_DATA_DIR: cliData,
-	};
-	const prefix = ['--cli-data-dir', cliData, '--disable-telemetry'];
-	// Resolve the product's SDK only for an explicitly requested tunnel run;
-	// ordinary smoke runs do not need to load this root-repository dependency.
-	const management: typeof import('@microsoft/dev-tunnels-management') = require(require.resolve('@microsoft/dev-tunnels-management', { paths: [repositoryRoot] }));
-	const client = new management.TunnelManagementHttpClient('vscode-remote-devcontainer-smoke', management.ManagementApiVersions.Version20230927preview, async () => `github ${token}`);
-	resources.add(() => client.dispose());
-	client.enableEventsReporting = false;
-	const existingTunnels = await tunnelRequest(cancellation => client.listTunnels(undefined, undefined, undefined, cancellation));
-	const existingTunnelIds = new Set(existingTunnels.map(tunnel => tunnel.tunnelId));
-	if (existingTunnels.some(tunnel => tunnel.labels?.includes(name))) {
-		throw new Error('The generated smoke tunnel name is already in use. No tunnel was changed.');
-	}
-	const hosting: { tunnelId?: string; clusterId?: string } = {};
-	// Register deletion before starting hosting, including failure between
-	// remote creation and the CLI's first connected notification.
-	resources.add(async () => {
-		let locator: import('@microsoft/dev-tunnels-contracts').Tunnel | undefined = hosting.tunnelId && hosting.clusterId
-			? { tunnelId: hosting.tunnelId, clusterId: hosting.clusterId }
-			: undefined;
-		if (!locator) {
-			const own = (await tunnelRequest(cancellation => client.listTunnels(undefined, undefined, undefined, cancellation)))
-				.filter(tunnel => !existingTunnelIds.has(tunnel.tunnelId) && tunnel.labels?.includes(name) && (!hosting.tunnelId || tunnel.tunnelId === hosting.tunnelId));
-			if (own.length > 1) {
-				throw new Error('Refusing ambiguous tunnel cleanup.');
-			}
-			locator = own[0];
-		}
-		if (locator) {
-			if (!locator.tunnelId || !locator.clusterId || existingTunnelIds.has(locator.tunnelId)) {
-				throw new Error('Refusing to delete a tunnel not created by this fixture.');
-			}
-			try {
-				await tunnelRequest(cancellation => client.deleteTunnel(locator!, undefined, cancellation));
-				if (await tunnelRequest(cancellation => client.getTunnel(locator!, undefined, cancellation))) {
-					throw new Error(`Fixture tunnel ${locator.tunnelId} still exists after deletion.`);
-				}
-			} catch (error) {
-				if (!isAxiosError(error) || error.response?.status !== 404) {
-					throw error;
-				}
-			}
-			resources.log(`Deleted and verified removal of fixture tunnel ${locator.tunnelId}.`);
-		}
-	});
-	resources.log(`Creating private Dev Tunnels relay ${name} through the management SDK.`);
-	const created = await tunnelRequest(cancellation => client.createTunnel({
-		labels: ['vscode-server-launcher', 'protocolv6', name],
-		// An empty ACL grants no additional access beyond the implicit owner.
-		accessControl: { entries: [] },
-		ports: tunnelPorts.map(portNumber => ({ portNumber, protocol: 'auto', accessControl: { entries: [] } })),
-	}, undefined, cancellation));
-	hosting.tunnelId = created.tunnelId;
-	hosting.clusterId = created.clusterId;
-	if (!created.tunnelId || !created.clusterId || existingTunnelIds.has(created.tunnelId)) {
-		throw new Error('Tunnel creation did not return a new, uniquely owned tunnel identity.');
-	}
-	// The CLI's existing-tunnel path updates labels before opening its relay,
-	// so its token needs manage as well as host, scoped to this tunnel only.
-	const hostingScopes = ['host', 'manage'];
-	const tunnelWithToken = await tunnelRequest(cancellation => client.getTunnel(created, { tokenScopes: [hostingScopes.join(' ')], includePorts: true }, cancellation));
-	if (!tunnelWithToken) {
-		throw new Error('The newly created fixture tunnel could not be retrieved.');
-	}
-	const hostToken = Object.entries(tunnelWithToken.accessTokens ?? {})
-		.find(([scopes]) => hostingScopes.every(scope => scopes.split(' ').includes(scope)))?.[1];
-	if (!hostToken) {
-		throw new Error('The tunnel service did not issue a combined host+manage token for the fixture tunnel.');
-	}
-	resources.addSecret(hostToken);
-	const accessEntries = [
-		...(tunnelWithToken.accessControl?.entries ?? []),
-		...(tunnelWithToken.ports ?? []).flatMap(port => port.accessControl?.entries ?? []),
-	];
-	if (accessEntries.some(entry => !entry.isDeny && (entry.isInverse || entry.type !== 'Users' || entry.provider !== 'github' || entry.subjects.some(subject => subject !== String(account.id))))) {
-		throw new Error('The fixture tunnel grants access beyond its GitHub owner; refusing to host it.');
-	}
-	assertTunnelPorts(tunnelWithToken);
-	resources.log(`Starting private Dev Tunnels relay ${name} with a tunnel-scoped host+manage token, without CLI OAuth login.`);
-	const tunnelProcess = resources.spawn(cli.executable, [...prefix, 'tunnel',
-		'--tunnel-id', created.tunnelId, '--cluster', created.clusterId, '--host-token', hostToken,
-		'--user-data-dir', registryRoot, '--name', name, '--machine-status', '--parent-process-id', String(process.pid),
-	...(acceptedTerms ? ['--accept-server-license-terms'] : []),
-	], cliEnv, options.workspacePath, path.join(options.logsPath, 'remote-devcontainer-tunnel.log'));
-	await waitForOutput(tunnelProcess, 'Private Dev Tunnels relay', line => {
-		const index = line.indexOf('__VSCODE_CLI_STATUS__');
-		if (index < 0) {
-			return undefined;
-		}
-		const status = JSON.parse(line.slice(index + '__VSCODE_CLI_STATUS__'.length)) as { type: string; tunnelId?: string; tunnelName?: string; isAttached?: boolean };
-		if (status.type === 'tokenError') {
-			throw new Error('The isolated tunnel CLI rejected the supplied credentials; see redacted fixture log.');
-		}
-		if (status.type === 'connected') {
-			if (status.tunnelName !== name || status.tunnelId !== created.tunnelId || status.isAttached) {
-				throw new Error('Tunnel CLI connected to an unexpected or previously hosted tunnel.');
-			}
-			return status.tunnelId;
-		}
-		return undefined;
-	});
-	const tunnels = await tunnelRequest(cancellation => client.listTunnels(undefined, undefined, { includePorts: true }, cancellation));
-	const tunnel = tunnels.find(candidate => candidate.tunnelId === hosting.tunnelId && candidate.labels?.includes(name));
-	if (!tunnel || !tunnel.labels?.some(label => /^protocolv(?<version>\d+)$/.test(label) && Number(label.slice('protocolv'.length)) >= 6)) {
-		throw new Error('The CLI must publish an agent-host gateway tunnel (protocolv6 or newer). Select a compatible installed CLI.');
-	}
-	assertTunnelPorts(tunnel);
-	resources.log(`Private tunnel ${name} is discoverable; its only registered endpoint is the compiled source/build host.`);
-	return {
-		name, settings: {},
-		sourceAppRoot,
-		extraArgs: [`--extensionDevelopmentPath=${extension}`, '--disable-extension=vscode.github-authentication'],
-		extraEnv: {
-			...(sourceAppRoot ? { VSCODE_DEV: '1' } : {}),
-			[tunnelTokenEnvironmentKey]: undefined, VSCODE_CLI_ACCESS_TOKEN: undefined, VSCODE_CLI_REFRESH_TOKEN: undefined,
-			GH_TOKEN: undefined, GITHUB_TOKEN: undefined,
-			VSCODE_SMOKE_TEST_TUNNEL_AUTH_FILE: authFile,
-		},
+		extraEnv: { VSCODE_CLI_ACCESS_TOKEN: undefined },
 		dispose: () => resources.dispose(),
 	};
 }
@@ -1012,9 +706,7 @@ export async function createRemoteDevContainerFixture(options: IRemoteDevContain
 			fixture = await createWslFixture(options, resources);
 		} else {
 			const runtime = createHostRuntime(options, resources);
-			fixture = options.transport === 'ssh'
-				? await createSshFixture(options, resources, runtime)
-				: await createTunnelFixture(options, resources, runtime);
+			fixture = await createSshFixture(options, resources, runtime);
 		}
 		return {
 			...fixture,

@@ -7,7 +7,6 @@ import assert from 'assert';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../../base/test/common/utils.js';
 import { IQuickInputService, IQuickPickItem } from '../../../../../../platform/quickinput/common/quickInput.js';
 import { IRemoteAgentHostEntry, RemoteAgentHostEntryType } from '../../../../../../platform/agentHost/common/remoteAgentHostService.js';
-import { ICachedTunnel } from '../../../../../../platform/agentHost/common/tunnelAgentHost.js';
 import { IAgentHostSessionsProvider } from '../../../../../common/agentHostSessionsProvider.js';
 import { ISessionsProvider } from '../../../../../services/sessions/common/sessionsProvider.js';
 import { collectRemoteAgentHostLocationTargets, findAgentHostProviderForTarget, pickRemoteAgentHostLocationTarget } from '../../electron-browser/remoteAgentHostLocationPreferenceCommand.js';
@@ -31,62 +30,35 @@ function webSocketEntry(name: string, address: string): IRemoteAgentHostEntry {
 	return { name, connection: { type: RemoteAgentHostEntryType.WebSocket, address } };
 }
 
-function tunnel(tunnelId: string, name: string): ICachedTunnel {
-	return { tunnelId, clusterId: 'cluster', name };
-}
-
 suite('collectRemoteAgentHostLocationTargets', () => {
 	ensureNoDisposablesAreLeakedInTestSuite();
 
-	test('returns an empty list when there are no SSH entries and no cached tunnels', () => {
-		assert.deepStrictEqual(collectRemoteAgentHostLocationTargets([], []), []);
+	test('returns an empty list when there are no SSH entries', () => {
+		assert.deepStrictEqual(collectRemoteAgentHostLocationTargets([]), []);
 	});
 
 	test('includes one target per SSH entry, keyed by its stable ssh:<alias> preference key, distinct from its live forwarded address', () => {
-		const targets = collectRemoteAgentHostLocationTargets([sshEntry('My Server', 'my-host-alias', 'localhost:4321')], []);
+		const targets = collectRemoteAgentHostLocationTargets([sshEntry('My Server', 'my-host-alias', 'localhost:4321')]);
 		assert.deepStrictEqual(targets, [{ preferenceKey: 'ssh:my-host-alias', address: 'localhost:4321', label: 'My Server' }]);
 	});
 
 	test('keys a config-less SSH entry by user@host:port, mirroring computeSSHConnectionKey', () => {
 		const targets = collectRemoteAgentHostLocationTargets(
 			[sshEntryWithoutAlias('My Server', 'localhost:4321', 'alice', 'myserver.example.com', 2222)],
-			[],
 		);
 		assert.deepStrictEqual(targets, [{ preferenceKey: 'alice@myserver.example.com:2222', address: 'localhost:4321', label: 'My Server' }]);
 	});
 
-	test('includes one target per cached tunnel, keyed with the tunnel address prefix', () => {
-		const targets = collectRemoteAgentHostLocationTargets([], [tunnel('abc123', 'My Tunnel')]);
-		assert.deepStrictEqual(targets, [{ preferenceKey: 'tunnel:abc123', address: 'tunnel:abc123', label: 'My Tunnel' }]);
-	});
-
 	test('excludes non-SSH configured entries (e.g. WebSocket)', () => {
-		const targets = collectRemoteAgentHostLocationTargets([webSocketEntry('WS Host', 'ws.example.com:1234')], []);
+		const targets = collectRemoteAgentHostLocationTargets([webSocketEntry('WS Host', 'ws.example.com:1234')]);
 		assert.deepStrictEqual(targets, []);
 	});
 
 	test('deduplicates SSH entries that resolve to the same ssh:<alias> preference key, even if their live forwarded address differs, keeping only one target', () => {
 		const targets = collectRemoteAgentHostLocationTargets(
 			[sshEntry('First Name', 'my-host-alias', 'localhost:4321'), sshEntry('Second Name', 'my-host-alias', 'localhost:5555')],
-			[],
 		);
 		assert.deepStrictEqual(targets, [{ preferenceKey: 'ssh:my-host-alias', address: 'localhost:4321', label: 'First Name' }]);
-	});
-
-	test('deduplicates cached tunnels with the same tunnel id', () => {
-		const targets = collectRemoteAgentHostLocationTargets([], [tunnel('abc123', 'First'), tunnel('abc123', 'Second')]);
-		assert.deepStrictEqual(targets, [{ preferenceKey: 'tunnel:abc123', address: 'tunnel:abc123', label: 'First' }]);
-	});
-
-	test('combines SSH and tunnel targets together', () => {
-		const targets = collectRemoteAgentHostLocationTargets(
-			[sshEntry('SSH Host', 'my-host-alias', 'localhost:4321')],
-			[tunnel('abc123', 'My Tunnel')],
-		);
-		assert.deepStrictEqual(targets, [
-			{ preferenceKey: 'ssh:my-host-alias', address: 'localhost:4321', label: 'SSH Host' },
-			{ preferenceKey: 'tunnel:abc123', address: 'tunnel:abc123', label: 'My Tunnel' },
-		]);
 	});
 });
 
@@ -114,7 +86,7 @@ suite('pickRemoteAgentHostLocationTarget', () => {
 
 	test('prompts with every target when there are several, and returns the chosen one', async () => {
 		const a = { preferenceKey: 'ssh:my-host-alias', address: 'localhost:4321', label: 'Host A' };
-		const b = { preferenceKey: 'tunnel:abc123', address: 'tunnel:abc123', label: 'Tunnel B' };
+		const b = { preferenceKey: 'ssh:other-host', address: 'localhost:5678', label: 'Host B' };
 		let offeredItems: readonly IQuickPickItem[] | undefined;
 		const quickInputService = {
 			pick: async (picks: readonly IQuickPickItem[]) => {
@@ -133,7 +105,7 @@ suite('pickRemoteAgentHostLocationTarget', () => {
 
 		const target = await pickRemoteAgentHostLocationTarget(quickInputService, [
 			{ preferenceKey: 'ssh:my-host-alias', address: 'localhost:4321', label: 'Host A' },
-			{ preferenceKey: 'tunnel:abc123', address: 'tunnel:abc123', label: 'Tunnel B' },
+			{ preferenceKey: 'ssh:other-host', address: 'localhost:5678', label: 'Host B' },
 		]);
 		assert.strictEqual(target, undefined);
 	});

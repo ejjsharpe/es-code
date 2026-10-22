@@ -319,9 +319,7 @@ export class ChatDebugWireLogView extends Disposable {
 		const allSources = await enumerateAgentHostLogSources(this.logSourceServices, this.currentSessionResource);
 		this.sources = allSources.filter(source => source.kind === AgentHostLogSourceKind.WireLog);
 		if (this.sources.length === 0) {
-			this.renderMessage(missionControl
-				? localize('chatDebug.wireLog.noHostFrames', "No host AHP log is available. Verify logging is enabled in the host's owning VS Code window and that the host allows reading its logs.")
-				: wireLoggingEnabled
+			this.renderMessage(wireLoggingEnabled
 					? localize('chatDebug.wireLog.noFrames', "No AHP log was found yet for this session. Interact with the agent to capture protocol frames.")
 					: localize('chatDebug.wireLog.enableToCapture', "No AHP log is available. Enable {0} and reproduce the issue to capture protocol frames.", AgentHostAhpJsonlLoggingSettingId));
 			return;

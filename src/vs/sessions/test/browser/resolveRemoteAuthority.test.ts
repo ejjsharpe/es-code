@@ -111,39 +111,6 @@ suite('resolveRemoteAuthority', () => {
 		});
 	});
 
-	test('returns tunnel authority using label', () => {
-		const result = resolveRemoteAuthority(
-			'agenthost-tunnel',
-			makeProvidersService('tunnel:myTunnelId') as ISessionsProvidersService,
-			makeRemoteAgentHostService([{
-				name: 'My Tunnel',
-				connection: {
-					type: RemoteAgentHostEntryType.Tunnel,
-					tunnelId: 'myTunnelId',
-					clusterId: 'usw2',
-					label: 'my-machine',
-				},
-			}]) as IRemoteAgentHostService,
-		);
-		assert.strictEqual(result, 'tunnel+my-machine');
-	});
-
-	test('returns tunnel authority falling back to tunnelId when no label', () => {
-		const result = resolveRemoteAuthority(
-			'agenthost-tunnel',
-			makeProvidersService('tunnel:myTunnelId') as ISessionsProvidersService,
-			makeRemoteAgentHostService([{
-				name: 'My Tunnel',
-				connection: {
-					type: RemoteAgentHostEntryType.Tunnel,
-					tunnelId: 'myTunnelId',
-					clusterId: 'usw2',
-				},
-			}]) as IRemoteAgentHostService,
-		);
-		assert.strictEqual(result, 'tunnel+myTunnelId.usw2');
-	});
-
 	test('returns a WSL authority and folder URI using the distribution, not the host label', () => {
 		const providersService = makeProvidersService('wsl:Ubuntu-24.04');
 		const remoteService = makeRemoteAgentHostService([{

@@ -502,6 +502,8 @@ export const ICloudSandboxAgentHostService = createDecorator<ICloudSandboxAgentH
 
 /** Options for establishing a live AHP relay to a cloud sandbox environment. */
 export interface ICloudSandboxConnectOptions {
+	/** Legacy option recognized only to reject retired user-local relay connections. */
+	readonly environmentKind?: 'user-local';
 	/** Stable Mission Control environment identifier (`env_<uuid>`). */
 	readonly environmentId: string;
 	/** The cloud session/task id this connection is for, used for token minting. */

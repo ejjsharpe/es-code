@@ -13,7 +13,6 @@ import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../../base/
 import { IAgentConnection, type AuthenticateParams } from '../../../../../../platform/agentHost/common/agentService.js';
 import { IAgentHostAdvertisedAuthenticationResolver } from '../../../../../../platform/agentHost/common/agentHostAdvertisedAuthentication.js';
 import { IAgentHostMcpAuthenticationRequest } from '../../../../../../platform/agentHost/common/agentHostExtensionProtocol.js';
-import { ICloudSandboxAgentHostService } from '../../../../../../platform/agentHost/common/cloudSandboxAgentHost.js';
 import { IRemoteAgentHostConnectionInfo, IRemoteAgentHostService, RemoteAgentHostConnectionStatus } from '../../../../../../platform/agentHost/common/remoteAgentHostService.js';
 import { AuthenticateTargetKind } from '../../../../../../platform/agentHost/common/state/sessionProtocol.js';
 import { McpAuthRequiredReason } from '../../../../../../platform/agentHost/common/state/protocol/channels-session/state.js';
@@ -37,7 +36,6 @@ import { IWorkbenchEnvironmentService } from '../../../../../services/environmen
 import { IAgentHostTerminalService } from '../../../../terminal/browser/agentHostTerminalService.js';
 import { IAgentHostActiveClientService } from '../../../browser/agentSessions/agentHost/agentHostActiveClientService.js';
 import { IAgentHostSessionWorkingDirectoryResolver } from '../../../browser/agentSessions/agentHost/agentHostSessionWorkingDirectoryResolver.js';
-import { createCloudSandboxConnectionCustomization } from '../../../browser/remoteAgentHost/cloudSandboxConnectionCustomization.js';
 import { RemoteAgentHostAuthenticationService, IRemoteAgentHostAuthenticationService } from '../../../browser/remoteAgentHost/remoteAgentHostAuthentication.js';
 import { RemoteAgentHostContribution } from '../../../browser/remoteAgentHost/remoteAgentHostChatContribution.js';
 import { IRemoteAgentHostConnectionCustomization, IRemoteAgentHostConnectionCustomizationService } from '../../../browser/remoteAgentHost/remoteAgentHostConnectionCustomization.js';
@@ -160,23 +158,6 @@ suite('Remote Agent Host silent MCP authentication', () => {
 		const context = fixture();
 		context.notifications.fire({ type: 'root/progress', channel: 'custom-host:/root', progressToken: 'policy', progress: 0 });
 		assert.strictEqual(context.opened.length, 0);
-	});
-
-	test('seals remembered MCP credentials through the user-local connection customization', async () => {
-		const sealed: AuthenticateParams[] = [];
-		const customization = createCloudSandboxConnectionCustomization('cloudsandbox:remote',
-			new class extends mock<ICloudSandboxAgentHostService>() { }(), true, async params => {
-				sealed.push(params);
-				return { ...params, token: 'copilot-sealed.v1.mcp.ciphertext' };
-			});
-		const context = fixture(customization);
-		const authenticated = await context.authenticate(request);
-		assert.deepStrictEqual({ authenticated, sealed, sent: context.sent, silent: context.sessionOptions }, {
-			authenticated: true,
-			sealed: [{ target: request.target, resource: 'https://docs.example/mcp', scopes: ['read'], token: 'docs-token' }],
-			sent: [{ target: request.target, resource: 'https://docs.example/mcp', scopes: ['read'], token: 'copilot-sealed.v1.mcp.ciphertext' }],
-			silent: [true],
-		});
 	});
 
 	test('ordinary remotes keep their remembered credential path', async () => {

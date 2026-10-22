@@ -11,7 +11,7 @@ import { IAgentHostConnection, IAgentHostStarter } from '../../platform/agentHos
 import { reportAgentHostProcessError } from '../../platform/agentHost/common/agentHostProcessTelemetry.js';
 import type { IAgentHostProcessExitEvent } from '../../platform/agentHost/common/agentHostProcessExit.js';
 import { AgentHostLaunchKind } from '../../platform/agentHost/common/agentHostTelemetry.js';
-import { AgentHostIpcChannels, IAgentService, IAgentHostManagementService } from '../../platform/agentHost/common/agentService.js';
+import { AgentHostIpcChannels, IAgentService } from '../../platform/agentHost/common/agentService.js';
 import { createDecorator } from '../../platform/instantiation/common/instantiation.js';
 import { ILogService, ILoggerService } from '../../platform/log/common/log.js';
 import { RemoteLoggerChannelClient } from '../../platform/log/common/logIpc.js';

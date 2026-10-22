@@ -11,10 +11,8 @@ import { isCancellationError } from '../../../../../base/common/errors.js';
 import { toErrorMessage } from '../../../../../base/common/errorMessage.js';
 import { DisposableStore } from '../../../../../base/common/lifecycle.js';
 import { StopWatch } from '../../../../../base/common/stopwatch.js';
-import { ThemeIcon } from '../../../../../base/common/themables.js';
 import { URI } from '../../../../../base/common/uri.js';
 import { ICommandService } from '../../../../../platform/commands/common/commands.js';
-import { IDialogService } from '../../../../../platform/dialogs/common/dialogs.js';
 import { IFileService } from '../../../../../platform/files/common/files.js';
 import { ITextEditorOptions } from '../../../../../platform/editor/common/editor.js';
 import { ICodeEditor, isCodeEditor } from '../../../../../editor/browser/editorBrowser.js';
@@ -32,9 +30,7 @@ import { ContextKeyExpr } from '../../../../../platform/contextkey/common/contex
 import { IInstantiationService, ServicesAccessor } from '../../../../../platform/instantiation/common/instantiation.js';
 import { INotificationService, Severity } from '../../../../../platform/notification/common/notification.js';
 import { NotificationTelemetryId } from '../../../../../platform/notification/common/notificationTelemetry.js';
-import { IQuickInputButton, IQuickInputService, IQuickPick, IQuickPickItem } from '../../../../../platform/quickinput/common/quickInput.js';
-import { IAuthenticationService } from '../../../../../workbench/services/authentication/common/authentication.js';
-import { IProductService } from '../../../../../platform/product/common/productService.js';
+import { IQuickInputService, IQuickPickItem } from '../../../../../platform/quickinput/common/quickInput.js';
 import { ITelemetryService } from '../../../../../platform/telemetry/common/telemetry.js';
 import { SessionsCategories } from '../../../../common/categories.js';
 import { categorizeSSHConnectError, logSSHConnectAttempt } from '../../../../common/sessionsTelemetry.js';
@@ -46,7 +42,6 @@ import { IAgentHostSessionsProvider, isAgentHostProvider } from '../../../../com
 import { runServerUpgrade } from './remoteHostOptions.js';
 import { SESSION_WORKSPACE_GROUP_REMOTE } from '../../../../services/sessions/common/session.js';
 import { ISessionsPartService } from '../../../../services/sessions/browser/sessionsPartService.js';
-import { ChatContextKeys } from '../../../../../workbench/contrib/chat/common/actions/chatContextKeys.js';
 
 /** Action / command IDs registered by this file. */
 export const RemoteAgentHostCommandIds = {

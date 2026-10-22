@@ -30,14 +30,12 @@ suite('CloudSandboxConnectionCustomization authentication', () => {
 	test('only sandbox Copilot opts into consumed steering display retention', () => {
 		const service = new class extends mock<ICloudSandboxAgentHostService>() { }();
 		const sandbox = createCloudSandboxConnectionCustomization(cloudSandboxAddress('env-1'), service);
-		const userLocal = createCloudSandboxConnectionCustomization(cloudSandboxAddress('desktop'), service, true);
 		assert.deepStrictEqual({
 			sandbox: ['copilot', 'copilotcli', 'claude', 'codex'].map(provider => sandbox?.retainConsumedSteeringMessages?.(provider)),
-			userLocal: ['copilot', 'copilotcli', 'claude', 'codex'].map(provider => userLocal?.retainConsumedSteeringMessages?.(provider)),
 			ssh: createCloudSandboxConnectionCustomization('ssh:host', service),
 			websocket: createCloudSandboxConnectionCustomization('localhost:8080', service),
 		}, {
-			sandbox: [true, false, false, false], userLocal: [false, false, false, false], ssh: undefined, websocket: undefined,
+			sandbox: [true, false, false, false], ssh: undefined, websocket: undefined,
 		});
 	});
 
@@ -70,23 +68,6 @@ suite('CloudSandboxConnectionCustomization authentication', () => {
 		});
 	});
 
-	test('user-local MCP renewal stays on the trusted workbench sealing path', async () => {
-		const requests: string[] = [];
-		const service = new class extends mock<ICloudSandboxAgentHostService>() { }();
-		const customization = createCloudSandboxConnectionCustomization(cloudSandboxAddress('env-1'), service, true, async request => {
-			requests.push(request.resource);
-			return { ...request, token: 'copilot-sealed.v1.mcp.fresh' };
-		});
-		assert.ok(customization?.authenticate);
-		const request = { resource: 'https://mcp.example.test', scopes: ['mcp'], token: 'test-mcp-token' };
-		const result = await customization.authenticate(request, AuthRequiredReason.Expired);
-		assert.deepStrictEqual({ result, requests, renewal: customization.renewAuthentication }, {
-			result: { ...request, token: 'copilot-sealed.v1.mcp.fresh' },
-			requests: ['https://mcp.example.test'],
-			renewal: undefined,
-		});
-	});
-
 	test('preserves an MCP target when replacing a credential with a sealed token', async () => {
 		const fixture = createFixture();
 		const target: McpServerAuthenticateTarget = { kind: AuthenticateTargetKind.McpServer, session: 'other-agent://tenant/conversations/opaque-session', customizationId: 'opaque/github/server' };
@@ -97,26 +78,6 @@ suite('CloudSandboxConnectionCustomization authentication', () => {
 			requests: ['cached:env-1'],
 		});
 	});
-
-	test('user-local MCP targets use MCP sealing even at the provider resource origin', async () => {
-		const service = new class extends mock<ICloudSandboxAgentHostService>() { }();
-		const customization = createCloudSandboxConnectionCustomization(cloudSandboxAddress('env-1'), service, true, async request => ({ ...request, token: 'copilot-sealed.v1.mcp.fresh' }));
-		const target: McpServerAuthenticateTarget = { kind: AuthenticateTargetKind.McpServer, session: 'other-agent://tenant/conversations/opaque-session', customizationId: 'opaque/github/server' };
-		const request = { target, resource: 'https://api.github.com', token: 'test-mcp-token' };
-		assert.deepStrictEqual(await customization?.authenticate?.(request), { ...request, token: 'copilot-sealed.v1.mcp.fresh' });
-	});
-
-	for (const token of ['plaintext', 'copilot-sealed.v1.key.challenged']) {
-		test(`renews an expired challenge instead of forwarding ${token}`, async () => {
-			const fixture = createFixture();
-			const request = { resource: 'https://api.github.com', scopes: ['repo'], token };
-			const result = await fixture.authenticate(request, AuthRequiredReason.Expired);
-			assert.deepStrictEqual({ result, requests: fixture.requests }, {
-				result: { ...request, token: 'copilot-sealed.v1.key.fresh' },
-				requests: ['refresh:env-1'],
-			});
-		});
-	}
 
 	test('ordinary authentication retains the cached-token fast path', async () => {
 		const fixture = createFixture();

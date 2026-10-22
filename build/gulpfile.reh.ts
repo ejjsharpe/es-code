@@ -255,7 +255,7 @@ function fetchNodejs(assetName: string, checksumSha256: string | undefined): Nod
 	return fetchNodejsFromInternalFeed(nodejsArtifactFeed, assetName, version, checksumSha256);
 }
 
-function packageTask(type: string, platform: string, arch: string, sourceFolderName: string, destinationFolderName: string) {
+function packageTask(platform: string, arch: string, sourceFolderName: string, destinationFolderName: string) {
 	const destination = path.join(BUILD_ROOT, destinationFolderName);
 
 	return () => {
@@ -508,7 +508,7 @@ function patchWin32DependenciesTask(destinationFolderName: string) {
 				compileNativeExtensionsBuildTask,
 				task.task(`node-${platform}-${arch}`) as task.Task,
 				util.rimraf(path.join(BUILD_ROOT, destinationFolderName)),
-				packageTask(type, platform, arch, sourceFolderName, destinationFolderName)
+				packageTask(platform, arch, sourceFolderName, destinationFolderName)
 			];
 
 			if (platform === 'win32') {

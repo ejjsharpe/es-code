@@ -22,7 +22,7 @@ import { AhpJsonlLogger, isAhpLogFileFor } from '../../../../../platform/agentHo
 import { AgentHostConnectionsService } from '../../../../../platform/agentHost/browser/agentHostConnectionsService.js';
 import { IAgentHostConnectionsService } from '../../../../../platform/agentHost/common/agentHostConnectionsService.js';
 import { remoteAgentHostSessionTypeId } from '../../../../../platform/agentHost/common/agentHostSessionType.js';
-import { AGENT_HOST_SCHEME, agentHostAuthority, identityAgentHostResourceUriMapper, toAgentHostUri } from '../../../../../platform/agentHost/common/agentHostUri.js';
+import { agentHostAuthority, identityAgentHostResourceUriMapper } from '../../../../../platform/agentHost/common/agentHostUri.js';
 import { AGENT_HOST_DEBUG_LOGS_CHUNK_BYTES, AGENT_HOST_DEBUG_LOGS_MAX_ENTRIES, IAgentHostService, type IAgentConnection, type IAgentHostDebugLogsArtifact, type IAgentHostDebugLogsChunk } from '../../../../../platform/agentHost/common/agentService.js';
 import { IRemoteAgentHostService, RemoteAgentHostConnectionStatus } from '../../../../../platform/agentHost/common/remoteAgentHostService.js';
 import { buildChatUri, buildDefaultChatUri, getSessionChatResource } from '../../../../../platform/agentHost/common/state/sessionState.js';
@@ -43,7 +43,6 @@ import { IWorkbenchEnvironmentService } from '../../../../services/environment/c
 import { TestPathService } from '../../../../test/browser/workbenchTestServices.js';
 import { BrowserAgentHostDebugLogsExportService, collectAgentHostDebugLogs, collectRotatedLogFiles, commitAgentHostDebugLogsExport, createHostArtifactStream, exportAgentHostDebugLogs, findOutputChannelLogFiles, getAgentHostDebugLogsExportName, IAgentHostDebugLogsExportService, notifyAgentHostDebugLogsExported, prepareAgentHostDebugLogsExport, resolveAgentHostDebugLogsChat, toActiveAgentHostSession } from '../../browser/actions/exportAgentHostDebugLogsAction.js';
 import { ChatConfiguration } from '../../common/constants.js';
-import { MISSION_CONTROL_AHP_LOG_ID } from '../../../../../platform/agentHost/common/missionControlEnvironment.js';
 import { IProgressNotificationOptions, IProgressService, ProgressLocation } from '../../../../../platform/progress/common/progress.js';
 import { IChatEntitlementService } from '../../../../services/chat/common/chatEntitlementService.js';
 import { observableValue } from '../../../../../base/common/observable.js';
@@ -899,7 +898,7 @@ suite('toActiveAgentHostSession', () => {
 suite('collectAgentHostDebugLogs', () => {
 	const disposables = ensureNoDisposablesAreLeakedInTestSuite();
 
-	async function collectWithFiles(ahpFiles: readonly { name: string; mtime: number }[], hostEntryCount = 0, sharedLogCount = 1, sessionScoped = false, hostArtifactKind: IAgentHostDebugLogsArtifact['kind'] = 'archive', missionControlLogsIncluded = false, missionControlConnection = false) {
+	async function collectWithFiles(ahpFiles: readonly { name: string; mtime: number }[], hostEntryCount = 0, sharedLogCount = 1, sessionScoped = false, hostArtifactKind: IAgentHostDebugLogsArtifact['kind'] = 'archive') {
 		const instantiationService = disposables.add(new TestInstantiationService());
 		const warnings: string[] = [];
 		const resolvedResources: URI[] = [];
@@ -915,7 +914,7 @@ suite('collectAgentHostDebugLogs', () => {
 			kind: hostArtifactKind,
 			...(hostArtifactKind === 'directory' ? { resource: URI.file('/staging') } : {}),
 			entries: Array.from({ length: hostEntryCount }, (_, index) => ({
-				path: missionControlLogsIncluded && index === 0 ? `ahp/mission-control/${ahpFiles.find(file => isAhpLogFileFor(MISSION_CONTROL_AHP_LOG_ID, file.name))!.name}` : `host-${index}.log`, size: 1,
+				path: `host-${index}.log`, size: 1,
 			})),
 		};
 		const fileStat = (folder: URI, name: string, mtime = 0) => upcastPartial<IFileStatWithMetadata>({
@@ -928,25 +927,22 @@ suite('collectAgentHostDebugLogs', () => {
 			mtime,
 		});
 		const connection = upcastPartial<IAgentConnection>({
-			clientConnectionKind: missionControlConnection ? AgentHostClientConnectionKind.MissionControl : AgentHostClientConnectionKind.Local,
+			clientConnectionKind: AgentHostClientConnectionKind.Local,
 			initializeResult: observableValue('initialize', upcastPartial<InitializeResult>({
 				_meta: getAgentHostAhpLogDirectoryMeta(URI.file('/host-log-directory')),
 			})),
 			resourceUris: {
 				...identityAgentHostResourceUriMapper,
-				fromAgentHost: resource => missionControlConnection ? toAgentHostUri(resource, 'cloudsandbox__test') : resource,
+				fromAgentHost: resource => resource,
 			},
 			collectDebugLogs: async () => {
-				assert.strictEqual(missionControlConnection, false, 'Mission Control must not use host-management RPCs');
 				return hostArtifact;
 			},
 			getSubscriptionUnmanaged: () => undefined,
 		});
 		instantiationService.stub(IAgentHostConnectionsService, {
 			ambientConnection: connection,
-			resolveSessionResourceIdentity: () => missionControlConnection ? {
-				connectionAddress: 'native-host', connectionAuthority: 'native', backendSession: URI.parse('copilotcli:/session-1'),
-			} : undefined,
+			resolveSessionResourceIdentity: () => undefined,
 			resolveSessionResource: () => ({
 				connection,
 				connectionAuthority: 'local',
@@ -961,8 +957,6 @@ suite('collectAgentHostDebugLogs', () => {
 				let children: IFileStatWithMetadata[];
 				if (resource.path === '/logs/ahp') {
 					children = ahpFiles.map(file => fileStat(resource, file.name, file.mtime));
-				} else if (resource.path === '/host-log-directory') {
-					children = ahpFiles.filter(file => isAhpLogFileFor(MISSION_CONTROL_AHP_LOG_ID, file.name)).map(file => fileStat(resource, file.name, file.mtime));
 				} else if (resource.path === windowLogs.path) {
 					children = [fileStat(resource, 'renderer.log')];
 				} else if (resource.path === logsHome.path) {
@@ -984,7 +978,7 @@ suite('collectAgentHostDebugLogs', () => {
 		});
 		instantiationService.stub(IAgentHostDebugLogsExportService, { hostArtifactKind });
 
-		const activeSession = sessionScoped ? toActiveAgentHostSession(URI.parse(missionControlConnection ? 'remote-native-copilotcli:/session-1' : 'agent-host-copilotcli:/session-1'), 'Chat', 'Session') : undefined;
+		const activeSession = sessionScoped ? toActiveAgentHostSession(URI.parse('agent-host-copilotcli:/session-1'), 'Chat', 'Session') : undefined;
 		const result = await instantiationService.invokeFunction(accessor => collectAgentHostDebugLogs(accessor, activeSession ? {
 			...activeSession,
 			backendChatResource: URI.parse('copilotcli:/session-1/chat/default'),
@@ -1000,49 +994,6 @@ suite('collectAgentHostDebugLogs', () => {
 			mtime,
 		};
 	};
-
-	for (const sessionScoped of [true, false]) {
-		for (const kind of ['archive', 'directory'] as const) {
-			test(`exports client logs without fetching remote Mission Control logs (sessionScoped=${sessionScoped}, kind=${kind})`, async () => {
-				const relay = ahpFile(MISSION_CONTROL_AHP_LOG_ID, 1);
-				const client = ahpFile('native-host', 2);
-				const { result, warnings, resolvedResources } = await collectWithFiles([relay, client], 0, 1, sessionScoped, kind, false, true);
-				assert.deepStrictEqual({
-					paths: result.files.map(file => file.path),
-					remoteFiles: result.files.filter(file => hasKey(file, { resource: true }) && file.resource.scheme === AGENT_HOST_SCHEME),
-					remoteResolutions: resolvedResources.filter(resource => resource.scheme === AGENT_HOST_SCHEME),
-					hostArtifact: result.hostArtifact,
-					warnings,
-				}, {
-					paths: [
-						'vscode-logs/Window/renderer.log',
-						'vscode-logs/Shared/sharedprocess.log',
-						...sessionScoped ? ['usage.jsonl', 'customizations.json'] : [],
-						`ahp/${client.name}`,
-						...sessionScoped ? [] : [`ahp/${relay.name}`],
-					],
-					remoteFiles: [],
-					remoteResolutions: [],
-					hostArtifact: undefined,
-					warnings: [],
-				});
-			});
-		}
-	}
-
-	test('collects local Mission Control logs for a local session', async () => {
-		const relay = ahpFile(MISSION_CONTROL_AHP_LOG_ID, 1);
-		const local = ahpFile('local-client', 2);
-		const unrelated = ahpFile('other-host', 3);
-		const { result, warnings } = await collectWithFiles([relay, local, unrelated], 0, 1, true);
-		assert.deepStrictEqual({
-			wireFiles: result.files.filter(file => file.path.startsWith('ahp/')).map(file => file.path),
-			warnings,
-		}, {
-			wireFiles: [`ahp/${local.name}`, `ahp/${relay.name}`],
-			warnings: [],
-		});
-	});
 
 	test('keeps the newest ten transport files per host, including an older connection that is still active', async () => {
 		const reconnectFiles = Array.from({ length: 1160 }, (_, index) => ahpFile('a', index));
@@ -1067,21 +1018,6 @@ suite('collectAgentHostDebugLogs', () => {
 			warnings: ['[ExportAgentHostDebugLogs] Omitted 1151 log files to keep the export within 1000 entries and 10 AHP files per host'],
 		});
 	});
-
-	for (const missionControlLogsIncluded of [true, false]) {
-		test(`retains Mission Control fallback candidates when host inclusion is ${missionControlLogsIncluded}`, async () => {
-			const relay = ahpFile(MISSION_CONTROL_AHP_LOG_ID, 1);
-			const local = ahpFile('local-client', 2);
-			const { result, warnings } = await collectWithFiles([relay, local], 1, 1, false, 'archive', missionControlLogsIncluded);
-			assert.deepStrictEqual({
-				wireFiles: result.files.filter(file => file.path.startsWith('ahp/')).map(file => file.path),
-				warnings,
-			}, {
-				wireFiles: [`ahp/${local.name}`, `ahp/${relay.name}`],
-				warnings: [],
-			});
-		});
-	}
 
 	for (const hostEntryCount of [0, 990, 1000]) {
 		test(`retains up to 1000 client candidates with ${hostEntryCount} host artifact entries`, async () => {
@@ -1150,37 +1086,6 @@ suite('collectAgentHostDebugLogs', () => {
 			hostCopyFailureReported: true,
 		});
 	});
-
-	for (const sessionScoped of [true, false]) {
-		for (const outcome of ['success', 'missing', 'corrupt'] as const) {
-			test(`preserves Mission Control directory fallback for ${outcome} host copies (sessionScoped=${sessionScoped})`, async () => {
-				const relay = ahpFile(MISSION_CONTROL_AHP_LOG_ID, 1);
-				const { result, warnings, instantiationService } = await collectWithFiles([relay], 1, 1, sessionScoped, 'directory', true);
-				const fileService = disposables.add(new FileService(new NullLogService()));
-				disposables.add(fileService.registerProvider(Schemas.inMemory, disposables.add(new InMemoryFileSystemProvider())));
-				disposables.add(fileService.registerProvider(Schemas.file, disposables.add(new InMemoryFileSystemProvider())));
-				for (const file of result.files) {
-					assert.ok(hasKey(file, { resource: true }));
-					await fileService.writeFile(file.resource, VSBuffer.fromString('x'));
-				}
-				const hostPath = `ahp/mission-control/${relay.name}`;
-				if (outcome !== 'missing') {
-					await fileService.writeFile(URI.file(`/staging/${hostPath}`), VSBuffer.fromString(outcome === 'success' ? 'h' : 'corrupt'));
-				}
-				instantiationService.stub(IFileService, fileService);
-				instantiationService.stub(IFileDialogService, upcastPartial<IFileDialogService>({}));
-				instantiationService.stub(IConfigurationService, new TestConfigurationService());
-				const service = instantiationService.createInstance(BrowserAgentHostDebugLogsExportService);
-				const destination = URI.from({ scheme: Schemas.inMemory, path: '/exports/logs' });
-				await service.save(destination, result.files, result.hostArtifact);
-				assert.deepStrictEqual({
-					hostSaved: await fileService.exists(URI.joinPath(destination, hostPath)),
-					fallbackSaved: await fileService.exists(URI.joinPath(destination, 'ahp', relay.name)),
-					failureReported: warnings.some(warning => warning.includes('Failed to save Agent Host logs:')),
-				}, { hostSaved: outcome === 'success', fallbackSaved: outcome !== 'success', failureReported: outcome !== 'success' });
-			});
-		}
-	}
 
 	test('retains process logs and recent transport candidates independently of the host archive', async () => {
 		const ahpFiles = Array.from({ length: 20 }, (_, index) => ahpFile('a', index));

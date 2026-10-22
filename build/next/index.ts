@@ -269,7 +269,7 @@ function mainImplExternalPlugin(): esbuild.Plugin {
  * ensuring placeholders like `/*BUILD->INSERT_PRODUCT_CONFIGURATION* /` are replaced
  * before esbuild strips them as non-legal comments.
  */
-function fileContentMapperPlugin(outDir: string, target: BuildTarget): esbuild.Plugin {
+function fileContentMapperPlugin(outDir: string): esbuild.Plugin {
 	// Cache the replacement strings (computed once)
 	let productConfigReplacement: string | undefined;
 	let builtinExtensionsReplacement: string | undefined;
@@ -385,7 +385,7 @@ async function bundle(outDir: string, doMinify: boolean, doNls: boolean, doMangl
 	const buildResults: { outPath: string; result: esbuild.BuildResult }[] = [];
 
 	// Create the file content mapper plugin (injects product config, builtin extensions)
-	const contentMapperPlugin = fileContentMapperPlugin(outDir, target);
+	const contentMapperPlugin = fileContentMapperPlugin(outDir);
 
 	// Bundle each entry point directly from TypeScript source
 	await Promise.all(allEntryPoints.map(async (entryPoint) => {

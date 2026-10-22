@@ -14,10 +14,9 @@ import { mock } from '../../../../../../base/test/common/mock.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../../base/test/common/utils.js';
 import { runWithFakedTimers } from '../../../../../../base/test/common/timeTravelScheduler.js';
 import { AgentHostProtocolClient, InitialAuthenticationError, type IAgentHostProtocolClientOptions } from '../../../../../../platform/agentHost/browser/agentHostProtocolClient.js';
-import { toDisposable } from '../../../../../../base/common/lifecycle.js';
 import { WebPubSubRelayTransport, type IWebPubSubRelayTransportOptions } from '../../../../../../platform/agentHost/browser/webPubSubRelayTransport.js';
 import { AgentHostTransportFailureReason, NonReconnectableTransportError, type IProtocolTransport } from '../../../../../../platform/agentHost/common/state/sessionTransport.js';
-import { AgentHostAhpJsonlLoggingSettingId, IAgentConnection, IAgentHostService } from '../../../../../../platform/agentHost/common/agentService.js';
+import { IAgentConnection } from '../../../../../../platform/agentHost/common/agentService.js';
 import { AgentHostClientConnectionKind } from '../../../../../../platform/agentHost/common/agentHostTelemetry.js';
 import {
 	CloudSandboxAuthenticationRequiredError,
@@ -43,7 +42,6 @@ import { ILogService, NullLogService } from '../../../../../../platform/log/comm
 import { ITelemetryData, ITelemetryService } from '../../../../../../platform/telemetry/common/telemetry.js';
 import { CloudSandboxAgentHostService, MAX_SEALED_TOKEN_RETRIES } from '../../../browser/remoteAgentHost/cloudSandboxAgentHostService.js';
 import { CloudSandboxTelemetryService, ICloudSandboxTelemetryService } from '../../../browser/remoteAgentHost/cloudSandboxTelemetry.js';
-import { AhpJsonlLogger } from '../../../../../../platform/agentHost/common/ahpJsonlLogger.js';
 
 function clientToken(sealed: string | undefined, clientId = 'client-1'): ICloudSandboxClientToken {
 	return {
@@ -102,7 +100,6 @@ function createService(store: Pick<{ add<T extends { dispose(): void }>(t: T): T
 	let reconnectResult: CloudSandboxConnectResult | Error | Promise<CloudSandboxConnectResult> | undefined;
 	const accountChanged = store.add(new Emitter<string | undefined>());
 	let account: string | undefined = 'account-a';
-	let ownEnvironment: string | undefined;
 	const telemetry = store.add(new CloudSandboxTelemetryService(new class extends mock<ITelemetryService>() {
 		override publicLog2(eventName: string, data?: ITelemetryData): void { events.push({ eventName, data }); }
 	}()));
@@ -150,9 +147,6 @@ function createService(store: Pick<{ add<T extends { dispose(): void }>(t: T): T
 			}
 			return nextResult(request);
 		}
-	}());
-	instantiationService.stub(IAgentHostService, new class extends mock<IAgentHostService>() {
-		override async getMissionControlEnvironmentId(): Promise<string | undefined> { return ownEnvironment; }
 	}());
 	instantiationService.stub(IRemoteAgentHostService, new class extends mock<IRemoteAgentHostService>() {
 		override readonly onDidChangeConnections = Event.None;
@@ -212,7 +206,6 @@ function createService(store: Pick<{ add<T extends { dispose(): void }>(t: T): T
 		setReconnectResult: (value: CloudSandboxConnectResult | Error | Promise<CloudSandboxConnectResult>) => { reconnectResult = value; },
 		entries: () => factory?.entries.get() ?? [],
 		changeAccount(value: string | undefined): void { account = value; accountChanged.fire(value); },
-		setOwnEnvironment(value: string): void { ownEnvironment = value; },
 		warnings,
 		removed,
 		started: started.p,
@@ -239,148 +232,14 @@ suite('CloudSandboxAgentHostService', () => {
 
 	teardown(() => sinon.restore());
 
-	for (const environmentKind of ['user-local', undefined] as const) {
-		test(`captures wire traffic only on the ${environmentKind ? 'host for Mission Control' : 'client for cloud sandboxes'}`, async () => {
-			const fixture = createService(store, [{ kind: 'token', token: clientToken('copilot-sealed.v1.key.box') }]);
-			fixture.service.connectThroughFactory = true;
-			await fixture.configurationService.setUserConfiguration(AgentHostAhpJsonlLoggingSettingId, true);
-			fixture.instantiationService.stubInstance(AhpJsonlLogger, new class extends mock<AhpJsonlLogger>() {
-				override dispose(): void { }
-			}());
-			const connecting = fixture.service.connect({ environmentId: 'test-host', name: 'Host', environmentKind }, CancellationToken.None);
-			await fixture.started;
-			fixture.settle();
-			await connecting;
-			fixture.instantiationService.stubInstance(AgentHostProtocolClient, new class extends mock<AgentHostProtocolClient>() {
-				override dispose(): void { }
-				override readonly onDidChangeConnectionState = Event.None;
-				override readonly onDidConnectionDiagnostic = Event.None;
-			}());
-			const spy = sinon.spy(fixture.instantiationService, 'createInstance');
-			const created = await fixture.getFactory().createConnection(fixture.entries()[0], { userInitiated: true });
-			store.add(created.connection);
-			if (created.transportDisposable) {
-				store.add(created.transportDisposable);
-			}
-			const makeTransport = spy.getCalls().find(call => call.args[0] === AgentHostProtocolClient)!.args[2] as () => IProtocolTransport;
-			store.add(makeTransport());
-			const options = spy.getCalls().find(call => call.args[0] === WebPubSubRelayTransport)!.args[1] as IWebPubSubRelayTransportOptions;
-			assert.deepStrictEqual({
-				kind: options.clientConnectionKind,
-				clientCaptures: !!options.ahpLogger,
-			}, {
-				kind: environmentKind ? AgentHostClientConnectionKind.MissionControl : AgentHostClientConnectionKind.WebPubSub,
-				clientCaptures: !environmentKind,
-			});
-		});
-	}
-
-	test('user-local connect refuses the owning native host instead of relaying to itself', async () => {
-		const fixture = createService(store, [{ kind: 'token', token: clientToken('copilot-sealed.v1.key.box') }]);
-		fixture.setOwnEnvironment('native-self');
-		await assert.rejects(fixture.service.connect({ environmentId: 'native-self', name: 'Self', environmentKind: 'user-local' }, CancellationToken.None), /local IPC/);
-		assert.deepStrictEqual({ requests: fixture.requestCalls(), entries: fixture.entries().length }, { requests: 0, entries: 0 });
+	test('rejects a retired user-local connection before requesting credentials', async () => {
+		const fixture = createService(store, []);
+		await assert.rejects(
+			fixture.service.connect({ environmentId: 'old-host', name: 'Old host', environmentKind: 'user-local' }, CancellationToken.None),
+			/User-local Mission Control relay connections are no longer supported/,
+		);
+		assert.strictEqual(fixture.requestCalls(), 0);
 	});
-
-	test('a user-local ticket from a replaced account is cancelled before staging', async () => {
-		const minted = new DeferredPromise<CloudSandboxConnectResult>();
-		const started = new DeferredPromise<void>();
-		const fixture = createService(store, [async () => { started.complete(); return minted.p; }]);
-		const operation = fixture.service.connect({ environmentId: 'native', name: 'Native', environmentKind: 'user-local' }, CancellationToken.None);
-		await started.p;
-		fixture.changeAccount('account-b');
-		minted.complete({ kind: 'token', token: clientToken('copilot-sealed.v1.key.box') });
-		await assert.rejects(operation, isCancellationError);
-		assert.strictEqual(fixture.entries().length, 0);
-	});
-
-	test('signout withdraws staged user-local credentials and its remote connection', async () => {
-		const fixture = createService(store, [{ kind: 'token', token: clientToken('copilot-sealed.v1.key.box') }]);
-		fixture.service.connectThroughFactory = true;
-		const operation = fixture.service.connect({ environmentId: 'native', name: 'Native', environmentKind: 'user-local' }, CancellationToken.None);
-		await fixture.started;
-		fixture.settle();
-		await operation;
-		assert.strictEqual(fixture.entries().length, 1);
-		fixture.changeAccount(undefined);
-		await timeout(0);
-		assert.strictEqual(fixture.entries().length, 0);
-	});
-
-	test('factory recovery reuses unchanged sealed credentials while installing the fresh WPS ticket', () => runWithFakedTimers({}, async () => {
-		const key = { key_id: 'key', use: 'auth-token', algorithm: 'x25519-sealedbox', public_key: 'public' };
-		const initial = { ...clientToken('copilot-sealed.v1.key.box'), host_encryption_key: key };
-		const fixture = createService(store, [{ kind: 'token', token: initial }]);
-		fixture.service.connectThroughFactory = true;
-		const connecting = fixture.service.connect({ environmentId: 'sandbox', name: 'Sandbox', environmentKind: 'user-local' }, CancellationToken.None);
-		await fixture.started;
-		fixture.settle();
-		await connecting;
-		fixture.instantiationService.stubInstance(AgentHostProtocolClient, new class extends mock<AgentHostProtocolClient>() {
-			override readonly onDidChangeConnectionState = Event.None;
-			override readonly onDidConnectionDiagnostic = Event.None;
-		}());
-		const spy = sinon.spy(fixture.instantiationService, 'createInstance');
-		store.add(toDisposable(() => spy.restore()));
-		const factory = fixture.getFactory();
-		const entry = fixture.entries()[0];
-		const created = await factory.createConnection(entry, { userInitiated: true });
-		assert.ok(created.transportDisposable);
-		store.add(created.transportDisposable);
-		const call = spy.getCalls().find(call => call.args[0] === AgentHostProtocolClient);
-		assert.ok(call);
-		const options = call.args[3] as IAgentHostProtocolClientOptions;
-		assert.ok(options.prepareReconnect);
-		assert.ok(options.resolveInitialAuthentication);
-		assert.deepStrictEqual({
-			budget: options.reconnectPolicy?.maxElapsedTimeMs,
-			suspend: options.onDidSuspend === fixture.powerSuspend.event,
-			resume: options.onDidResume === fixture.powerResume.event,
-		}, { budget: 120_000, suspend: true, resume: true });
-		fixture.setReconnectResult({ kind: 'token', token: { ...clientToken(undefined), access_token: 'fresh-ticket' } });
-		await options.prepareReconnect();
-		const makeTransport = call.args[2] as () => IProtocolTransport;
-		const transport = store.add(makeTransport());
-		const transportCall = spy.getCalls().find(call => call.args[0] === WebPubSubRelayTransport);
-		assert.ok(transportCall);
-		const transportOptions = transportCall.args[1] as IWebPubSubRelayTransportOptions;
-		assert.strictEqual(transport.clientConnectionKind, AgentHostClientConnectionKind.MissionControl);
-		assert.strictEqual(new URL(transportOptions.url).searchParams.get('access_token'), 'fresh-ticket');
-		assert.deepStrictEqual(await options.resolveInitialAuthentication(), { resource: 'https://api.github.com', token: initial.encrypted_github_token });
-		await timeout(30_000);
-		fixture.setReconnectResult({ kind: 'token', token: { ...clientToken(undefined), host_encryption_key: { ...key, key_id: 'different' } } });
-		await assert.rejects(options.prepareReconnect(), /could not be refreshed/);
-		fixture.setReconnectResult(new CloudSandboxRequestError(404, 'Environment not found'));
-		await timeout(30_000);
-		await assert.rejects(options.prepareReconnect(), error => error instanceof NonReconnectableTransportError && error.reason === AgentHostTransportFailureReason.HostNotRunning);
-		assert.strictEqual(fixture.entries().length, 0);
-		const clientCreations = spy.getCalls().filter(call => call.args[0] === AgentHostProtocolClient).length;
-		await assert.rejects(factory.createConnection(entry, { userInitiated: false }), /No cloud sandbox connection is staged/);
-		assert.strictEqual(spy.getCalls().filter(call => call.args[0] === AgentHostProtocolClient).length, clientCreations);
-		const stagingFactory = factory as IRemoteAgentHostConnectionFactory & {
-			stageConfiguration(options: ICloudSandboxConnectOptions, token: ICloudSandboxClientToken): void;
-		};
-		const addressOptions: ICloudSandboxConnectOptions = { environmentId: 'sandbox', name: 'Sandbox', environmentKind: 'user-local' };
-		stagingFactory.stageConfiguration(addressOptions, initial);
-		const replacement = await factory.createConnection(entry, { userInitiated: true });
-		assert.ok(replacement.transportDisposable);
-		store.add(replacement.transportDisposable);
-		const replacementCall = spy.getCalls().filter(call => call.args[0] === AgentHostProtocolClient).at(-1);
-		assert.ok(replacementCall);
-		const replacementOptions = replacementCall.args[3] as IAgentHostProtocolClientOptions;
-		assert.ok(replacementOptions.prepareReconnect);
-		const late = new DeferredPromise<CloudSandboxConnectResult>();
-		fixture.setReconnectResult(late.p);
-		const pending = replacementOptions.prepareReconnect();
-		stagingFactory.stageConfiguration(addressOptions, { ...initial, access_token: 'newer-staging' });
-		late.error(new CloudSandboxRequestError(404, 'Old environment ticket refused'));
-		await assert.rejects(pending, isCancellationError);
-		assert.strictEqual(fixture.entries().length, 1);
-		created.transportDisposable.dispose();
-		replacement.transportDisposable.dispose();
-		transport.dispose();
-		fixture.service.dispose();
-	}));
 
 	for (const isSessionsWindow of [false, true]) {
 		test(`wires protocol diagnostics and real window identity for ${isSessionsWindow ? 'Agents' : 'Editor'}`, () => runWithFakedTimers({}, async () => {
@@ -802,7 +661,7 @@ suite('CloudSandboxAgentHostService', () => {
 		};
 	}
 
-	for (const environmentKind of ['cloud', 'user-local'] as const) {
+	for (const environmentKind of ['cloud'] as readonly ('cloud' | 'user-local')[]) {
 		for (const teardown of ['disconnect', 'dispose', 'replace', ...(environmentKind === 'user-local' ? ['account change'] : [])]) {
 			test(`${environmentKind} cancels a pending admission request on ${teardown}`, () => runWithFakedTimers({ useFakeTimers: true }, async () => {
 				const initial = { ...clientToken('copilot-sealed.v1.key.original'), expires_at: new Date(Date.now()).toISOString() };

@@ -41,7 +41,7 @@ export interface IAgentHostFilterEntry {
 	/** Whether this entry collapses several providers declaring the same group. */
 	readonly grouped: boolean;
 	/**
-	 * The raw host address (e.g. `localhost:4321`, `tunnel+abc123`), or
+	 * The raw host address (e.g. `localhost:4321`, `ssh:workstation`), or
 	 * `undefined` for a grouped entry, which has no single address.
 	 */
 	readonly address: string | undefined;
