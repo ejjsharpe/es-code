@@ -106,7 +106,7 @@ const remoteHelpExtPoint = ExtensionsRegistry.registerExtensionPoint<HelpInforma
 				markdownDeprecationMessage: nls.localize('RemoteHelpInformationExtPoint.feedback.deprecated', "Use {0} instead", '`reportIssue`')
 			},
 			'reportIssue': {
-				description: nls.localize('RemoteHelpInformationExtPoint.reportIssue', "The url, or a command that returns the url, to your project's issue reporter"),
+				description: nls.localize('RemoteHelpInformationExtPoint.reportIssue', "The URL, or a command that returns the URL, to your project's issue page"),
 				type: 'string'
 			},
 			'issues': {

@@ -343,11 +343,6 @@ const apiMenus: IAPIMenu[] = [
 		description: localize('interactive.cell.title', "The contributed interactive cell title menu"),
 	},
 	{
-		key: 'issue/reporter',
-		id: MenuId.IssueReporter,
-		description: localize('issue.reporter', "The contributed issue reporter menu")
-	},
-	{
 		key: 'testing/item/context',
 		id: MenuId.TestItem,
 		description: localize('testing.item.context', "The contributed test item menu"),

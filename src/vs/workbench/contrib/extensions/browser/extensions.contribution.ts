@@ -309,11 +309,6 @@ Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Configuration)
 				description: localize('extensionsDeferredStartupFinishedActivation', "When enabled, extensions which declare the `onStartupFinished` activation event will be activated after a timeout."),
 				default: false
 			},
-			'extensions.experimental.issueQuickAccess': {
-				type: 'boolean',
-				description: localize('extensionsInQuickAccess', "When enabled, extensions can be searched for via Quick Access and report issues from there."),
-				default: true
-			},
 			'extensions.allowOpenInModalEditor': {
 				type: 'boolean',
 				description: localize('extensions.allowOpenInModalEditor', "Controls whether extensions and MCP servers open in a modal editor overlay."),

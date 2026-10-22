@@ -385,11 +385,6 @@ export const schema: IJSONSchema = {
 						description: nls.localize('vscode.extension.activationEvents.onWalkthrough', 'An activation event emitted when a specified walkthrough is opened.'),
 					},
 					{
-						label: 'onIssueReporterOpened',
-						body: 'onIssueReporterOpened',
-						description: nls.localize('vscode.extension.activationEvents.onIssueReporterOpened', 'An activation event emitted when the issue reporter is opened.'),
-					},
-					{
 						label: 'onChatParticipant',
 						body: 'onChatParticipant:${1:participantId}',
 						description: nls.localize('vscode.extension.activationEvents.onChatParticipant', 'An activation event emitted when the specified chat participant is invoked.'),

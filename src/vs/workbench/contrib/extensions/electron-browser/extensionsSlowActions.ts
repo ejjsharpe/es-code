@@ -23,6 +23,7 @@ import { IFileService } from '../../../../platform/files/common/files.js';
 import { VSBuffer } from '../../../../base/common/buffer.js';
 import { ILogService } from '../../../../platform/log/common/log.js';
 import { IWorkbenchGitHubService } from '../../../services/github/common/githubService.js';
+import { IWorkbenchIssueService } from '../../issue/common/issue.js';
 
 abstract class RepoInfo {
 	abstract get base(): string;
@@ -124,7 +125,7 @@ export async function createSlowExtensionAction(
 	}
 
 	if (totalCount === 0) {
-		return instaService.createInstance(ReportExtensionSlowAction, extension, info, profile);
+		return instaService.createInstance(ReportExtensionSlowAction, extension, profile);
 	} else {
 		return instaService.createInstance(ShowExtensionSlowAction, extension, info, profile);
 	}
@@ -134,10 +135,9 @@ class ReportExtensionSlowAction extends Action {
 
 	constructor(
 		readonly extension: IExtensionDescription,
-		readonly repoInfo: RepoInfo,
 		readonly profile: IExtensionHostProfile,
 		@IDialogService private readonly _dialogService: IDialogService,
-		@IOpenerService private readonly _openerService: IOpenerService,
+		@IWorkbenchIssueService private readonly _issueService: IWorkbenchIssueService,
 		@IProductService private readonly _productService: IProductService,
 		@INativeHostService private readonly _nativeHostService: INativeHostService,
 		@INativeWorkbenchEnvironmentService private readonly _environmentService: INativeWorkbenchEnvironmentService,
@@ -155,21 +155,15 @@ class ReportExtensionSlowAction extends Action {
 
 		// build issue
 		const os = await this._nativeHostService.getOSProperties();
-		const title = encodeURIComponent('Extension causes high cpu load');
+		const title = localize('slowExtensionIssueTitle', "Extension causes high cpu load");
 		const osVersion = `${os.type} ${os.arch} ${os.release}`;
-		const message = `:warning: Make sure to **attach** this file from your *home*-directory:\n:warning:\`${path}\`\n\nFind more details here: https://github.com/microsoft/vscode/wiki/Explain-extension-causes-high-cpu-load`;
-		const body = encodeURIComponent(`- Issue Type: \`Performance\`
-- Extension Name: \`${this.extension.name}\`
-- Extension Version: \`${this.extension.version}\`
-- OS Version: \`${osVersion}\`
-- VS Code version: \`${this._productService.version}\`\n\n${message}`);
+		const body = localize('slowExtensionIssueBody', "- Issue Type: `Performance`\n- Extension Name: `{0}`\n- Extension Version: `{1}`\n- OS Version: `{2}`\n- ES Code version: `{3}`\n\nAttach the CPU profile file `{4}` manually.\n\nFind more details here: https://github.com/microsoft/vscode/wiki/Explain-extension-causes-high-cpu-load", this.extension.name, this.extension.version, osVersion, this._productService.version, path.fsPath);
 
-		const url = `${this.repoInfo.base}/${this.repoInfo.owner}/${this.repoInfo.repo}/issues/new/?body=${body}&title=${title}`;
-		this._openerService.open(URI.parse(url));
+		await this._issueService.openReporter({ extensionId: this.extension.identifier.value, issueTitle: title, issueBody: body });
 
 		this._dialogService.info(
 			localize('attach.title', "Did you attach the CPU-Profile?"),
-			localize('attach.msg', "This is a reminder to make sure that you have not forgotten to attach '{0}' to the issue you have just created.", path.fsPath)
+			localize('attach.msg', "Attach '{0}' to the issue after pasting the copied details into the opened issue page.", path.fsPath)
 		);
 	}
 }

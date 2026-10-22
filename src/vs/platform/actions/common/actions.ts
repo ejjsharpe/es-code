@@ -213,7 +213,6 @@ export class MenuId {
 	static readonly InteractiveInputExecute = new MenuId('InteractiveInputExecute');
 	static readonly InteractiveInputConfig = new MenuId('InteractiveInputConfig');
 	static readonly ReplInputExecute = new MenuId('ReplInputExecute');
-	static readonly IssueReporter = new MenuId('IssueReporter');
 	static readonly NotebookToolbar = new MenuId('NotebookToolbar');
 	static readonly NotebookToolbarContext = new MenuId('NotebookToolbarContext');
 	static readonly NotebookStickyScrollContext = new MenuId('NotebookStickyScrollContext');

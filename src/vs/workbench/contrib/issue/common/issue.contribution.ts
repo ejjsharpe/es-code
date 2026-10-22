@@ -9,21 +9,19 @@ import { ICommandAction } from '../../../../platform/action/common/action.js';
 import { Categories } from '../../../../platform/action/common/actionCommonCategories.js';
 import { MenuId, MenuRegistry } from '../../../../platform/actions/common/actions.js';
 import { CommandsRegistry, ICommandMetadata } from '../../../../platform/commands/common/commands.js';
-import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
-import { INotificationService } from '../../../../platform/notification/common/notification.js';
 import { IProductService } from '../../../../platform/product/common/productService.js';
 import { IWorkbenchContribution } from '../../../common/contributions.js';
-import { IssueReporterData, IWorkbenchIssueService } from './issue.js';
+import { IssueReportOptions, IWorkbenchIssueService } from './issue.js';
 
 const OpenIssueReporterActionId = 'workbench.action.openIssueReporter';
 const OpenIssueReporterApiId = 'vscode.openIssueReporter';
 
 const OpenIssueReporterCommandMetadata: ICommandMetadata = {
-	description: 'Open the issue reporter and optionally prefill part of the form.',
+	description: 'Open an external issue page and copy optional issue details to the clipboard.',
 	args: [
 		{
 			name: 'options',
-			description: 'Data to use to prefill the issue reporter with.',
+			description: 'Extension ID and issue details to copy to the clipboard.',
 			isOptional: true,
 			schema: {
 				oneOf: [
@@ -52,31 +50,11 @@ const OpenIssueReporterCommandMetadata: ICommandMetadata = {
 	]
 };
 
-interface OpenIssueReporterArgs {
-	readonly extensionId?: string;
-	readonly issueTitle?: string;
-	readonly issueBody?: string;
-	readonly extensionData?: string;
-}
-
 export class BaseIssueContribution extends Disposable implements IWorkbenchContribution {
 	constructor(
 		@IProductService productService: IProductService,
-		@IConfigurationService configurationService: IConfigurationService,
 	) {
 		super();
-
-		if (!configurationService.getValue<boolean>('telemetry.feedback.enabled')) {
-			this._register(CommandsRegistry.registerCommand({
-				id: 'workbench.action.openIssueReporter',
-				handler: function (accessor) {
-					const data = accessor.get(INotificationService);
-					data.info('Feedback is disabled.');
-
-				},
-			}));
-			return;
-		}
 
 		if (!productService.reportIssueUrl) {
 			return;
@@ -84,8 +62,8 @@ export class BaseIssueContribution extends Disposable implements IWorkbenchContr
 
 		this._register(CommandsRegistry.registerCommand({
 			id: OpenIssueReporterActionId,
-			handler: function (accessor, args?: string | [string] | OpenIssueReporterArgs) {
-				const data: Partial<IssueReporterData> =
+			handler: (accessor, args?: string | [string] | IssueReportOptions) => {
+				const data: IssueReportOptions =
 					typeof args === 'string'
 						? { extensionId: args }
 						: Array.isArray(args)
@@ -99,8 +77,8 @@ export class BaseIssueContribution extends Disposable implements IWorkbenchContr
 
 		this._register(CommandsRegistry.registerCommand({
 			id: OpenIssueReporterApiId,
-			handler: function (accessor, args?: string | [string] | OpenIssueReporterArgs) {
-				const data: Partial<IssueReporterData> =
+			handler: (accessor, args?: string | [string] | IssueReportOptions) => {
+				const data: IssueReportOptions =
 					typeof args === 'string'
 						? { extensionId: args }
 						: Array.isArray(args)

@@ -12,19 +12,21 @@ import { runWithFakedTimers } from '../../../../../base/test/common/timeTravelSc
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
 import { IDialogService } from '../../../../../platform/dialogs/common/dialogs.js';
 import { IExtensionDescription } from '../../../../../platform/extensions/common/extensions.js';
-import { IFileService } from '../../../../../platform/files/common/files.js';
+import { IFileService, IFileStatWithMetadata } from '../../../../../platform/files/common/files.js';
 import { IGitHubAnonymousClient } from '../../../../../platform/github/common/anonymous/anonymous.js';
 import { SchemaError } from '../../../../../platform/github/common/client/schema.js';
 import { SearchIssuesOptions } from '../../../../../platform/github/common/core/search.js';
 import { GitHubRequestError } from '../../../../../platform/github/common/githubTypes.js';
 import { TestInstantiationService } from '../../../../../platform/instantiation/test/common/instantiationServiceMock.js';
 import { ILogService, NullLogService } from '../../../../../platform/log/common/log.js';
-import { INativeHostService } from '../../../../../platform/native/common/native.js';
+import { INativeHostService, IOSProperties } from '../../../../../platform/native/common/native.js';
 import { IOpenerService } from '../../../../../platform/opener/common/opener.js';
 import { IProductService } from '../../../../../platform/product/common/productService.js';
+import { URI } from '../../../../../base/common/uri.js';
 import { INativeWorkbenchEnvironmentService } from '../../../../services/environment/electron-browser/environmentService.js';
 import { IExtensionHostProfile, nullExtensionDescription } from '../../../../services/extensions/common/extensions.js';
 import { IWorkbenchGitHubService } from '../../../../services/github/common/githubService.js';
+import { IWorkbenchIssueService, IssueReportOptions } from '../../../issue/common/issue.js';
 import { createSlowExtensionAction } from '../../electron-browser/extensionsSlowActions.js';
 
 suite('ExtensionsSlowActions', () => {
@@ -63,8 +65,36 @@ suite('ExtensionsSlowActions', () => {
 				});
 			}
 		}());
+		instantiationService.stub(IWorkbenchIssueService, {});
 		return { instantiationService, leases, warnings };
 	}
+
+	test('copies slow-extension diagnostics through the issue service instead of a URL', async () => {
+		const { instantiationService } = createServices(async () => ({ total_count: 0, incomplete_results: false, items: [] }));
+		const received: IssueReportOptions[] = [];
+		const paths: string[] = [];
+		instantiationService.stub(IWorkbenchIssueService, { openReporter: async options => { received.push(options ?? {}); } });
+		instantiationService.stub(IProductService, { version: '1.0.0' });
+		instantiationService.stub(INativeHostService, { getOSProperties: async () => upcastPartial<IOSProperties>({ type: 'Darwin', arch: 'arm64', release: '1' }) });
+		instantiationService.stub(INativeWorkbenchEnvironmentService, { tmpDir: URI.file('/tmp') });
+		instantiationService.stub(IFileService, { writeFile: async resource => { paths.push(resource.fsPath); return upcastPartial<IFileStatWithMetadata>({}); } });
+		instantiationService.stub(IDialogService, { info: async () => undefined });
+		instantiationService.stub(IOpenerService, { open: async () => assert.fail('Diagnostic data must not be passed to an issue URL') });
+
+		const action = await instantiationService.invokeFunction(createSlowExtensionAction, extension, profile);
+		if (action) {
+			store.add(action);
+		}
+		await action?.run();
+		assert.deepStrictEqual({ paths, received }, {
+			paths: [`/tmp/${extension.identifier.value}-unresponsive.cpuprofile.txt`],
+			received: [{
+				extensionId: extension.identifier.value,
+				issueTitle: 'Extension causes high cpu load',
+				issueBody: `- Issue Type: \`Performance\`\n- Extension Name: \`${extension.name}\`\n- Extension Version: \`${extension.version}\`\n- OS Version: \`Darwin arm64 1\`\n- ES Code version: \`1.0.0\`\n\nAttach the CPU profile file \`/tmp/${extension.identifier.value}-unresponsive.cpuprofile.txt\` manually.\n\nFind more details here: https://github.com/microsoft/vscode/wiki/Explain-extension-causes-high-cpu-load`
+			}]
+		});
+	});
 
 	for (const { totalCount, actionId } of [{ totalCount: 0, actionId: 'report.slow' }, { totalCount: 23, actionId: 'show.slow' }]) {
 		test(`selects ${actionId} from the anonymous search count`, () => runWithFakedTimers({ useFakeTimers: true }, async () => {

@@ -15,7 +15,6 @@ export const IDiagnosticsService = createDecorator<IDiagnosticsService>(ID);
 export interface IDiagnosticsService {
 	readonly _serviceBrand: undefined;
 
-	getPerformanceInfo(mainProcessInfo: IMainProcessDiagnostics, remoteInfo: (IRemoteDiagnosticInfo | IRemoteDiagnosticError)[], options?: { skipCache?: boolean; unbounded?: boolean }): Promise<PerformanceInfo>;
 	getSystemInfo(mainProcessInfo: IMainProcessDiagnostics, remoteInfo: (IRemoteDiagnosticInfo | IRemoteDiagnosticError)[]): Promise<SystemInfo>;
 	getDiagnostics(mainProcessInfo: IMainProcessDiagnostics, remoteInfo: (IRemoteDiagnosticInfo | IRemoteDiagnosticError)[]): Promise<string>;
 	getWorkspaceFileExtensions(workspace: IWorkspace): Promise<{ extensions: string[] }>;
@@ -83,11 +82,6 @@ export interface WorkspaceStats {
 	totalReaddirCount: number;
 }
 
-export interface PerformanceInfo {
-	processInfo?: string;
-	workspaceInfo?: string;
-}
-
 export interface IWorkspaceInformation extends IWorkspace {
 	telemetryId: string | undefined;
 	rendererSessionId: string;
@@ -100,10 +94,6 @@ export function isRemoteDiagnosticError(x: unknown): x is IRemoteDiagnosticError
 
 export class NullDiagnosticsService implements IDiagnosticsService {
 	_serviceBrand: undefined;
-
-	async getPerformanceInfo(mainProcessInfo: IMainProcessDiagnostics, remoteInfo: (IRemoteDiagnosticInfo | IRemoteDiagnosticError)[], options?: { skipCache?: boolean; unbounded?: boolean }): Promise<PerformanceInfo> {
-		return {};
-	}
 
 	async getSystemInfo(mainProcessInfo: IMainProcessDiagnostics, remoteInfo: (IRemoteDiagnosticInfo | IRemoteDiagnosticError)[]): Promise<SystemInfo> {
 		return {

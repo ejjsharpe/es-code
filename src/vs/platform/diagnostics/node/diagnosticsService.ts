@@ -16,7 +16,7 @@ import { URI } from '../../../base/common/uri.js';
 import { virtualMachineHint } from '../../../base/node/id.js';
 import { IDirent, Promises as pfs } from '../../../base/node/pfs.js';
 import { listProcesses } from '../../../base/node/ps.js';
-import { IDiagnosticsService, IMachineInfo, IMainProcessDiagnostics, IRemoteDiagnosticError, IRemoteDiagnosticInfo, isRemoteDiagnosticError, IWorkspaceInformation, PerformanceInfo, SystemInfo, WorkspaceStatItem, WorkspaceStats } from '../common/diagnostics.js';
+import { IDiagnosticsService, IMachineInfo, IMainProcessDiagnostics, IRemoteDiagnosticError, IRemoteDiagnosticInfo, isRemoteDiagnosticError, IWorkspaceInformation, SystemInfo, WorkspaceStatItem, WorkspaceStats } from '../common/diagnostics.js';
 import { ByteSize } from '../../files/common/files.js';
 import { IProductService } from '../../product/common/productService.js';
 import { ITelemetryService } from '../../telemetry/common/telemetry.js';
@@ -33,18 +33,11 @@ const workspaceStatsCache = new Map<string, Promise<WorkspaceStats>>();
 /** Sentinel key in {@link WorkspaceStats.fileTypes} for files with no extension. */
 const NO_EXT_KEY = '\0no-extension';
 
-export async function collectWorkspaceStats(folder: string, filter: string[], options?: { skipCache?: boolean; unbounded?: boolean }): Promise<WorkspaceStats> {
-	// Include `unbounded` in the cache key so a bounded (20k-cap) result is never
-	// returned for an unbounded request (which would silently truncate counts).
-	const cacheKey = `${folder}::${filter.join(':')}::${options?.unbounded ? 'unbounded' : 'bounded'}`;
-	if (!options?.skipCache) {
-		const cached = workspaceStatsCache.get(cacheKey);
-		if (cached) {
-			return cached;
-		}
-	} else {
-		// Drop any in-flight or stale entry so callers can be sure they get fresh data.
-		workspaceStatsCache.delete(cacheKey);
+export async function collectWorkspaceStats(folder: string, filter: string[]): Promise<WorkspaceStats> {
+	const cacheKey = `${folder}::${filter.join(':')}`;
+	const cached = workspaceStatsCache.get(cacheKey);
+	if (cached) {
+		return cached;
 	}
 
 	const configFilePatterns: ConfigFilePatterns[] = [
@@ -90,7 +83,7 @@ export async function collectWorkspaceStats(folder: string, filter: string[], op
 	const fileTypes = new Map<string, number>();
 	const configFiles = new Map<string, number>();
 
-	const MAX_FILES = options?.unbounded ? Number.POSITIVE_INFINITY : 20000;
+	const MAX_FILES = 20000;
 
 	function collect(root: string, dir: string, filter: string[], token: { count: number; maxReached: boolean; readdirCount: number }): Promise<void> {
 		const relativePath = dir.substring(root.length + 1);
@@ -292,45 +285,6 @@ export class DiagnosticsService implements IDiagnosticsService {
 		return output.join('\n');
 	}
 
-	public async getPerformanceInfo(info: IMainProcessDiagnostics, remoteData: (IRemoteDiagnosticInfo | IRemoteDiagnosticError)[], options?: { skipCache?: boolean; unbounded?: boolean }): Promise<PerformanceInfo> {
-		return Promise.all([listProcesses(info.mainPID), this.formatWorkspaceMetadata(info, options)]).then(async result => {
-			let [rootProcess, workspaceInfo] = result;
-			let processInfo = this.formatProcessList(info, rootProcess);
-
-			remoteData.forEach(diagnostics => {
-				if (isRemoteDiagnosticError(diagnostics)) {
-					processInfo += `\n${diagnostics.errorMessage}`;
-					workspaceInfo += `\n${diagnostics.errorMessage}`;
-				} else {
-					processInfo += `\n\nRemote: ${diagnostics.hostName}`;
-					if (diagnostics.processes) {
-						processInfo += `\n${this.formatProcessList(info, diagnostics.processes)}`;
-					}
-
-					if (diagnostics.workspaceMetadata) {
-						workspaceInfo += `\n|  Remote: ${diagnostics.hostName}`;
-						for (const folder of Object.keys(diagnostics.workspaceMetadata)) {
-							const metadata = diagnostics.workspaceMetadata[folder];
-
-							let countMessage = `${metadata.fileCount} files`;
-							if (metadata.maxFilesReached) {
-								countMessage = `more than ${countMessage}`;
-							}
-
-							workspaceInfo += `|    Folder (${folder}): ${countMessage}`;
-							workspaceInfo += this.formatWorkspaceStats(metadata);
-						}
-					}
-				}
-			});
-
-			return {
-				processInfo,
-				workspaceInfo
-			};
-		});
-	}
-
 	public async getSystemInfo(info: IMainProcessDiagnostics, remoteData: (IRemoteDiagnosticInfo | IRemoteDiagnosticError)[]): Promise<SystemInfo> {
 		const { memory, vmHint, os, cpus } = getMachineInfo();
 		const systemInfo: SystemInfo = {
@@ -483,7 +437,7 @@ export class DiagnosticsService implements IDiagnosticsService {
 		return Object.keys(gpuFeatures).map(feature => `${feature}:  ${' '.repeat(longestFeatureName - feature.length)}  ${gpuFeatures[feature]}`).join('\n                  ');
 	}
 
-	private formatWorkspaceMetadata(info: IMainProcessDiagnostics, options?: { skipCache?: boolean; unbounded?: boolean }): Promise<string> {
+	private formatWorkspaceMetadata(info: IMainProcessDiagnostics): Promise<string> {
 		const output: string[] = [];
 		const workspaceStatPromises: Promise<void>[] = [];
 
@@ -498,7 +452,7 @@ export class DiagnosticsService implements IDiagnosticsService {
 				const folderUri = URI.revive(uriComponents);
 				if (folderUri.scheme === Schemas.file) {
 					const folder = folderUri.fsPath;
-					workspaceStatPromises.push(collectWorkspaceStats(folder, ['node_modules', '.git'], options).then(stats => {
+					workspaceStatPromises.push(collectWorkspaceStats(folder, ['node_modules', '.git']).then(stats => {
 						let countMessage = `${stats.fileCount} files`;
 						if (stats.maxFilesReached) {
 							countMessage = `more than ${countMessage}`;

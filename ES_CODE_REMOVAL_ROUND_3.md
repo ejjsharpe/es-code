@@ -1,0 +1,40 @@
+# ES Code removal plan: third pass
+
+**Status:** Implemented and source-validated from `main` commit `0ba1087e6f5e963653626fa17390ef5c09c27a27` on 22 October 2026. The owner approved removal of the built-in issue reporter for this pass. The existing user edit to `AGENTS.md` was preserved and excluded from the implementation commit. The [overall removal plan](ES_CODE_REMOVAL_PLAN.md) remains the decision log; the [second-pass plan](ES_CODE_REMOVAL_ROUND_2.md) is historical.
+
+The goal is to replace the classic reporter window and newer wizard with a small external-link path while keeping the two public issue-report commands and callers that pass an extension ID, title, or body.
+
+## Decisions and boundaries
+
+| Area | Decision | Required behavior |
+| --- | --- | --- |
+| ES Code destination | Set `product.json` and the OSS product fallback to `https://github.com/ejjsharpe/es-code/issues/new`. | The `es-code` Git remote points to `https://github.com/ejjsharpe/es-code.git`. A 22 October 2026 GitHub repository API response for [`ejjsharpe/es-code`](https://api.github.com/repos/ejjsharpe/es-code) returned HTTP 200, `has_issues: true`, `private: false`, `archived: false`, and `disabled: false`. General ES Code reports therefore belong in the fork's tracker, not Microsoft's VS Code tracker. No issue was submitted. |
+| Extension routing | Prefer the extension's declared `bugs.url`; use a GitHub repository URL when no usable bugs URL exists; otherwise use the ES Code destination. | Look up registered extensions and installed extensions, including a disabled bisect result. Preserve string, one-element-array, and object command arguments. A missing or failed extension lookup still opens the fork's issue page with the extension ID copied locally. |
+| Issue details and URL safety | Open only HTTP(S) issue links with no credentials, query, or fragment. Copy extension ID and supplied title/body to the local clipboard for manual paste. | No diagnostic body, token, or generated machine data goes into a URL. Existing URL query parameters, including GitHub issue templates, are discarded. The command no longer autofills the web form. |
+| Reporter implementation | Delete the classic window, wizard/editor pane, quick access picker, reporter settings/menu and activation-event support, issue-specific screenshot/recording and annotation code, issue GitHub search/create/upload path, and their tests. | Keep the generic extension, GitHub, authentication, clipboard, opener, diagnostics, and host screenshot services where other features use them. The native screenshot API is still used by chat. Anonymous GitHub issue search remains in use by the slow-extension action; other GitHub clients serve Sessions and agent features. |
+| Other entry points | Keep Help and command-palette entries, the performance-issue command, extension issue action, extension bisect, remote help fallback, notebook renderer links, and slow-extension performance action. | Performance reports open an external issue page with copied details. The slow-extension action still exports a CPU profile locally, but its OS/profile details no longer enter a URL. Remote help's explicit URL opens externally; its empty URL falls back to the extension-aware command. Notebook links pass only the renderer extension ID, leaving timing data in the tooltip for manual inclusion. `_issues.getSystemStatus` remains for the remote CLI. |
+| Feedback setting | Retain `telemetry.feedback.enabled` and revise its description. | Chat feedback actions and surveys still consume the setting; external issue links no longer depend on it. |
+
+## Work areas
+
+| ID | Area and starting points | Status | Result |
+| --- | --- | --- | --- |
+| R | `src/vs/workbench/contrib/issue`, desktop/web/Sessions registrations | Complete | The four workbench entry points still register a small shared external-link service; the reporter windows, wizard, styles, recording, screenshot annotation, uploads, picker, and old tests are removed. |
+| C | Public commands and callers in extensions, bisect, remote help, notebooks, Help menu, and performance actions | Complete | Both command IDs accept legacy arguments, extension and slow-extension actions route to declared bugs URLs, disabled extensions resolve through installed manifests, and the existing Help/performance entries remain. |
+| D | Shared GitHub, auth, telemetry, native screenshot, native upload, diagnostics, and policy dependencies | Complete | Reporter-only mobile upload and performance-info methods are removed. Shared GitHub clients, authentication, diagnostic workspace statistics, chat screenshot capture, and chat feedback remain. The GitHub client inventory and policy descriptions were updated. |
+| V | Source validation, runtime smoke, counts, and documentation | Complete for source validation | Results and limits appear below. |
+
+## Acceptance checks
+
+- `npm run compile-client` passed after the final source changes. Its `compile` task typechecked the client with zero errors and ran `compile-extensions`, including Git and GitHub, with zero reported errors. `npm run build-fast -- --client-only` also passed before the final installed-extension lookup adjustment; the final full compile supersedes it.
+- Targeted ESLint passed on all 27 changed or new TypeScript/JavaScript files, across a 25-file pass and a final two-file slow-extension pass; the diagnostics file was rechecked after its last edit. `git diff --check` passed.
+- `./scripts/test.sh --run src/vs/workbench/contrib/issue/test/browser/issueRouting.test.js --run src/vs/workbench/contrib/extensions/test/electron-browser/extensionsSlowActions.test.js` passed **15 tests** outside the sandbox, covering destination normalization, URL text isolation, disabled-extension lookup, both command IDs, and the slow-extension diagnostic clipboard flow. The Electron test binary aborted before running tests inside the sandbox.
+- `node --experimental-strip-types --test build/lib/test/policyConversion.test.ts` passed all 12 policy conversion tests after the feedback-setting description and English/French fixtures were updated.
+- An isolated source-built ES Code workbench launched from the compiled tree, rendered its empty editor and normal controls, and showed **Help: Report Issue...** and **Help: Report Performance Issue...** in the command palette. This smoke run preceded the final slow-extension action adjustment, which passed compile and focused tests afterward. The launch used a throwaway empty profile and no account sign-in. Its initial Playwright attach race was resolved by launching and inspecting in the same shell session.
+- The GitHub repository API verified that the fork's issue tracker is enabled. The macOS main-process Help-menu fallback reads the corrected `reportIssueUrl`; no system browser handoff, issue submission, extension-host API end-to-end flow, package build, installed-app acceptance run, Windows/Linux run, startup timing, or package-size comparison was performed.
+
+## Integration record and remaining limits
+
+- Against baseline `0ba1087e6f5e`, **27 tracked files were deleted**, containing **13,733 lines**. Across the existing tracked implementation files, excluding the pre-existing `AGENTS.md` edit and plan documents, the diff removed **14,483 lines** and added **175 lines**. The new routing test adds separate lines. Source line removal alone does not establish a package-size or startup gain.
+- Reports with supplied title/body require pasting from the clipboard into the external issue page. Notebook renderer timings require manual inclusion from the tooltip, and the slow-extension CPU profile requires manual attachment from the local file. The external destination does not attach diagnostics, screenshots, or recordings. Extension bugs URLs with a necessary query string lose that query because URLs are stripped of all parameters to avoid leaking data.
+- Existing first- and second-pass gaps remain, including the unavailable `Reopen in Container` editor connector and lack of Windows/Linux package acceptance. This pass did not install or replace `/Applications/ES Code.app`.

@@ -20,7 +20,6 @@ export class ReportExtensionIssueAction extends Action {
 	) {
 		super(ReportExtensionIssueAction._id, ReportExtensionIssueAction._label, 'extension-action report-issue');
 
-		this.enabled = extension.isBuiltin || (!!extension.repository && !!extension.repository.url);
 	}
 
 	override async run(): Promise<void> {

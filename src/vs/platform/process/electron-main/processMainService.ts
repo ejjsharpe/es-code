@@ -5,7 +5,7 @@
 
 import { listProcesses } from '../../../base/node/ps.js';
 import { localize } from '../../../nls.js';
-import { IDiagnosticsService, IRemoteDiagnosticError, isRemoteDiagnosticError, PerformanceInfo, SystemInfo } from '../../diagnostics/common/diagnostics.js';
+import { IDiagnosticsService, IRemoteDiagnosticError, isRemoteDiagnosticError, SystemInfo } from '../../diagnostics/common/diagnostics.js';
 import { IDiagnosticsMainService } from '../../diagnostics/electron-main/diagnosticsMainService.js';
 import { IProcessService, IResolvedProcessInformation } from '../common/process.js';
 import { ILogService } from '../../log/common/log.js';
@@ -75,14 +75,4 @@ export class ProcessMainService implements IProcessService {
 		return msg;
 	}
 
-	async getPerformanceInfo(options?: { skipCache?: boolean; unbounded?: boolean }): Promise<PerformanceInfo> {
-		try {
-			const [info, remoteData] = await Promise.all([this.diagnosticsMainService.getMainDiagnostics(), this.diagnosticsMainService.getRemoteDiagnostics({ includeProcesses: true, includeWorkspaceMetadata: true })]);
-			return await this.diagnosticsService.getPerformanceInfo(info, remoteData, options);
-		} catch (error) {
-			this.logService.warn('issueService#getPerformanceInfo ', error.message);
-
-			throw error;
-		}
-	}
 }

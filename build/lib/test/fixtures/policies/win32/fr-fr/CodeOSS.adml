@@ -39,7 +39,7 @@ Cette fonctionnalité désactive [les protections de sécurité critiques](https
 			<string id="ChatToolsTerminalEnableAutoApprove">ChatToolsTerminalEnableAutoApprove</string>
 			<string id="ChatToolsTerminalEnableAutoApprove_autoApproveMode_description">Contrôle s’il faut autoriser l’approbation automatique lors de l’exécution dans l’outil terminal.</string>
 			<string id="EnableFeedback">EnableFeedback</string>
-			<string id="EnableFeedback_telemetry_feedback_enabled">Activez les mécanismes de commentaires tels que le système de rapport de problèmes, les sondages et autres options de commentaires.</string>
+			<string id="EnableFeedback_telemetry_feedback_enabled">Activez les fonctionnalités de retour intégrées, telles que les enquêtes de satisfaction sur le chat.</string>
 			<string id="TelemetryLevel">TelemetryLevel</string>
 			<string id="TelemetryLevel_telemetry_telemetryLevel_policyDescription">Contrôle le niveau de télémétrie.</string>
 			<string id="TelemetryLevel_telemetry_telemetryLevel_default">Envoie les données d'utilisation, les erreurs et les rapports d'erreur.</string>

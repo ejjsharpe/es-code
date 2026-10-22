@@ -1138,7 +1138,7 @@
             "localization": {
                 "description": {
                     "key": "telemetry.feedback.enabled",
-                    "value": "Enable feedback mechanisms such as the issue reporter, surveys, and other feedback options."
+                    "value": "Enable in-product feedback features such as chat feedback surveys."
                 }
             },
             "type": "boolean",

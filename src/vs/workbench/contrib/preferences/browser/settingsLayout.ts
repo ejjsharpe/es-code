@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { isWeb, isWindows } from '../../../../base/common/platform.js';
+import { isWindows } from '../../../../base/common/platform.js';
 import { localize } from '../../../../nls.js';
 import { ISetting, ISettingsGroup } from '../../../services/preferences/common/preferences.js';
 import { ChatAIDisabledSettingId } from '../../../../platform/chat/common/chatSettings.js';
@@ -371,12 +371,6 @@ export const tocData: ITOCEntry<string> = {
 					id: 'features/mergeEditor',
 					label: localize('mergeEditor', 'Merge Editor'),
 					settings: ['mergeEditor.*']
-				},
-				{
-					id: 'features/issueReporter',
-					label: localize('issueReporter', 'Issue Reporter'),
-					settings: ['issueReporter.*'],
-					hide: !isWeb
 				}
 			]
 		},

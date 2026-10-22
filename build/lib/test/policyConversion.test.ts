@@ -336,7 +336,7 @@ const policies: ExportedPolicyDataDto = {
 			localization: {
 				description: {
 					key: 'telemetry.feedback.enabled',
-					value: 'Enable feedback mechanisms such as the issue reporter, surveys, and other feedback options.'
+					value: 'Enable in-product feedback features such as chat feedback surveys.'
 				}
 			},
 			type: 'boolean',
@@ -377,7 +377,7 @@ Cette fonctionnalité désactive [les protections de sécurité critiques](https
 				'extensions.allowed.policy': 'Spécifiez une liste d’extensions autorisées. Cela permet de maintenir un environnement de développement sécurisé et cohérent en limitant l’utilisation d’extensions non autorisées. Plus d’informations : https://code.visualstudio.com/docs/setup/enterprise#_configure-allowed-extensions',
 				'extensions.gallery.serviceUrl': 'Configurer l’URL du service Place de marché à laquelle se connecter',
 				'autoApproveMode.description': 'Contrôle s’il faut autoriser l’approbation automatique lors de l’exécution dans l’outil terminal.',
-				'telemetry.feedback.enabled': 'Activez les mécanismes de commentaires tels que le système de rapport de problèmes, les sondages et autres options de commentaires.',
+				'telemetry.feedback.enabled': 'Activez les fonctionnalités de retour intégrées, telles que les enquêtes de satisfaction sur le chat.',
 				'telemetry.telemetryLevel.policyDescription': 'Contrôle le niveau de télémétrie.',
 				'telemetry.telemetryLevel.default': `Envoie les données d'utilisation, les erreurs et les rapports d'erreur.`,
 				'telemetry.telemetryLevel.error': `Envoie la télémétrie d'erreur générale et les rapports de plantage.`,

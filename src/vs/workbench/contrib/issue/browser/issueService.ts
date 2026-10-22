@@ -3,208 +3,95 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { getZoomLevel } from '../../../../base/browser/browser.js';
-import { mainWindow } from '../../../../base/browser/window.js';
-import { userAgent } from '../../../../base/common/platform.js';
-import { IConfigurationService } from '../../../../platform/configuration/common/configuration.js';
-import { IExtensionManagementService } from '../../../../platform/extensionManagement/common/extensionManagement.js';
-import { ExtensionType, IExtensionDescription } from '../../../../platform/extensions/common/extensions.js';
-import { InstantiationType, registerSingleton } from '../../../../platform/instantiation/common/extensions.js';
-import { normalizeGitHubUrl } from '../common/issueReporterUtil.js';
+import { IClipboardService } from '../../../../platform/clipboard/common/clipboardService.js';
+import { INotificationService } from '../../../../platform/notification/common/notification.js';
 import { IOpenerService } from '../../../../platform/opener/common/opener.js';
 import { IProductService } from '../../../../platform/product/common/productService.js';
-import { buttonBackground, buttonForeground, buttonHoverBackground, foreground, inputActiveOptionBorder, inputBackground, inputBorder, inputForeground, inputValidationErrorBackground, inputValidationErrorBorder, inputValidationErrorForeground, scrollbarSliderActiveBackground, scrollbarSliderBackground, scrollbarSliderHoverBackground, textLinkActiveForeground, textLinkForeground } from '../../../../platform/theme/common/colorRegistry.js';
-import { IColorTheme, IThemeService } from '../../../../platform/theme/common/themeService.js';
-import { IWorkspaceTrustManagementService } from '../../../../platform/workspace/common/workspaceTrust.js';
-import { SIDE_BAR_BACKGROUND } from '../../../common/theme.js';
-import { IIssueFormService, IssueReporterData, IssueReporterExtensionData, IssueReporterStyles, IWorkbenchIssueService } from '../common/issue.js';
-import { IWorkbenchAssignmentService } from '../../../services/assignment/common/assignmentService.js';
-import { IAuthenticationService } from '../../../services/authentication/common/authentication.js';
-import { IWorkbenchExtensionEnablementService } from '../../../services/extensionManagement/common/extensionManagement.js';
-import { IWorkbenchEnvironmentService } from '../../../services/environment/common/environmentService.js';
+import { localize } from '../../../../nls.js';
+import { IExtensionDescription } from '../../../../platform/extensions/common/extensions.js';
+import { IExtensionManagementService } from '../../../../platform/extensionManagement/common/extensionManagement.js';
 import { IExtensionService } from '../../../services/extensions/common/extensions.js';
-import { IIntegrityService } from '../../../services/integrity/common/integrity.js';
+import { IssueReportOptions, IWorkbenchIssueService } from '../common/issue.js';
 
+/** Returns a plain external issue URL without query parameters, fragments, or credentials. */
+export function getIssueReportUrl(productUrl: string | undefined, extension?: Pick<IExtensionDescription, 'bugs' | 'repository'>): string | undefined {
+	const cleanUrl = (value: string | undefined): URL | undefined => {
+		if (!value) {
+			return undefined;
+		}
+		try {
+			const url = new URL(value);
+			if ((url.protocol !== 'https:' && url.protocol !== 'http:') || url.username || url.password) {
+				return undefined;
+			}
+			url.search = '';
+			url.hash = '';
+			return url;
+		} catch {
+			return undefined;
+		}
+	};
+
+	const bugs = cleanUrl(extension?.bugs?.url);
+	if (bugs) {
+		if (bugs.hostname === 'github.com' && /^\/[^/]+\/[^/]+(?:\.git)?\/?$/.test(bugs.pathname)) {
+			bugs.pathname = `${bugs.pathname.replace(/\/$/, '').replace(/\.git$/, '')}/issues/new`;
+		} else if (bugs.hostname === 'github.com' && /^\/[^/]+\/[^/]+\/issues\/?$/.test(bugs.pathname)) {
+			bugs.pathname = `${bugs.pathname.replace(/\/$/, '')}/new`;
+		}
+		return bugs.toString();
+	}
+
+	const repository = cleanUrl(extension?.repository?.url);
+	if (repository?.hostname === 'github.com' && /^\/[^/]+\/[^/]+(?:\.git)?\/?$/.test(repository.pathname)) {
+		return `${repository.origin}${repository.pathname.replace(/\/$/, '').replace(/\.git$/, '')}/issues/new`;
+	}
+
+	return cleanUrl(productUrl)?.toString();
+}
 
 export class BrowserIssueService implements IWorkbenchIssueService {
 	declare readonly _serviceBrand: undefined;
 
 	constructor(
 		@IExtensionService private readonly extensionService: IExtensionService,
-		@IProductService private readonly productService: IProductService,
-		@IIssueFormService private readonly issueFormService: IIssueFormService,
-		@IThemeService private readonly themeService: IThemeService,
-		@IWorkbenchAssignmentService private readonly experimentService: IWorkbenchAssignmentService,
-		@IWorkspaceTrustManagementService private readonly workspaceTrustManagementService: IWorkspaceTrustManagementService,
-		@IIntegrityService private readonly integrityService: IIntegrityService,
 		@IExtensionManagementService private readonly extensionManagementService: IExtensionManagementService,
-		@IWorkbenchExtensionEnablementService private readonly extensionEnablementService: IWorkbenchExtensionEnablementService,
-		@IAuthenticationService private readonly authenticationService: IAuthenticationService,
-		@IConfigurationService private readonly configurationService: IConfigurationService,
+		@IProductService private readonly productService: IProductService,
 		@IOpenerService private readonly openerService: IOpenerService,
-		@IWorkbenchEnvironmentService private readonly environmentService: IWorkbenchEnvironmentService
+		@IClipboardService private readonly clipboardService: IClipboardService,
+		@INotificationService private readonly notificationService: INotificationService,
 	) { }
 
-	async openReporter(options: Partial<IssueReporterData>): Promise<void> {
-		// If web reporter setting is false open the old GitHub issue reporter
-		if (!this.configurationService.getValue<boolean>('issueReporter.experimental.webReporter')) {
-			const extensionId = options.extensionId;
-			// If we don't have a extensionId, treat this as a Core issue
-			if (!extensionId) {
-				if (this.productService.reportIssueUrl) {
-					const uri = this.getIssueUriFromStaticContent(this.productService.reportIssueUrl);
-					await this.openerService.open(uri, { openExternal: true });
-					return;
+	async openReporter(options: IssueReportOptions = {}): Promise<void> {
+		let extension: Pick<IExtensionDescription, 'bugs' | 'repository'> | undefined;
+		if (options.extensionId) {
+			try {
+				await this.extensionService.whenInstalledExtensionsRegistered();
+				extension = this.extensionService.extensions.find(extension => extension.identifier.value.toLowerCase() === options.extensionId?.toLowerCase());
+				if (!extension) {
+					const installed = await this.extensionManagementService.getInstalled();
+					extension = installed.find(item => item.identifier.id.toLowerCase() === options.extensionId?.toLowerCase())?.manifest;
 				}
-				throw new Error(`No issue reporting URL configured for ${this.productService.nameLong}.`);
+			} catch {
+				// The product issue page remains available when extensions cannot be enumerated.
 			}
-
-			const selectedExtension = this.extensionService.extensions.filter(ext => ext.identifier.value === options.extensionId)[0];
-			const extensionGitHubUrl = this.getExtensionGitHubUrl(selectedExtension);
-			if (!extensionGitHubUrl) {
-				throw new Error(`Unable to find issue reporting url for ${extensionId}`);
-			}
-			const uri = this.getIssueUriFromStaticContent(`${extensionGitHubUrl}/issues/new`, selectedExtension);
-			await this.openerService.open(uri, { openExternal: true });
+		}
+		const url = getIssueReportUrl(this.productService.reportIssueUrl, extension);
+		if (!url) {
+			this.notificationService.error(localize('issueDestinationMissing', "No issue reporting URL is configured."));
+			return;
 		}
 
-		if (this.productService.reportIssueUrl) {
-			const theme = this.themeService.getColorTheme();
-			const experiments = await this.experimentService.getCurrentExperiments();
-
-			let githubAccessToken = '';
-			try {
-				const githubSessions = await this.authenticationService.getSessions('github');
-				const potentialSessions = githubSessions.filter(session => session.scopes.includes('repo'));
-				githubAccessToken = potentialSessions[0]?.accessToken;
-			} catch (e) {
-				// Ignore
-			}
-
-			// Default to true (pure) so an integrity-check failure doesn't push an
-			// inaccurate `Modes: ..., Unsupported` line into the issue body.
-			let isInstallationPure = true;
-			try {
-				isInstallationPure = (await this.integrityService.isPure()).isPure;
-			} catch (e) {
-				// Ignore
-			}
-
-			const extensionData: IssueReporterExtensionData[] = [];
-			try {
-				const extensions = await this.extensionManagementService.getInstalled();
-				const enabledExtensions = extensions.filter(extension => this.extensionEnablementService.isEnabled(extension) || (options.extensionId && extension.identifier.id === options.extensionId));
-				extensionData.push(...enabledExtensions.map((extension): IssueReporterExtensionData => {
-					const { manifest } = extension;
-					const manifestKeys = manifest.contributes ? Object.keys(manifest.contributes) : [];
-					const isTheme = !manifest.main && !manifest.browser && manifestKeys.length === 1 && manifestKeys[0] === 'themes';
-					const isBuiltin = extension.type === ExtensionType.System;
-					return {
-						name: manifest.name,
-						publisher: manifest.publisher,
-						version: manifest.version,
-						repositoryUrl: manifest.repository && manifest.repository.url,
-						bugsUrl: manifest.bugs && manifest.bugs.url,
-						displayName: manifest.displayName,
-						id: extension.identifier.id,
-						data: options.data,
-						uri: options.uri,
-						isTheme,
-						isBuiltin,
-						extensionData: 'Extensions data loading',
-					};
-				}));
-			} catch (e) {
-				extensionData.push({
-					name: 'Workbench Issue Service',
-					publisher: 'Unknown',
-					version: 'Unknown',
-					repositoryUrl: undefined,
-					bugsUrl: undefined,
-					extensionData: `Extensions not loaded: ${e}`,
-					displayName: `Extensions not loaded: ${e}`,
-					id: 'workbench.issue',
-					isTheme: false,
-					isBuiltin: true
-				});
-			}
-
-			const issueReporterData: IssueReporterData = Object.assign({
-				styles: getIssueReporterStyles(theme),
-				zoomLevel: getZoomLevel(mainWindow),
-				enabledExtensions: extensionData,
-				experiments: experiments?.join('\n'),
-				restrictedMode: !this.workspaceTrustManagementService.isWorkspaceTrusted(),
-				isInstallationPure,
-				isSessionsWindow: this.environmentService.isSessionsWindow,
-				githubAccessToken
-			}, options);
-
-			return this.issueFormService.openReporter(issueReporterData);
-		}
-		throw new Error(`No issue reporting URL configured for ${this.productService.nameLong}.`);
-
-	}
-
-	private getExtensionGitHubUrl(extension: IExtensionDescription): string {
-		if (extension.isBuiltin && this.productService.reportIssueUrl) {
-			return normalizeGitHubUrl(this.productService.reportIssueUrl);
+		const details = [
+			options.extensionId && localize('issueExtension', "Extension: {0}", options.extensionId),
+			options.issueTitle && localize('issueTitle', "Title: {0}", options.issueTitle),
+			options.issueBody
+		].filter((part): part is string => !!part).join('\n\n');
+		if (details) {
+			await this.clipboardService.writeText(details);
+			this.notificationService.info(localize('issueDetailsCopied', "Issue details were copied to the clipboard. Paste them into the issue page."));
 		}
 
-		let repositoryUrl = '';
-
-		const bugsUrl = extension?.bugs?.url;
-		const extensionUrl = extension?.repository?.url;
-
-		// If given, try to match the extension's bug url
-		if (bugsUrl && bugsUrl.match(/^https?:\/\/github\.com\/(.*)/)) {
-			repositoryUrl = normalizeGitHubUrl(bugsUrl);
-		} else if (extensionUrl && extensionUrl.match(/^https?:\/\/github\.com\/(.*)/)) {
-			repositoryUrl = normalizeGitHubUrl(extensionUrl);
-		}
-
-		return repositoryUrl;
-	}
-
-	private getIssueUriFromStaticContent(baseUri: string, extension?: IExtensionDescription): string {
-		const issueDescription = `ADD ISSUE DESCRIPTION HERE
-
-Version: ${this.productService.version}
-Commit: ${this.productService.commit ?? 'unknown'}
-User Agent: ${userAgent ?? 'unknown'}
-Embedder: ${this.productService.embedderIdentifier ?? 'unknown'}
-${extension?.version ? `\nExtension version: ${extension.version}` : ''}
-<!-- generated by web issue reporter -->`;
-
-		return `${baseUri}?body=${encodeURIComponent(issueDescription)}&labels=web`;
+		await this.openerService.open(url, { openExternal: true });
 	}
 }
-
-export function getIssueReporterStyles(theme: IColorTheme): IssueReporterStyles {
-	return {
-		backgroundColor: getColor(theme, SIDE_BAR_BACKGROUND),
-		color: getColor(theme, foreground),
-		textLinkColor: getColor(theme, textLinkForeground),
-		textLinkActiveForeground: getColor(theme, textLinkActiveForeground),
-		inputBackground: getColor(theme, inputBackground),
-		inputForeground: getColor(theme, inputForeground),
-		inputBorder: getColor(theme, inputBorder),
-		inputActiveBorder: getColor(theme, inputActiveOptionBorder),
-		inputErrorBorder: getColor(theme, inputValidationErrorBorder),
-		inputErrorBackground: getColor(theme, inputValidationErrorBackground),
-		inputErrorForeground: getColor(theme, inputValidationErrorForeground),
-		buttonBackground: getColor(theme, buttonBackground),
-		buttonForeground: getColor(theme, buttonForeground),
-		buttonHoverBackground: getColor(theme, buttonHoverBackground),
-		sliderActiveColor: getColor(theme, scrollbarSliderActiveBackground),
-		sliderBackgroundColor: getColor(theme, scrollbarSliderBackground),
-		sliderHoverColor: getColor(theme, scrollbarSliderHoverBackground),
-	};
-}
-
-function getColor(theme: IColorTheme, key: string): string | undefined {
-	const color = theme.getColor(key);
-	return color ? color.toString() : undefined;
-}
-
-registerSingleton(IWorkbenchIssueService, BrowserIssueService, InstantiationType.Delayed);

@@ -311,14 +311,7 @@ class TimerCellStatusBarItem extends Disposable {
 			for (const key in renderDuration) {
 				const rendererInfo = this._notebookService.getRendererInfo(key);
 
-				const args = encodeURIComponent(JSON.stringify({
-					extensionId: rendererInfo?.extensionId.value ?? '',
-					issueBody:
-						`Auto-generated text from notebook cell performance - Please add an explanation for the performance issue, including cell content if possible.\n` +
-						`The duration for the renderer, ${rendererInfo?.displayName ?? key}, is slower than expected.\n` +
-						`Execution Time: ${formatCellDuration(executionDuration)}\n` +
-						`Renderer Duration: ${formatCellDuration(renderDuration[key])}\n`
-				}));
+				const args = encodeURIComponent(JSON.stringify({ extensionId: rendererInfo?.extensionId.value ?? '' }));
 
 				// Show a link to create an issue if the renderer was slow compared to the execution duration, or just exceptionally slow on its own
 				const renderIssueLink = (renderDuration[key] > 200 && executionDuration < 2000) || renderDuration[key] > 1000;
@@ -327,7 +320,7 @@ class TimerCellStatusBarItem extends Disposable {
 				renderTimes += `- ${rendererTitle} ${formatCellDuration(renderDuration[key])}\n`;
 			}
 
-			renderTimes += `\n*${localize('notebook.cell.statusBar.timerTooltip.reportIssueFootnote', "Use the links above to file an issue using the issue reporter.")}*\n`;
+			renderTimes += `\n*${localize('notebook.cell.statusBar.timerTooltip.reportIssueFootnote', "Use the links above to open an issue page. Include the render times above when reporting the problem.")}*\n`;
 
 			tooltip = {
 				value: localize('notebook.cell.statusBar.timerTooltip', "**Last Execution** {0}\n\n**Execution Time** {1}\n\n**Overhead Time** {2}\n\n**Render Times**\n\n{3}", lastExecution, formatCellDuration(executionDuration), formatCellDuration(timerDuration - executionDuration), renderTimes),

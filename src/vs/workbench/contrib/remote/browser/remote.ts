@@ -206,7 +206,7 @@ class HelpModel extends Disposable {
 
 		if (helpItems.length) {
 			const helpItemValues = this.viewModel.helpInformation.map(info => this.createHelpItemValue(info, 'reportIssue'));
-			const issueReporterItem = this.items?.find(item => item.icon === icons.reportIssuesIcon) ?? new IssueReporterItem(
+			const reportIssueItem = this.items?.find(item => item.icon === icons.reportIssuesIcon) ?? new ReportIssueItem(
 				icons.reportIssuesIcon,
 				nls.localize('remote.help.report', "Report Issue"),
 				helpItemValues,
@@ -217,8 +217,8 @@ class HelpModel extends Disposable {
 				this.remoteExplorerService,
 				this.workspaceContextService
 			);
-			issueReporterItem.values = helpItemValues;
-			helpItems.push(issueReporterItem);
+			reportIssueItem.values = helpItemValues;
+			helpItems.push(reportIssueItem);
 		}
 
 		if (helpItems.length) {
@@ -403,7 +403,7 @@ class HelpItem extends HelpItemBase {
 	}
 }
 
-class IssueReporterItem extends HelpItemBase {
+class ReportIssueItem extends HelpItemBase {
 	constructor(
 		icon: ThemeIcon,
 		label: string,
@@ -438,7 +438,7 @@ class IssueReporterItem extends HelpItemBase {
 		if (!url) {
 			await this.commandService.executeCommand('workbench.action.openIssueReporter', [extensionDescription.identifier.value]);
 		} else {
-			await this.openerService.open(URI.parse(url));
+			await this.openerService.open(URI.parse(url), { openExternal: true });
 		}
 	}
 }
