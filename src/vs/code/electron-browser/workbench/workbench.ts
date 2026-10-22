@@ -72,18 +72,18 @@ import { getPartsSplashColors, getPartsSplashLayoutMetrics } from './partsSplash
 		} else if (configuration.autoDetectColorScheme) {
 			if (configuration.colorScheme.dark) {
 				baseTheme = 'vs-dark';
-				shellBackground = '#171A22';
-				shellForeground = '#D8DBE3';
+				shellBackground = '#16161e';
+				shellForeground = '#787c99';
 			} else {
 				baseTheme = 'vs';
 				shellBackground = '#FFFFFF';
 				shellForeground = '#000000';
 			}
 		} else {
-			// The first window has no saved splash yet. Match the default ES Code Dark theme.
+			// The first window has no saved splash yet. Match the default Tokyo Night theme.
 			baseTheme = 'vs-dark';
-			shellBackground = '#171A22';
-			shellForeground = '#D8DBE3';
+			shellBackground = '#16161e';
+			shellForeground = '#787c99';
 		}
 
 		const style = document.createElement('style');

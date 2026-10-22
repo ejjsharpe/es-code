@@ -14,7 +14,6 @@ const repoRoot = path.resolve(__dirname, '../..');
 const isStaticComponentExplorerBuild = process.env['COMPONENT_EXPLORER_STATIC_BUILD'] === '1';
 const builtInFileIconThemeDirectories = [
 	'extensions/theme-defaults/fileicons',
-	'extensions/theme-seti/icons',
 ];
 
 function findFreePort(startPort: number): Promise<number> {
@@ -107,10 +106,9 @@ export default {
 				},
 			},
 			{
-				// Built-in color theme JSON files use JSONC (comments / trailing
-				// commas), so import them as raw strings and let VS Code's
-				// JSON parser handle them.
-				test: /[\\/]extensions[\\/]theme-[^\\/]+[\\/]themes[\\/].*\.json$/,
+				// Color theme JSON files, including test-only fixture themes, use JSONC
+				// (comments / trailing commas). Pass raw text to VS Code's parser.
+				test: /(?:[\\/]extensions[\\/]theme-[^\\/]+[\\/]themes|[\\/]componentFixtures[\\/]themeAssets)[\\/].*\.json$/,
 				type: 'asset/source',
 			},
 		],

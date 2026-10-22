@@ -678,22 +678,9 @@ function createLayoutFixtures() {
 			}),
 			expectedVisualDescriptions: ['Without reserved action space, the active clean tab keeps its Close action visible while inactive clean tabs hide theirs until hover or focus.'],
 		}),
-		FileIconsMinimal: defineComponentFixture({
-			fileIconTheme: 'vs-minimal',
+		FileIconsNomo: defineComponentFixture({
+			fileIconTheme: 'vs-nomo-dark',
 			render: render(true, {}),
-		}),
-		FileIconsModernWelcome: defineComponentFixture({
-			fileIconTheme: 'vscode-modern-icons',
-			render: render(true, {
-				editors: [{
-					resource: URI.from({ scheme: Schemas.walkThrough, authority: 'vscode_getting_started_page' }),
-					name: 'Welcome',
-					pinned: true,
-					active: true,
-				}],
-				width: 320,
-			}),
-			expectedVisualDescriptions: ['The Welcome tab displays one full-color product icon without a generic file mask or overlapping artwork.'],
 		}),
 		FileIconsNone: defineComponentFixture({
 			fileIconTheme: 'none',

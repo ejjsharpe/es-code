@@ -6,8 +6,8 @@
 import * as nls from '../../../../nls.js';
 import * as types from '../../../../base/common/types.js';
 import { IExtensionService } from '../../extensions/common/extensions.js';
-import { IWorkbenchThemeService, IWorkbenchColorTheme, IWorkbenchFileIconTheme, ExtensionData, ThemeSettings, IWorkbenchProductIconTheme, ThemeSettingTarget, ThemeSettingDefaults, COLOR_THEME_DARK_INITIAL_COLORS, COLOR_THEME_ES_CODE_DARK_INITIAL_COLORS, COLOR_THEME_LIGHT_INITIAL_COLORS, migrateThemeSettingsId, IColorMap } from '../common/workbenchThemeService.js';
-import { IStorageService, StorageScope, StorageTarget } from '../../../../platform/storage/common/storage.js';
+import { IWorkbenchThemeService, IWorkbenchColorTheme, IWorkbenchFileIconTheme, ExtensionData, ThemeSettings, IWorkbenchProductIconTheme, ThemeSettingTarget, ThemeSettingDefaults, COLOR_THEME_TOKYO_NIGHT_INITIAL_COLORS, migrateThemeSettingsId, IColorMap } from '../common/workbenchThemeService.js';
+import { IStorageService } from '../../../../platform/storage/common/storage.js';
 import { ITelemetryService } from '../../../../platform/telemetry/common/telemetry.js';
 import { Registry } from '../../../../platform/registry/common/platform.js';
 import * as errors from '../../../../base/common/errors.js';
@@ -43,15 +43,12 @@ import { getColorRegistry } from '../../../../platform/theme/common/colorRegistr
 import { ILanguageService } from '../../../../editor/common/languages/language.js';
 import { mainWindow } from '../../../../base/browser/window.js';
 import { generateColorThemeCSS } from './colorThemeCss.js';
-import { INotificationService, Severity } from '../../../../platform/notification/common/notification.js';
-import { IHostService } from '../../host/browser/host.js';
-import { toAction } from '../../../../base/common/actions.js';
 
 // implementation
 
 const defaultThemeExtensionId = 'vscode-theme-defaults';
 
-const DEFAULT_FILE_ICON_THEME_ID = 'vscode.vscode-theme-seti-vs-seti';
+const DEFAULT_FILE_ICON_THEME_ID = 'vscode.theme-defaults-vs-nomo-dark';
 const fileIconsEnabledClass = 'file-icons-enabled';
 
 const colorThemeRulesClassName = 'contributedColorTheme';
@@ -63,10 +60,11 @@ const themingRegistry = Registry.as<IThemingRegistry>(ThemingExtensions.ThemingC
 function validateThemeId(theme: string): string {
 	// migrations
 	switch (theme) {
-		case ThemeTypeSelector.VS: return `vs ${defaultThemeExtensionId}-themes-light_vs-json`;
-		case ThemeTypeSelector.VS_DARK: return `vs-dark ${defaultThemeExtensionId}-themes-dark_vs-json`;
-		case ThemeTypeSelector.HC_BLACK: return `hc-black ${defaultThemeExtensionId}-themes-hc_black-json`;
-		case ThemeTypeSelector.HC_LIGHT: return `hc-light ${defaultThemeExtensionId}-themes-hc_light-json`;
+		case ThemeTypeSelector.VS:
+		case ThemeTypeSelector.VS_DARK:
+		case ThemeTypeSelector.HC_BLACK:
+		case ThemeTypeSelector.HC_LIGHT:
+			return `vs-dark ${defaultThemeExtensionId}-themes-tokyo-night-color-theme-json`;
 	}
 	return theme;
 }
@@ -114,9 +112,7 @@ export class WorkbenchThemeService extends Disposable implements IWorkbenchTheme
 		@ILogService private readonly logService: ILogService,
 		@IHostColorSchemeService private readonly hostColorService: IHostColorSchemeService,
 		@IUserDataInitializationService private readonly userDataInitializationService: IUserDataInitializationService,
-		@ILanguageService private readonly languageService: ILanguageService,
-		@INotificationService private readonly notificationService: INotificationService,
-		@IHostService private readonly hostService: IHostService
+		@ILanguageService private readonly languageService: ILanguageService
 	) {
 		super();
 		this.container = layoutService.mainContainer;
@@ -147,13 +143,12 @@ export class WorkbenchThemeService extends Disposable implements IWorkbenchTheme
 		// themes are loaded asynchronously, we need to initialize
 		// a color theme document with good defaults until the theme is loaded
 		let themeData: ColorThemeData | undefined = ColorThemeData.fromStorageData(this.storageService);
-		const previousColorThemeSetting = themeData?.settingsId;
 		const colorThemeSetting = this.settings.colorTheme;
 		if (themeData && colorThemeSetting !== themeData.settingsId) {
 			themeData = undefined;
 		}
 
-		const defaultColorMap = colorThemeSetting === 'ES Code Dark' ? COLOR_THEME_ES_CODE_DARK_INITIAL_COLORS : colorThemeSetting === ThemeSettingDefaults.COLOR_THEME_LIGHT ? COLOR_THEME_LIGHT_INITIAL_COLORS : colorThemeSetting === ThemeSettingDefaults.COLOR_THEME_DARK ? COLOR_THEME_DARK_INITIAL_COLORS : undefined;
+		const defaultColorMap = colorThemeSetting === ThemeSettingDefaults.COLOR_THEME_DARK ? COLOR_THEME_TOKYO_NIGHT_INITIAL_COLORS : undefined;
 		if (!themeData) {
 			const initialColorTheme = environmentService.options?.initialColorTheme;
 			if (initialColorTheme) {
@@ -181,7 +176,7 @@ export class WorkbenchThemeService extends Disposable implements IWorkbenchTheme
 			this.installConfigurationListener();
 			this.installPreferredSchemeListener();
 			this.installRegistryListeners();
-			this.initialize(previousColorThemeSetting).catch(errors.onUnexpectedError);
+			this.initialize().catch(errors.onUnexpectedError);
 		});
 
 		const codiconStyleSheet = createStyleSheet();
@@ -197,7 +192,7 @@ export class WorkbenchThemeService extends Disposable implements IWorkbenchTheme
 		delayer.schedule();
 	}
 
-	private async initialize(themePreviousSettingsId: string | undefined): Promise<[IWorkbenchColorTheme | null, IWorkbenchFileIconTheme | null, IWorkbenchProductIconTheme | null]> {
+	private async initialize(): Promise<[IWorkbenchColorTheme | null, IWorkbenchFileIconTheme | null, IWorkbenchProductIconTheme | null]> {
 		const extDevLocs = this.environmentService.extensionDevelopmentLocationURI;
 		const extDevLoc = extDevLocs && extDevLocs.length === 1 ? extDevLocs[0] : undefined; // in dev mode, switch to a theme provided by the extension under dev.
 
@@ -247,78 +242,22 @@ export class WorkbenchThemeService extends Disposable implements IWorkbenchTheme
 		};
 
 
-		this.migrateColorThemeSettings();
+		this.migrateThemeSettings();
 		const result = await Promise.all([initializeColorTheme(), initializeFileIconTheme(), initializeProductIconTheme()]);
-		await this.showNewDefaultThemeNotification(themePreviousSettingsId);
 		return result;
 	}
 
-	private static readonly NEW_THEME_NOTIFICATION_KEY = 'workbench.newDefaultThemeNotification';
-
-	private async showNewDefaultThemeNotification(previousSettingsId: string | undefined): Promise<void> {
-		if (this.storageService.getBoolean(WorkbenchThemeService.NEW_THEME_NOTIFICATION_KEY, StorageScope.APPLICATION)) {
-			return; // already shown
-		}
-		if (!(await this.hostService.hadLastFocus()) || this.environmentService.isSessionsWindow) {
-			return;
-		}
-		try {
-			if (!this.settings.isDefaultColorTheme() || !previousSettingsId) {
-				return;
-			}
-			previousSettingsId = migrateThemeSettingsId(previousSettingsId);
-			if (!['Dark Modern', 'Light Modern'].includes(previousSettingsId)) {
-				return;
-			}
-			if (![ThemeSettingDefaults.COLOR_THEME_DARK, ThemeSettingDefaults.COLOR_THEME_LIGHT].includes(this.settings.colorTheme)) {
-				return;
-			}
-		} finally {
-			// remeber to not show the dialog again
-			this.storageService.store(WorkbenchThemeService.NEW_THEME_NOTIFICATION_KEY, true, StorageScope.APPLICATION, StorageTarget.USER);
-		}
-
-		const keepTheme = await new Promise(resolve => {
-			this.notificationService.prompt(
-				Severity.Info,
-				nls.localize({ key: 'themeUpdatedNotification', comment: ['{0} is the name of the new default theme'] }, "VS Code has a new default theme: '{0}'.", this.getColorTheme().label),
-				[
-					toAction({
-						id: 'themeUpdated.tryItOut',
-						label: nls.localize('tryNewTheme', "Keep It"),
-						run: () => resolve(true)
-					}),
-					toAction({
-						id: 'themeUpdated.noThanks',
-						label: nls.localize('noThanks', "No Thanks"),
-						run: () => resolve(false)
-					})
-				],
-				{
-					onCancel: () => resolve(false)
-				}
-			);
-		});
-
-		if (!keepTheme) {
-			const previousTheme = this.colorThemeRegistry.findThemeBySettingsId(previousSettingsId);
-			if (previousTheme) {
-				this.setColorTheme(previousTheme.id, 'auto');
-			}
-		}
-	}
-
 	/**
-	 * Migrates legacy theme setting values to their current equivalents,
-	 * writing back the migrated value so settings sync distributes the correct ID.
+	 * Migrates settings for removed built-in themes to the source-controlled defaults.
 	 */
-	private migrateColorThemeSettings(): void {
+	private migrateThemeSettings(): void {
 		const themeSettings = [
 			ThemeSettings.COLOR_THEME,
 			ThemeSettings.PREFERRED_DARK_THEME,
 			ThemeSettings.PREFERRED_LIGHT_THEME,
 			ThemeSettings.PREFERRED_HC_DARK_THEME,
 			ThemeSettings.PREFERRED_HC_LIGHT_THEME,
+			ThemeSettings.FILE_ICON_THEME,
 		];
 		for (const key of themeSettings) {
 			const inspection = this.configurationService.inspect<string>(key);
@@ -328,7 +267,7 @@ export class WorkbenchThemeService extends Disposable implements IWorkbenchTheme
 				[ConfigurationTarget.WORKSPACE, inspection.workspaceValue],
 			] as const) {
 				if (value) {
-					const migrated = migrateThemeSettingsId(value);
+					const migrated = key === ThemeSettings.FILE_ICON_THEME && value === 'vscode-modern-icons' ? ThemeSettingDefaults.FILE_ICON_THEME : migrateThemeSettingsId(value);
 					if (migrated !== value) {
 						this.configurationService.updateValue(key, migrated, target);
 					}

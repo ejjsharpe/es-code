@@ -19,9 +19,9 @@ import { ILogService, LogLevel } from '../../log/common/log.js';
 import { IThemeMainService } from './themeMainService.js';
 
 // These default colors match our default themes
-// Match the editor background of the default ES Code Dark theme before a splash has been saved.
+// Match the editor background of the default Tokyo Night theme before a splash has been saved.
 const DEFAULT_BG_LIGHT = '#FFFFFF';
-const DEFAULT_BG_DARK = '#171A22';
+const DEFAULT_BG_DARK = '#16161e';
 const DEFAULT_BG_HC_BLACK = '#000000';
 const DEFAULT_BG_HC_LIGHT = '#FFFFFF';
 

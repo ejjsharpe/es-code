@@ -26,7 +26,7 @@ suite('Component fixture TextMate syntax highlighting', () => {
 	const disposables = ensureNoDisposablesAreLeakedInTestSuite();
 	const darkTheme = ColorThemeData.fromExtensionTheme(
 		{ id: '2026-dark', path: '2026-dark.json', uiTheme: ThemeTypeSelector.VS_DARK, _watch: false },
-		fixtureResourceUri('extensions/theme-defaults/themes/2026-dark.json'),
+		fixtureResourceUri('src/vs/workbench/test/browser/componentFixtures/themeAssets/2026-dark.json'),
 		ExtensionData.fromName('vscode', 'theme-defaults', true),
 	);
 	const themeLoader = new class implements IExtensionResourceLoaderService {
@@ -145,7 +145,7 @@ suite('Component fixture TextMate syntax highlighting', () => {
 		for (const variant of variants) {
 			const theme = ColorThemeData.fromExtensionTheme(
 				{ id: variant.name, path: variant.path, uiTheme: variant.uiTheme, _watch: false },
-				fixtureResourceUri(`extensions/theme-defaults/themes/${variant.path}`),
+				fixtureResourceUri(`src/vs/workbench/test/browser/componentFixtures/themeAssets/${variant.path}`),
 				ExtensionData.fromName('vscode', 'theme-defaults', true),
 			);
 			await theme.ensureLoaded(themeLoader);

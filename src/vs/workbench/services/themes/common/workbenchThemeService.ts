@@ -40,22 +40,22 @@ export enum ThemeSettings {
 }
 
 export namespace ThemeSettingDefaults {
-	export const COLOR_THEME_DARK = 'Dark 2026';
-	export const COLOR_THEME_LIGHT = 'Light 2026';
-	export const COLOR_THEME_HC_DARK = 'Default High Contrast';
-	export const COLOR_THEME_HC_LIGHT = 'Default High Contrast Light';
+	export const COLOR_THEME_DARK = 'Tokyo Night';
+	export const COLOR_THEME_LIGHT = 'Tokyo Night';
+	export const COLOR_THEME_HC_DARK = 'Tokyo Night';
+	export const COLOR_THEME_HC_LIGHT = 'Tokyo Night';
 
-	export const FILE_ICON_THEME = 'vs-seti';
+	export const FILE_ICON_THEME = 'vs-nomo-dark';
 	export const PRODUCT_ICON_THEME = 'Default';
 }
 
 /**
  * Migrates legacy theme settings IDs to their current equivalents.
- * Theme IDs were simplified: "Default" prefix was removed from built-in themes,
- * and "Experimental" prefix was replaced when VS Code themes became GA.
+ * Preserve legacy IDs and migrate the former ES Code default to Tokyo Night.
  */
 export function migrateThemeSettingsId(settingsId: string): string {
 	switch (settingsId) {
+		case 'ES Code Dark': return ThemeSettingDefaults.COLOR_THEME_DARK;
 		case 'Default Dark Modern': return 'Dark Modern';
 		case 'Default Light Modern': return 'Light Modern';
 		case 'Default Dark+': return 'Dark+';
@@ -212,123 +212,41 @@ export const COLOR_THEME_DARK_INITIAL_COLORS = {
 	'widget.border': '#313131'
 };
 
-// Keep these overrides in sync with extensions/theme-defaults/themes/es-code-dark.json.
-// The theme extension loads after the first workbench paint.
-export const COLOR_THEME_ES_CODE_DARK_INITIAL_COLORS = {
+// Match the source-controlled Tokyo Night theme until the extension theme loads.
+export const COLOR_THEME_TOKYO_NIGHT_INITIAL_COLORS = {
 	...COLOR_THEME_DARK_INITIAL_COLORS,
-	'foreground': '#D8DBE3',
-	'descriptionForeground': '#9AA3B2',
-	'disabledForeground': '#6E7481',
-	'icon.foreground': '#ABB3C1',
-	'focusBorder': '#87AAFF',
-	'textLink.foreground': '#9AB8FF',
-	'textLink.activeForeground': '#C5D6FF',
-	'button.background': '#466BB8',
-	'button.hoverBackground': '#4F73C1',
-	'button.border': '#7295E3',
-	'button.secondaryBackground': '#2D3440',
-	'button.secondaryForeground': '#D8DBE3',
-	'button.secondaryHoverBackground': '#373E4B',
-	'input.background': '#1D212A',
-	'input.border': '#3E4654',
-	'input.foreground': '#D8DBE3',
-	'input.placeholderForeground': '#9AA3B2',
-	'dropdown.background': '#1D212A',
-	'dropdown.border': '#3E4654',
-	'dropdown.foreground': '#D8DBE3',
-	'list.activeSelectionBackground': '#5D83D151',
-	'list.activeSelectionForeground': '#F2F6FF',
-	'list.inactiveSelectionBackground': '#303B50',
-	'list.inactiveSelectionForeground': '#E1E9F8',
-	'list.hoverBackground': '#FFFFFF0D',
-	'list.hoverForeground': '#ECEEF3',
-	'list.focusBackground': '#5D83D151',
-	'list.focusForeground': '#F2F6FF',
-	'list.focusOutline': '#87AAFF',
-	'list.highlightForeground': '#AFC7FF',
-	'list.dropBackground': '#5D83D133',
-	'tree.indentGuidesStroke': '#404752',
-	'badge.background': '#466BB8',
-	'badge.foreground': '#FFFFFF',
-	'activityBar.background': '#20252F',
-	'activityBar.foreground': '#D8DBE3',
-	'activityBar.inactiveForeground': '#9AA3B2',
-	'activityBar.activeBackground': '#2D3440',
-	'activityBar.activeBorder': '#8BACFF',
-	'activityBar.activeFocusBorder': '#87AAFF',
-	'activityBar.border': '#323843',
-	'activityBarTop.background': '#20252F',
-	'activityBarTop.foreground': '#D8DBE3',
-	'activityBarTop.inactiveForeground': '#9AA3B2',
-	'activityBarTop.activeBorder': '#8BACFF',
-	'activityBarBadge.background': '#466BB8',
-	'activityBarBadge.foreground': '#FFFFFF',
-	'sideBar.background': '#20252F',
-	'sideBar.foreground': '#D8DBE3',
-	'sideBar.border': '#323843',
-	'sideBarTitle.background': '#20252F',
-	'sideBarTitle.foreground': '#8BACFF',
-	'sideBarSectionHeader.background': '#20252F',
-	'sideBarSectionHeader.foreground': '#ADB6C3',
-	'sideBarSectionHeader.border': '#323843',
-	'titleBar.activeBackground': '#171A22',
-	'titleBar.activeForeground': '#D8DBE3',
-	'titleBar.inactiveBackground': '#171A22',
-	'titleBar.inactiveForeground': '#9AA3B2',
-	'titleBar.border': '#323843',
-	'editor.background': '#171A22',
-	'editor.foreground': '#D8DBE3',
-	'editorGroup.emptyBackground': '#171A22',
-	'editorGutter.background': '#171A22',
-	'editorStickyScroll.background': '#171A22',
-	'editorStickyScrollHover.background': '#242A35',
-	'editorStickyScroll.border': '#323843',
-	'editorLineNumber.foreground': '#777E8D',
-	'editorLineNumber.activeForeground': '#C8CDD7',
-	'editorCursor.foreground': '#B9CEFF',
-	'editor.selectionBackground': '#5D83D15C',
-	'editor.inactiveSelectionBackground': '#5D83D133',
-	'editorLink.activeForeground': '#9AB8FF',
-	'editorSuggestWidget.focusOutline': '#87AAFF',
-	'editor.lineHighlightBackground': '#FFFFFF08',
-	'editorIndentGuide.background1': '#323843',
-	'editorIndentGuide.activeBackground1': '#6F788A',
-	'editorGroup.border': '#323843',
-	'editorGroupHeader.tabsBackground': '#171A22',
-	'editorGroupHeader.noTabsBackground': '#171A22',
-	'editorGroupHeader.tabsBorder': '#323843',
-	'tab.activeBackground': '#171A22',
-	'tab.activeForeground': '#ECEEF3',
-	'tab.inactiveBackground': '#1E232C',
-	'tab.inactiveForeground': '#9CA3B0',
-	'tab.activeBorderTop': '#8BACFF',
-	'tab.hoverBackground': '#272D37',
-	'panel.background': '#1E232C',
-	'panel.border': '#323843',
-	'panelTitle.activeBorder': '#8BACFF',
-	'panelTitle.activeForeground': '#ECEEF3',
-	'panelTitle.inactiveForeground': '#9AA3B2',
-	'statusBar.background': '#1E232C',
-	'statusBar.foreground': '#ADB6C3',
-	'statusBar.border': '#323843',
-	'statusBar.focusBorder': '#87AAFF',
-	'statusBarItem.focusBorder': '#87AAFF',
-	'statusBarItem.hoverBackground': '#FFFFFF12',
-	'quickInput.background': '#272D37',
-	'quickInput.foreground': '#E3E6ED',
-	'quickInputList.focusBackground': '#466BB8',
-	'menu.background': '#272D37',
-	'menu.foreground': '#E3E6ED',
-	'menu.selectionBackground': '#466BB8',
-	'menu.selectionForeground': '#FFFFFF',
-	'menu.selectionBorder': '#7295E3',
-	'menu.border': '#3E4654',
-	'notificationLink.foreground': '#9AB8FF',
-	'extensionButton.prominentBackground': '#466BB8',
-	'extensionButton.prominentHoverBackground': '#4F73C1',
-	'terminal.background': '#1E232C',
-	'terminal.border': '#323843',
-	'terminal.selectionBackground': '#5D83D133',
+	'foreground': '#787c99',
+	'descriptionForeground': '#515670',
+	'disabledForeground': '#545c7e',
+	'focusBorder': '#545c7e33',
+	'icon.foreground': '#787c99',
+	'button.background': '#3d59a1dd',
+	'button.hoverBackground': '#3d59a1AA',
+	'input.background': '#14141b',
+	'input.foreground': '#a9b1d6',
+	'dropdown.background': '#14141b',
+	'dropdown.foreground': '#787c99',
+	'list.activeSelectionBackground': '#202330',
+	'activityBar.background': '#16161e',
+	'activityBar.foreground': '#787c99',
+	'activityBarTop.foreground': '#787c99',
+	'sideBar.background': '#16161e',
+	'sideBar.foreground': '#787c99',
+	'sideBar.border': '#101014',
+	'titleBar.activeBackground': '#16161e',
+	'titleBar.activeForeground': '#787c99',
+	'titleBar.inactiveBackground': '#16161e',
+	'editor.background': '#1a1b26',
+	'editor.foreground': '#a9b1d6',
+	'editorGroupHeader.tabsBackground': '#16161e',
+	'editorGroupHeader.noTabsBackground': '#16161e',
+	'tab.activeBackground': '#16161e',
+	'tab.inactiveBackground': '#16161e',
+	'panel.background': '#16161e',
+	'panel.border': '#101014',
+	'statusBar.background': '#16161e',
+	'statusBar.foreground': '#787c99',
+	'terminal.background': '#16161e',
 };
 
 export const COLOR_THEME_LIGHT_INITIAL_COLORS = {

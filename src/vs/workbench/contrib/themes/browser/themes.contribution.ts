@@ -562,90 +562,6 @@ registerAction2(class extends Action2 {
 	}
 });
 
-registerAction2(class extends Action2 {
-	constructor() {
-		super({
-			id: 'workbench.action.tryNewDefaultThemes',
-			title: localize2('tryNewDefaultThemes', "Try New Default Themes"),
-			category: Categories.Preferences,
-			f1: true,
-		});
-	}
-	override async run(accessor: ServicesAccessor) {
-		const themeService = accessor.get(IWorkbenchThemeService);
-		const quickInputService = accessor.get(IQuickInputService);
-		const configurationService = accessor.get(IConfigurationService);
-
-		const previousTheme = themeService.getColorTheme();
-		const allThemes = await themeService.getColorThemes();
-		const newThemeSettingsIds = new Set([ThemeSettingDefaults.COLOR_THEME_LIGHT, ThemeSettingDefaults.COLOR_THEME_DARK]);
-		const themes = allThemes.filter(t => newThemeSettingsIds.has(t.settingsId));
-
-		const items: IQuickPickItem[] = themes.map(t => ({
-			id: t.id,
-			label: t.label,
-			description: t.description,
-		}));
-
-		const disposables = new DisposableStore();
-		const picker = disposables.add(quickInputService.createQuickPick<IQuickPickItem>());
-		picker.items = items;
-		picker.placeholder = localize('pickNewTheme', "Pick a new default theme");
-		picker.canSelectMany = false;
-
-		const preferredId = (previousTheme.type === ColorScheme.LIGHT || previousTheme.type === ColorScheme.HIGH_CONTRAST_LIGHT) ? ThemeSettingDefaults.COLOR_THEME_LIGHT : ThemeSettingDefaults.COLOR_THEME_DARK;
-		const activeItem = items.find(i => themes.find(t => t.id === i.id)?.settingsId === preferredId);
-		if (activeItem) {
-			picker.activeItems = [activeItem];
-		}
-
-		disposables.add(picker.onDidChangeActive(selected => {
-			if (selected[0]) {
-				const theme = themes.find(t => t.id === selected[0].id);
-				if (theme) {
-					themeService.setColorTheme(theme, 'preview');
-				}
-			}
-		}));
-
-		disposables.add(picker.onDidAccept(() => {
-			const selected = picker.activeItems[0];
-			const theme = selected ? themes.find(t => t.id === selected.id) : undefined;
-
-			picker.hide();
-
-			if (!theme) {
-				return;
-			}
-
-			(async () => {
-				try {
-					await themeService.setColorTheme(theme, 'auto');
-					await configurationService.updateValue(ThemeSettings.PREFERRED_LIGHT_THEME, ThemeSettingDefaults.COLOR_THEME_LIGHT);
-					await configurationService.updateValue(ThemeSettings.PREFERRED_DARK_THEME, ThemeSettingDefaults.COLOR_THEME_DARK);
-				} catch (error) {
-					if (!isCancellationError(error)) {
-						onUnexpectedError(error);
-					}
-				}
-			})();
-		}));
-
-		const result = new Promise<void>(resolve => {
-			disposables.add(picker.onDidHide(() => {
-				if (!picker.selectedItems.length) {
-					themeService.setColorTheme(previousTheme, undefined);
-				}
-				resolve();
-			}));
-		}).finally(() => disposables.dispose());
-
-		picker.show();
-
-		return result;
-	}
-});
-
 CommandsRegistry.registerCommand('workbench.action.previewColorTheme', async function (accessor: ServicesAccessor, extension: { publisher: string; name: string; version: string }, themeSettingsId?: string) {
 	const themeService = accessor.get(IWorkbenchThemeService);
 
@@ -692,8 +608,7 @@ function isItem(i: QuickPickInput<ThemeItem>): i is ThemeItem {
 }
 
 const defaultThemeDescriptions: Record<string, string> = {
-	[ThemeSettingDefaults.COLOR_THEME_LIGHT]: localize('defaultLight', "Default Light"),
-	[ThemeSettingDefaults.COLOR_THEME_DARK]: localize('defaultDark', "Default Dark"),
+	[ThemeSettingDefaults.COLOR_THEME_DARK]: localize('defaultTheme', "Built-in Theme"),
 };
 
 function toEntry(theme: IWorkbenchTheme): ThemeItem {
@@ -711,7 +626,7 @@ function toEntry(theme: IWorkbenchTheme): ThemeItem {
 }
 
 function toEntries(themes: Array<IWorkbenchTheme>, label?: string): QuickPickInput<ThemeItem>[] {
-	const pinnedIds = new Set([ThemeSettingDefaults.COLOR_THEME_DARK, ThemeSettingDefaults.COLOR_THEME_LIGHT]);
+	const pinnedIds = new Set([ThemeSettingDefaults.COLOR_THEME_DARK]);
 	const sorter = (t1: ThemeItem, t2: ThemeItem) => {
 		const pin1 = pinnedIds.has(t1.theme?.settingsId ?? '');
 		const pin2 = pinnedIds.has(t2.theme?.settingsId ?? '');

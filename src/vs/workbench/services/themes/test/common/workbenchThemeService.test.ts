@@ -24,24 +24,21 @@ suite('WorkbenchThemeService', () => {
 
 	suite('migrateThemeSettingsId', () => {
 
-		test('migrates Default-prefixed theme IDs', () => {
+		test('migrates the former ES Code default to Tokyo Night', () => {
+			assert.strictEqual(migrateThemeSettingsId('ES Code Dark'), ThemeSettingDefaults.COLOR_THEME_DARK);
+		});
+
+		test('keeps legacy theme IDs available for installed extensions', () => {
 			assert.deepStrictEqual(
 				['Default Dark Modern', 'Default Light Modern', 'Default Dark+', 'Default Light+'].map(migrateThemeSettingsId),
 				['Dark Modern', 'Light Modern', 'Dark+', 'Light+']
 			);
 		});
 
-		test('migrates Experimental theme IDs to VS Code themes', () => {
-			assert.deepStrictEqual(
-				['Experimental Dark', 'Experimental Light', 'VS Code Dark', 'VS Code Light'].map(migrateThemeSettingsId),
-				[ThemeSettingDefaults.COLOR_THEME_DARK, ThemeSettingDefaults.COLOR_THEME_LIGHT, ThemeSettingDefaults.COLOR_THEME_DARK, ThemeSettingDefaults.COLOR_THEME_LIGHT]
-			);
-		});
-
 		test('returns unknown IDs unchanged', () => {
 			assert.deepStrictEqual(
-				['Dark Modern', 'Dark 2026', 'Some Custom Theme', ''].map(migrateThemeSettingsId),
-				['Dark Modern', 'Dark 2026', 'Some Custom Theme', '']
+				['Some Custom Theme', ''].map(migrateThemeSettingsId),
+				['Some Custom Theme', '']
 			);
 		});
 	});
