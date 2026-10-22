@@ -272,7 +272,6 @@ export class BrowserWorkbenchEnvironmentService implements IBrowserWorkbenchEnvi
 	private payload: Map<string, string> | undefined;
 
 	constructor(
-		private readonly workspaceId: string,
 		readonly logsHome: URI,
 		readonly options: IWorkbenchConstructionOptions,
 		private readonly productService: IProductService

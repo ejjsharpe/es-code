@@ -559,7 +559,7 @@ class TestEnvironmentServiceWithArgs extends BrowserWorkbenchEnvironmentService 
 	args = [];
 }
 
-export const TestEnvironmentService = new TestEnvironmentServiceWithArgs('', URI.file('tests').with({ scheme: 'vscode-tests' }), Object.create(null), TestProductService);
+export const TestEnvironmentService = new TestEnvironmentServiceWithArgs(URI.file('tests').with({ scheme: 'vscode-tests' }), Object.create(null), TestProductService);
 
 export class TestProgressService implements IProgressService {
 
