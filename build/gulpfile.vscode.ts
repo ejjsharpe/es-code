@@ -157,6 +157,14 @@ function packageTask(platform: string, arch: string, sourceFolderName: string, d
 
 		const name = product.nameShort;
 		const packageJsonUpdates: Record<string, unknown> = { name, version };
+		const inactiveAiRuntimePackages = [
+			'@anthropic-ai/claude-agent-sdk',
+			'@anthropic-ai/sdk',
+			'@github/copilot-sdk',
+			'@hpke/core',
+			'@openai/codex',
+			'@vscode/copilot-api',
+		];
 
 		if (platform === 'linux') {
 			packageJsonUpdates.desktopName = `${product.applicationName}.desktop`;
@@ -164,7 +172,12 @@ function packageTask(platform: string, arch: string, sourceFolderName: string, d
 
 		let packageJsonContents: string;
 		const packageJsonStream = gulp.src(['package.json'], { base: '.' })
-			.pipe(jsonEditor(packageJsonUpdates))
+			.pipe(jsonEditor((json: Record<string, unknown>) => {
+				Object.assign(json, packageJsonUpdates);
+				json.dependencies = Object.fromEntries(Object.entries(packageJson.dependencies).filter(([packageName]) => !inactiveAiRuntimePackages.includes(packageName)));
+				json.devDependencies = Object.fromEntries(Object.entries(packageJson.devDependencies).filter(([packageName]) => !inactiveAiRuntimePackages.includes(packageName)));
+				return json;
+			}))
 			.pipe(es.through(function (file) {
 				packageJsonContents = file.contents.toString();
 				this.emit('data', file);
@@ -210,7 +223,7 @@ function packageTask(platform: string, arch: string, sourceFolderName: string, d
 		const osProxyResolverPlatformPackage = gulp.src(getOSProxyResolverPlatformFiles(platform, arch), { base: '.', dot: true, allowEmpty: true });
 		const deps = es.merge(cleanedDeps, osProxyResolverPlatformPackage)
 			.pipe(filter(depFilterPattern, { dot: true }))
-			.pipe(filter(['**', '!**/@github/copilot-sdk/**', '!**/@github/copilot-sdk-*/**', '!**/@vscode/copilot-api/**', '!**/foundry-local-sdk/**']))
+			.pipe(filter(['**', ...inactiveAiRuntimePackages.map(packageName => `!**/${packageName}/**`), '!**/@github/copilot-sdk-*/**', '!**/foundry-local-sdk/**']))
 			.pipe(filter(getRipgrepExcludeFilter(platform, arch)))
 			.pipe(filter(getOSProxyResolverExcludeFilter(platform, arch)))
 			.pipe(jsFilter)
