@@ -6,6 +6,9 @@
 import { KeyCode, KeyMod } from '../../../../base/common/keyCodes.js';
 import { Disposable } from '../../../../base/common/lifecycle.js';
 import { URI } from '../../../../base/common/uri.js';
+import { isCodeEditor, isDiffEditor } from '../../../../editor/browser/editorBrowser.js';
+import { translatePosition } from '../../../../editor/browser/widget/diffEditor/utils.js';
+import { Range } from '../../../../editor/common/core/range.js';
 import { ILanguageService } from '../../../../editor/common/languages/language.js';
 import { IModelService } from '../../../../editor/common/services/model.js';
 import { ITextModelService } from '../../../../editor/common/services/resolverService.js';
@@ -13,6 +16,7 @@ import { localize, localize2 } from '../../../../nls.js';
 import { Action2, MenuId, registerAction2 } from '../../../../platform/actions/common/actions.js';
 import { IConfigurationRegistry, Extensions as ConfigurationExtensions } from '../../../../platform/configuration/common/configurationRegistry.js';
 import { IContextKeyService, RawContextKey } from '../../../../platform/contextkey/common/contextkey.js';
+import { ITextEditorSelection, TextEditorSelectionRevealType } from '../../../../platform/editor/common/editor.js';
 import { ServicesAccessor } from '../../../../platform/instantiation/common/instantiation.js';
 import { InstantiationType, registerSingleton } from '../../../../platform/instantiation/common/extensions.js';
 import { KeybindingWeight } from '../../../../platform/keybinding/common/keybindingsRegistry.js';
@@ -185,11 +189,47 @@ async function toggleDiff(accessor: ServicesAccessor): Promise<void> {
 		return;
 	}
 	const group = groupsService.activeGroup;
+	const control = editorService.activeTextEditorControl;
+	const codeEditor = isDiffEditor(control) ? control.getModifiedEditor() : isCodeEditor(control) ? control : undefined;
+	let cursorEditor = codeEditor;
+	let selection: ITextEditorSelection | undefined = codeEditor?.getSelection() ?? undefined;
+	if (isDiffEditor(control) && control.getOriginalEditor().hasTextFocus()) {
+		cursorEditor = control.getOriginalEditor();
+		const originalSelection = cursorEditor.getSelection();
+		const changes = control.getDiffComputationResult()?.changes2.slice();
+		if (originalSelection && changes) {
+			selection = Range.plusRange(
+				translatePosition(originalSelection.getStartPosition(), changes),
+				translatePosition(originalSelection.getEndPosition(), changes)
+			);
+		}
+	}
+	const cursorPosition = cursorEditor?.getPosition();
+	const cursorTop = cursorPosition && cursorEditor ? cursorEditor.getScrolledVisiblePosition(cursorPosition)?.top : undefined;
+	const visibleCursorTop = cursorEditor && cursorTop !== undefined && cursorTop >= 0 && cursorTop < cursorEditor.getLayoutInfo().height ? cursorTop : undefined;
+	const firstVisibleLine = codeEditor?.getVisibleRanges()[0]?.startLineNumber;
+	const firstVisibleLineOffset = codeEditor && firstVisibleLine !== undefined ? codeEditor.getTopForLineNumber(firstVisibleLine) - codeEditor.getScrollTop() : undefined;
+	const options = { pinned: group.isPinned(editor), selection, selectionRevealType: TextEditorSelectionRevealType.CenterIfOutsideViewport };
+	const restoreScrollPosition = () => {
+		const targetControl = editorService.activeTextEditorControl;
+		const targetEditor = isDiffEditor(targetControl) ? targetControl.getModifiedEditor() : isCodeEditor(targetControl) ? targetControl : undefined;
+		if (targetEditor && visibleCursorTop !== undefined) {
+			const targetPosition = targetEditor.getPosition();
+			if (targetPosition) {
+				targetEditor.setScrollTop(targetEditor.getTopForPosition(targetPosition.lineNumber, targetPosition.column) - visibleCursorTop);
+				return;
+			}
+		}
+		if (targetEditor && firstVisibleLine !== undefined && firstVisibleLineOffset !== undefined) {
+			targetEditor.setScrollTop(targetEditor.getTopForLineNumber(firstVisibleLine) - firstVisibleLineOffset);
+		}
+	};
 	if (editor instanceof DiffEditorInput) {
 		const modified = EditorResourceAccessor.getCanonicalUri(editor, { supportSideBySide: SideBySideEditor.PRIMARY });
 		if (modified && (modified.scheme === 'file' || modified.scheme === 'git')) {
 			const resource = modified.scheme === 'git' ? URI.file(modified.path) : modified;
-			await editorService.replaceEditors([{ editor, replacement: { resource, options: { pinned: group.isPinned(editor) } } }], group);
+			await editorService.replaceEditors([{ editor, replacement: { resource, options } }], group);
+			restoreScrollPosition();
 		}
 		return;
 	}
@@ -210,8 +250,9 @@ async function toggleDiff(accessor: ServicesAccessor): Promise<void> {
 	const modified = change.multiDiffEditorModifiedUri ?? resource.with({ scheme: emptyScheme });
 	await editorService.replaceEditors([{ editor, replacement: {
 		original: { resource: original }, modified: { resource: modified },
-		options: { pinned: group.isPinned(editor) }
+		options
 	} }], group);
+	restoreScrollPosition();
 }
 
 class ToggleDiffAction extends Action2 {
