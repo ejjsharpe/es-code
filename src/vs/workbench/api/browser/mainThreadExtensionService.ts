@@ -32,21 +32,16 @@ import { ITimerService } from '../../services/timer/browser/timerService.js';
 
 const disabledMainThreadActors = new Set<keyof typeof MainContext>([
 	'MainThreadAgentEditorComments',
-	'MainThreadLanguageModels',
-	'MainThreadChatAgents2',
 	'MainThreadCodeMapper',
-	'MainThreadLanguageModelTools',
 	'MainThreadEmbeddings',
 	'MainThreadAiRelatedInformation',
 	'MainThreadAiEmbeddingVector',
 	'MainThreadAiSettingsSearch',
-	'MainThreadMcp',
 	'MainThreadChatContext',
 	'MainThreadChatDebug',
 	'MainThreadChatStatus',
 	'MainThreadChatQuota',
 	'MainThreadChatInputNotification',
-	'MainThreadChatOutputRenderer',
 	'MainThreadChatSessions',
 ]);
 

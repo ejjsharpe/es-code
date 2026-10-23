@@ -7,6 +7,7 @@
 
 // Register editor chat fallbacks before contributions can create quick diff models.
 import './contrib/chat/browser/chat.noop.contribution.js';
+import './contrib/chat/browser/chat.extensionApi.contribution.js';
 
 import '../editor/editor.all.js';
 
