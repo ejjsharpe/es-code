@@ -1,5 +1,7 @@
 # ES Code removal plan: second pass
 
+> Historical implementation record. [ES Code: product direction and removal record](ES_CODE_REMOVAL_PLAN.md) is the current decision source; later choices supersede any older retention requirements here.
+
 **Status:** Implemented and source-validated from `main` commit `12ec2e3e44ead8dac0a659fb772496f06d2a3bea` on 22 October 2026. The existing user edit to `AGENTS.md` is outside this pass and was preserved. This document records the scope, decisions, implementation tracks, and acceptance evidence for the second pass; the [original removal plan](ES_CODE_REMOVAL_PLAN.md) remains the overall decision log.
 
 The goal is to remove workbench features that the current product does not configure or use, while preserving the installed editor, Sessions, extension compatibility, local Dev Containers infrastructure, and the workflows listed in the original plan. Tracked TypeScript line counts below are rough upper bounds on maintenance code, not expected package or startup savings.

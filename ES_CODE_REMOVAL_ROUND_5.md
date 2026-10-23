@@ -1,5 +1,7 @@
 # ES Code removal plan: fifth pass
 
+> Historical implementation record. [ES Code: product direction and removal record](ES_CODE_REMOVAL_PLAN.md) is the current decision source; later choices supersede any older retention requirements here.
+
 **Status:** Implemented in the worktree on 22 October 2026 from `main` commit `942b17f952338c66635ffc3e236817bdfc7f909e`. Focused checks and a disposable macOS arm64 build passed with the runtime limits below. The app in `/Applications` was not changed. The owner's existing staged edit to `AGENTS.md` was preserved. The [overall removal plan](ES_CODE_REMOVAL_PLAN.md) records the retained workflows and earlier acceptance results.
 
 The goal is to simplify local release packaging and remove two workbench paths that this personal desktop build does not use. This pass does not remove built-in extension packages or change the decision to retain Windows and Linux source paths for possible future builds.

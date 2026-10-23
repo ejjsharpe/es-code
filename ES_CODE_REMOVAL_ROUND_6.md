@@ -1,5 +1,7 @@
 # ES Code removal plan: sixth pass
 
+> Historical implementation record. [ES Code: product direction and removal record](ES_CODE_REMOVAL_PLAN.md) is the current decision source; later choices supersede any older retention requirements here.
+
 **Status:** Implemented and validated in the worktree on 23 October 2026, with the runtime limits recorded below. The planning baseline was `566260c23e767c6b146ab9ad66477661df7fb27d`; implementation started from clean commit `aa4057e4acc5e0d59d004e51f7a750ff015e2b4f`. The owner's `AGENTS.md` update was already committed and is preserved. The [overall removal plan](ES_CODE_REMOVAL_PLAN.md) records the editor workflows to retain, and the [fifth pass](ES_CODE_REMOVAL_ROUND_5.md) supplies the comparison package.
 
 **Later owner decision, 23 October 2026:** AI should come only from installed extensions. This supersedes this pass's original requirement to retain built-in local Claude/Codex Agent Host sessions and typed workbench chat. The original scope and acceptance record below remain as historical evidence; the extension-only follow-up and its current limits are at the end of this file.

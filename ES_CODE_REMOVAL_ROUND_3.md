@@ -1,5 +1,7 @@
 # ES Code removal plan: third pass
 
+> Historical implementation record. [ES Code: product direction and removal record](ES_CODE_REMOVAL_PLAN.md) is the current decision source; later choices supersede any older retention requirements here.
+
 **Status:** Implemented, packaged, and installed from `main` commit `ed9d93b0e7147b3db841d74026f5a0b1b66d33b1` on 22 October 2026, against baseline `0ba1087e6f5e963653626fa17390ef5c09c27a27`. The owner approved removal of the built-in issue reporter for this pass and then requested repackaging and installation. The existing user edit to `AGENTS.md` was preserved and excluded from the implementation commit. The [overall removal plan](ES_CODE_REMOVAL_PLAN.md) remains the decision log; the [second-pass plan](ES_CODE_REMOVAL_ROUND_2.md) is historical.
 
 The goal is to replace the classic reporter window and newer wizard with a small external-link path while keeping the two public issue-report commands and callers that pass an extension ID, title, or body.

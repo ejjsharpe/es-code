@@ -1,5 +1,7 @@
 # ES Code removal plan: fourth pass
 
+> Historical implementation record. [ES Code: product direction and removal record](ES_CODE_REMOVAL_PLAN.md) is the current decision source; later choices supersede any older retention requirements here.
+
 **Status:** Implemented and validated on 22 October 2026 from `main` commit `91f66080916853b8df0ec2d91e8f15eaa2ce3602`; the integrated source commit is `cc00cc60ec7227594bca00bcea323184f1689ef1`. A disposable macOS arm64 app was packaged and smoke launched. The installed `/Applications/ES Code.app` was not replaced. The worktree's pre-existing user edit to `AGENTS.md` was preserved and excluded from implementation commits. The [overall removal plan](ES_CODE_REMOVAL_PLAN.md) and [second](ES_CODE_REMOVAL_ROUND_2.md) and [third](ES_CODE_REMOVAL_ROUND_3.md) pass plans remain the decision and acceptance record for earlier work.
 
 The owner uses ES Code as a macOS desktop app and has decided to remove the browser-served editor (`server-web`) and both **Allow Remote Connections** methods for the local Agent Host: Dev Tunnels and GitHub environments. This pass removes remote access to this Mac's Agent Host. It does not remove the local Agent Host, general chat and extension APIs, or the headless server and local port access reserved for local Dev Containers.
