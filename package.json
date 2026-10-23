@@ -23,6 +23,7 @@
     "preinstall": "node build/npm/preinstall.ts",
     "postinstall": "node build/npm/postinstall.ts",
     "install-fast": "node build/npm/fast-install.ts",
+    "install-app": "node build/darwin/install-app.ts",
     "compile": "npm run compile-client",
     "compile-client": "npm run gulp compile",
     "build-fast": "node build/next/build-fast.ts",
