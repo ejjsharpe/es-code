@@ -37,7 +37,7 @@ These are **current locations**, not proposed destinations. Browser workbench re
 
 Copilot Connectors uses the shared GitHub account facade; its former token-bearing request proxy is removed.
 
-The built-in issue reporter was removed in the [third ES Code simplification pass](../../../../ES_CODE_REMOVAL_ROUND_3.md). External issue links use no GitHub API client or token; the remaining GitHub clients above serve other features.
+The built-in issue reporter was removed in the [third ES Code simplification pass](../../../../docs/es-code/ES_CODE_REMOVAL_ROUND_3.md). External issue links use no GitHub API client or token; the remaining GitHub clients above serve other features.
 
 ### B. Built-in extensions other than Copilot
 
