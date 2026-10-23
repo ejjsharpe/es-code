@@ -26,7 +26,6 @@
     "envIsConnectionMetered",
     "quickDiffProvider",
     "quickPickSortByLabel",
-    "scmActionButton",
     "scmArtifactProvider",
     "scmHistoryProvider",
     "scmMultiDiffEditor",
@@ -1900,11 +1899,6 @@
       ],
       "scm/title": [
         {
-          "command": "git.commit",
-          "group": "navigation",
-          "when": "scmProvider == git"
-        },
-        {
           "command": "git.refresh",
           "group": "navigation",
           "when": "scmProvider == git"
@@ -1932,11 +1926,6 @@
         {
           "command": "git.fetch",
           "group": "1_header@5",
-          "when": "scmProvider == git"
-        },
-        {
-          "submenu": "git.commit",
-          "group": "2_main@1",
           "when": "scmProvider == git"
         },
         {
@@ -2011,11 +2000,6 @@
         {
           "command": "git.fetch",
           "group": "1_header@5",
-          "when": "scmProvider == git"
-        },
-        {
-          "submenu": "git.commit",
-          "group": "2_main@1",
           "when": "scmProvider == git"
         },
         {
@@ -2657,11 +2641,6 @@
           "command": "git.pushRef",
           "when": "scmProvider == git && scmCurrentHistoryItemRefHasRemote",
           "group": "navigation@902"
-        },
-        {
-          "command": "git.publish",
-          "when": "scmProvider == git && !scmCurrentHistoryItemRefHasRemote",
-          "group": "navigation@903"
         }
       ],
       "scm/historyItem/context": [
@@ -2896,97 +2875,6 @@
           "when": "config.git.enabled && !git.missing && timelineItem =~ /git:(file|folder|workspace):commit\\b/ && !listMultiSelection"
         }
       ],
-      "git.commit": [
-        {
-          "command": "git.commit",
-          "group": "1_commit@1"
-        },
-        {
-          "command": "git.commitStaged",
-          "group": "1_commit@2"
-        },
-        {
-          "command": "git.commitAll",
-          "group": "1_commit@3"
-        },
-        {
-          "command": "git.undoCommit",
-          "group": "1_commit@4"
-        },
-        {
-          "command": "git.rebaseAbort",
-          "group": "1_commit@5"
-        },
-        {
-          "command": "git.commitNoVerify",
-          "group": "2_commit_noverify@1",
-          "when": "config.git.allowNoVerifyCommit"
-        },
-        {
-          "command": "git.commitStagedNoVerify",
-          "group": "2_commit_noverify@2",
-          "when": "config.git.allowNoVerifyCommit"
-        },
-        {
-          "command": "git.commitAllNoVerify",
-          "group": "2_commit_noverify@3",
-          "when": "config.git.allowNoVerifyCommit"
-        },
-        {
-          "command": "git.commitAmend",
-          "group": "3_amend@1"
-        },
-        {
-          "command": "git.commitStagedAmend",
-          "group": "3_amend@2"
-        },
-        {
-          "command": "git.commitAllAmend",
-          "group": "3_amend@3"
-        },
-        {
-          "command": "git.commitAmendNoVerify",
-          "group": "4_amend_noverify@1",
-          "when": "config.git.allowNoVerifyCommit"
-        },
-        {
-          "command": "git.commitStagedAmendNoVerify",
-          "group": "4_amend_noverify@2",
-          "when": "config.git.allowNoVerifyCommit"
-        },
-        {
-          "command": "git.commitAllAmendNoVerify",
-          "group": "4_amend_noverify@3",
-          "when": "config.git.allowNoVerifyCommit"
-        },
-        {
-          "command": "git.commitSigned",
-          "group": "5_signoff@1"
-        },
-        {
-          "command": "git.commitStagedSigned",
-          "group": "5_signoff@2"
-        },
-        {
-          "command": "git.commitAllSigned",
-          "group": "5_signoff@3"
-        },
-        {
-          "command": "git.commitSignedNoVerify",
-          "group": "6_signoff_noverify@1",
-          "when": "config.git.allowNoVerifyCommit"
-        },
-        {
-          "command": "git.commitStagedSignedNoVerify",
-          "group": "6_signoff_noverify@2",
-          "when": "config.git.allowNoVerifyCommit"
-        },
-        {
-          "command": "git.commitAllSignedNoVerify",
-          "group": "6_signoff_noverify@3",
-          "when": "config.git.allowNoVerifyCommit"
-        }
-      ],
       "git.changes": [
         {
           "command": "git.stageAll",
@@ -3198,10 +3086,6 @@
       ]
     },
     "submenus": [
-      {
-        "id": "git.commit",
-        "label": "%submenu.commit%"
-      },
       {
         "id": "git.changes",
         "label": "%submenu.changes%"
@@ -3889,12 +3773,6 @@
           "default": true,
           "scope": "resource"
         },
-        "git.showCommitInput": {
-          "type": "boolean",
-          "scope": "resource",
-          "default": true,
-          "description": "%config.showCommitInput%"
-        },
         "git.terminalAuthentication": {
           "type": "boolean",
           "default": true,
@@ -3944,31 +3822,6 @@
           "default": false,
           "description": "%config.timeline.showUncommitted%",
           "scope": "window"
-        },
-        "git.showActionButton": {
-          "type": "object",
-          "additionalProperties": false,
-          "description": "%config.showActionButton%",
-          "properties": {
-            "commit": {
-              "type": "boolean",
-              "description": "%config.showActionButton.commit%"
-            },
-            "publish": {
-              "type": "boolean",
-              "description": "%config.showActionButton.publish%"
-            },
-            "sync": {
-              "type": "boolean",
-              "description": "%config.showActionButton.sync%"
-            }
-          },
-          "default": {
-            "commit": true,
-            "publish": true,
-            "sync": true
-          },
-          "scope": "resource"
         },
         "git.statusLimit": {
           "type": "number",
