@@ -44,6 +44,9 @@ export interface IQuickAccessOptions {
 	 */
 	readonly providerPrefix?: string;
 
+	/** Allow an explicit input prefix to override the default provider. */
+	readonly allowPrefixSwitching?: boolean;
+
 	/**
 	 * An optional anchor for the picker.
 	 */

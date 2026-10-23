@@ -451,6 +451,7 @@ Registry.as<IViewsRegistry>(ViewExtensions.ViewsRegistry).registerViews([{
 const viewContainer = Registry.as<IViewContainersRegistry>(ViewExtensions.ViewContainersRegistry).registerViewContainer({
 	id: VIEWLET_ID,
 	title: nls.localize2('run and debug', "Run and Debug"),
+	hideByDefault: true,
 	openCommandActionDescriptor: {
 		id: VIEWLET_ID,
 		mnemonicTitle: nls.localize({ key: 'miViewRun', comment: ['&& denotes a mnemonic'] }, "&&Run"),

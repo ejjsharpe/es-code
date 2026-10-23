@@ -56,7 +56,7 @@ export class QuickAccessController extends Disposable implements IQuickAccessCon
 	private doShowOrPick(value: string, pick: boolean, options?: IQuickAccessOptions): Promise<IQuickPickItem[] | undefined> | void {
 
 		// Find provider for the value to show
-		const [provider, descriptor] = this.getOrInstantiateProvider(value, options?.enabledProviderPrefixes, options?.providerPrefix);
+		const [provider, descriptor] = this.getOrInstantiateProvider(value, options?.enabledProviderPrefixes, options?.providerPrefix, options?.allowPrefixSwitching);
 
 		// Return early if quick access is already showing on that same prefix
 		const visibleQuickAccess = this.visibleQuickAccess;
@@ -111,6 +111,7 @@ export class QuickAccessController extends Disposable implements IQuickAccessCon
 		// and adjust the filtering to exclude the prefix from filtering
 		const disposables = new DisposableStore();
 		const picker = disposables.add(this.quickInputService.createQuickPick({ useSeparators: true }));
+		picker.useCenteredLayout = true;
 		picker.value = value;
 		this.adjustValueSelection(picker, descriptor, options);
 		picker.placeholder = options?.placeholder ?? descriptor?.placeholder;
@@ -212,11 +213,12 @@ export class QuickAccessController extends Disposable implements IQuickAccessCon
 		// Whenever the value changes, check if the provider has
 		// changed and if so - re-create the picker from the beginning
 		disposables.add(picker.onDidChangeValue(value => {
-			const [providerForValue] = this.getOrInstantiateProvider(value, options?.enabledProviderPrefixes, options?.providerPrefix);
+			const [providerForValue] = this.getOrInstantiateProvider(value, options?.enabledProviderPrefixes, options?.providerPrefix, options?.allowPrefixSwitching);
 			if (providerForValue !== provider) {
 				this.show(value, {
 					enabledProviderPrefixes: options?.enabledProviderPrefixes,
 					providerPrefix: options?.providerPrefix,
+					allowPrefixSwitching: options?.allowPrefixSwitching,
 					// do not rewrite value from user typing!
 					preserveValue: true,
 					// persist the value of the providerOptions from the original showing
@@ -237,8 +239,9 @@ export class QuickAccessController extends Disposable implements IQuickAccessCon
 		return disposables;
 	}
 
-	private getOrInstantiateProvider(value: string, enabledProviderPrefixes?: string[], providerPrefix?: string): [IQuickAccessProvider | undefined, IQuickAccessProviderDescriptor | undefined] {
-		const providerDescriptor = this.registry.getQuickAccessProvider(providerPrefix ?? value, this.contextKeyService);
+	private getOrInstantiateProvider(value: string, enabledProviderPrefixes?: string[], providerPrefix?: string, allowPrefixSwitching?: boolean): [IQuickAccessProvider | undefined, IQuickAccessProviderDescriptor | undefined] {
+		const prefixedProvider = allowPrefixSwitching ? this.registry.getQuickAccessProvider(value, this.contextKeyService) : undefined;
+		const providerDescriptor = prefixedProvider?.prefix ? prefixedProvider : this.registry.getQuickAccessProvider(providerPrefix ?? value, this.contextKeyService);
 		if (!providerDescriptor || enabledProviderPrefixes && !enabledProviderPrefixes?.includes(providerDescriptor.prefix)) {
 			return [undefined, undefined];
 		}

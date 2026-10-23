@@ -5,7 +5,7 @@
 
 import { timeout } from '../../../base/common/async.js';
 import { CancellationToken, CancellationTokenSource } from '../../../base/common/cancellation.js';
-import { Disposable, DisposableStore, IDisposable, MutableDisposable } from '../../../base/common/lifecycle.js';
+import { Disposable, DisposableStore, IDisposable, MutableDisposable, toDisposable } from '../../../base/common/lifecycle.js';
 import { IKeyMods, IQuickPickDidAcceptEvent, IQuickPickSeparator, IQuickPick, IQuickPickItem, IQuickInputButton, isKeyModified } from '../common/quickInput.js';
 import { IQuickAccessProvider, IQuickAccessProviderRunOptions } from '../common/quickAccess.js';
 import { isFunction } from '../../../base/common/types.js';
@@ -139,8 +139,19 @@ function isFastAndSlowPicks<T>(obj: unknown): obj is FastAndSlowPicks<T> {
 
 export abstract class PickerQuickAccessProvider<T extends IPickerQuickAccessItem> extends Disposable implements IQuickAccessProvider {
 
+	private readonly pickerRefreshers = new WeakMap<IQuickPick<T, { useSeparators: true }>, () => Promise<void>>();
+
 	constructor(private prefix: string, protected options?: IPickerQuickAccessProviderOptions<T>) {
 		super();
+	}
+
+	protected getFilterValue(value: string, runOptions?: IQuickAccessProviderRunOptions): string {
+		return value.substring(this.prefix.length);
+	}
+
+	/** Refreshes results when provider options change without changing the query. */
+	protected refresh(picker: IQuickPick<T, { useSeparators: true }>): void {
+		void this.pickerRefreshers.get(picker)?.();
 	}
 
 	provide(picker: IQuickPick<T, { useSeparators: true }>, token: CancellationToken, runOptions?: IQuickAccessProviderRunOptions): IDisposable {
@@ -168,7 +179,7 @@ export abstract class PickerQuickAccessProvider<T extends IPickerQuickAccessItem
 
 			// Collect picks and support both long running and short or combined
 			const picksToken = picksCts.token;
-			let picksFilter = picker.value.substring(this.prefix.length);
+			let picksFilter = this.getFilterValue(picker.value, runOptions);
 
 			if (!this.options?.shouldSkipTrimPickFilter) {
 				picksFilter = picksFilter.trim();
@@ -332,6 +343,8 @@ export abstract class PickerQuickAccessProvider<T extends IPickerQuickAccessItem
 				}
 			}
 		};
+		this.pickerRefreshers.set(picker, updatePickerItems);
+		disposables.add(toDisposable(() => this.pickerRefreshers.delete(picker)));
 		disposables.add(picker.onDidChangeValue(() => updatePickerItems()));
 		updatePickerItems();
 

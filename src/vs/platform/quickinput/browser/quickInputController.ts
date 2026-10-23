@@ -189,6 +189,7 @@ export class QuickInputController extends Disposable {
 		}));
 		rightActionBar.getElement().classList.add('quick-input-right-action-bar');
 
+		const header = dom.append(container, $('.quick-input-custom-header'));
 		const headerContainer = dom.append(container, $('.quick-input-header'));
 
 		const checkAll = this._register(new TriStateCheckbox(localize('quickInput.checkAll', "Toggle all checkboxes"), false, { ...defaultCheckboxStyles, size: 15 }));
@@ -248,8 +249,10 @@ export class QuickInputController extends Disposable {
 
 		const widget = dom.append(container, $('.quick-input-html-widget'));
 		widget.tabIndex = -1;
+		const preview = dom.append(container, $('.quick-input-preview'));
 
 		const description1 = dom.append(container, $('.quick-input-description'));
+		const inputDetails = dom.append(container, $('.quick-input-details'));
 
 		// List
 		const listId = this.idPrefix + 'list';
@@ -436,6 +439,9 @@ export class QuickInputController extends Disposable {
 			description1,
 			description2,
 			widget,
+			preview,
+			header,
+			inputDetails,
 			rightActionBar,
 			inlineActionBar,
 			checkAll,
@@ -462,7 +468,27 @@ export class QuickInputController extends Disposable {
 			show: controller => this.show(controller),
 			hide: () => this.hide(),
 			setVisibilities: visibilities => this.setVisibilities(visibilities),
+			setPreview: element => {
+				if (preview.firstElementChild !== (element ?? null)) {
+					dom.reset(preview, ...(element ? [element] : []));
+				}
+				container.classList.toggle('has-preview', !!element);
+				this.dndController?.setEnabled(!element && !this.controller?.anchor);
+			},
 			setEnabled: enabled => this.setEnabled(enabled),
+			setHeader: element => {
+				if (header.firstElementChild !== (element ?? null)) {
+					dom.reset(header, ...(element ? [element] : []));
+				}
+				header.style.display = element ? '' : 'none';
+			},
+			setInputDetails: element => {
+				if (inputDetails.firstElementChild !== (element ?? null)) {
+					dom.reset(inputDetails, ...(element ? [element] : []));
+				}
+				inputDetails.style.display = element ? '' : 'none';
+			},
+			setCenteredLayout: centered => container.classList.toggle('centered', centered),
 			setContextKey: contextKey => this.options.setContextKey(contextKey),
 			linkOpenerDelegate: content => this.options.linkOpenerDelegate(content)
 		};
@@ -742,6 +768,10 @@ export class QuickInputController extends Disposable {
 		ui.description1.textContent = '';
 		ui.description2.textContent = '';
 		dom.reset(ui.widget);
+		ui.setPreview(undefined);
+		ui.setHeader(undefined);
+		ui.setInputDetails(undefined);
+		ui.setCenteredLayout(false);
 		ui.rightActionBar.setActions([]);
 		ui.inlineActionBar.setActions([]);
 		ui.checkAll.checked = false;
@@ -978,7 +1008,9 @@ export class QuickInputController extends Disposable {
 	private updateLayout() {
 		if (this.ui && this.isVisible()) {
 			const style = this.ui.container.style;
-			let width = Math.min(this.dimension!.width * 0.62 /* golden cut */, QuickInputController.MAX_WIDTH);
+			const hasPreview = this.ui.preview.childElementCount > 0 && !this.controller?.anchor;
+			const centered = hasPreview || this.ui.container.classList.contains('centered');
+			let width = centered ? Math.min(this.dimension!.width * 0.9, 1100) : Math.min(this.dimension!.width * 0.62 /* golden cut */, QuickInputController.MAX_WIDTH);
 			style.width = width + 'px';
 
 			let listHeight = this.dimension && this.dimension.height * 0.4;
@@ -1036,6 +1068,14 @@ export class QuickInputController extends Disposable {
 
 				style.width = `${width}px`;
 				style.height = '';
+			} else if (centered) {
+				const height = Math.min(600, this.dimension!.height * 0.7);
+				style.top = `${Math.max(this.titleBarOffset ?? 0, (this.dimension!.height - height) / 2)}px`;
+				style.left = `${Math.round((this.dimension!.width - width) / 2)}px`;
+				style.right = '';
+				style.bottom = '';
+				style.height = `${height}px`;
+				listHeight = height - this.ui.titleBar.offsetHeight - this.ui.header.offsetHeight - this.ui.inputDetails.offsetHeight - this.ui.description1.offsetHeight - this.ui.filterContainer.parentElement!.offsetHeight - 12;
 			} else {
 				style.top = `${this.viewState?.top !== undefined ? Math.round(this.dimension!.height * this.viewState.top) : this.titleBarOffset}px`;
 				style.left = `${Math.round((this.dimension!.width * (this.viewState?.left ?? 0.5 /* center */)) - (width / 2))}px`;

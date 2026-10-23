@@ -8,3 +8,152 @@
 	content: var(--vscode-icon-x-content);
 	font-family: var(--vscode-icon-x-font-family);
 }
+
+.anything-quick-access-preview {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	position: relative;
+	background-color: var(--vscode-editor-background);
+	color: var(--vscode-editor-foreground);
+}
+
+.search-quick-access-modes {
+	display: flex;
+	gap: var(--vscode-spacing-size40);
+	padding: var(--vscode-spacing-size80) var(--vscode-spacing-size80) var(--vscode-spacing-size40);
+}
+
+.search-quick-access-filters,
+.search-quick-access-replace {
+	padding: 0 var(--vscode-spacing-size120) var(--vscode-spacing-size80);
+	font-size: var(--vscode-fontSize-label1);
+	color: var(--vscode-descriptionForeground);
+}
+
+.search-quick-access-filters > summary,
+.search-quick-access-replace > summary {
+	cursor: pointer;
+	width: fit-content;
+}
+
+.search-quick-access-replace > .monaco-findInput {
+	margin-top: var(--vscode-spacing-size80);
+}
+
+.search-quick-access-replace-actions {
+	display: flex;
+	gap: var(--vscode-spacing-size80);
+	padding-top: var(--vscode-spacing-size80);
+}
+
+.search-quick-access-replace-actions > button {
+	border: var(--vscode-strokeThickness) solid var(--vscode-button-border, transparent);
+	border-radius: var(--vscode-cornerRadius-small);
+	padding: var(--vscode-spacing-size40) var(--vscode-spacing-size100);
+	font-family: inherit;
+	font-size: var(--vscode-fontSize-label1);
+	background: var(--vscode-button-secondaryBackground);
+	color: var(--vscode-button-secondaryForeground);
+	cursor: pointer;
+}
+
+.search-quick-access-replace-actions > button:hover:not(:disabled) {
+	background: var(--vscode-button-secondaryHoverBackground);
+}
+
+.search-quick-access-replace-actions > button:disabled {
+	opacity: 0.5;
+	cursor: default;
+}
+
+.search-quick-access-filter-fields {
+	display: flex;
+	flex-direction: column;
+	gap: var(--vscode-spacing-size80);
+	padding-top: var(--vscode-spacing-size80);
+}
+
+.search-quick-access-filter-field {
+	display: flex;
+	flex-direction: column;
+	gap: var(--vscode-spacing-size40);
+}
+
+.search-quick-access-filter-field > .monaco-inputbox {
+	width: 100%;
+}
+
+.search-quick-access-scope {
+	display: flex;
+	align-items: center;
+	gap: var(--vscode-spacing-size60);
+	cursor: pointer;
+}
+
+.search-quick-access-scope > input {
+	margin: 0;
+	accent-color: var(--vscode-focusBorder);
+}
+
+.search-quick-access-modes .search-quick-access-mode {
+	border: var(--vscode-strokeThickness) solid transparent;
+	border-radius: var(--vscode-cornerRadius-small);
+	padding: var(--vscode-spacing-size60) var(--vscode-spacing-size100);
+	background: transparent;
+	color: var(--vscode-descriptionForeground);
+	font-family: inherit;
+	font-size: var(--vscode-fontSize-label1);
+	cursor: pointer;
+}
+
+.search-quick-access-modes .search-quick-access-mode:hover {
+	background: var(--vscode-toolbar-hoverBackground);
+	color: var(--vscode-foreground);
+}
+
+.search-quick-access-modes .search-quick-access-mode[aria-pressed="true"] {
+	background: var(--vscode-inputOption-activeBackground);
+	color: var(--vscode-inputOption-activeForeground);
+	border-color: var(--vscode-inputOption-activeBorder);
+}
+
+.search-quick-access-modes .search-quick-access-mode:focus-visible {
+	outline: var(--vscode-strokeThickness) solid var(--vscode-focusBorder);
+	outline-offset: var(--vscode-spacing-size20);
+}
+
+.anything-quick-access-preview .anything-preview-name {
+	padding: var(--vscode-spacing-size120) var(--vscode-spacing-size160) var(--vscode-spacing-size40);
+	font-size: var(--vscode-fontSize-body1);
+	font-weight: var(--vscode-fontWeight-semiBold);
+}
+
+.anything-quick-access-preview .anything-preview-path {
+	padding: 0 var(--vscode-spacing-size160) var(--vscode-spacing-size120);
+	font-size: var(--vscode-fontSize-label1);
+	color: var(--vscode-descriptionForeground);
+}
+
+.anything-quick-access-preview .anything-preview-name,
+.anything-quick-access-preview .anything-preview-path {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	flex-shrink: 0;
+}
+
+.anything-quick-access-preview .anything-preview-editor {
+	flex: 1;
+	min-height: 0;
+}
+
+.anything-quick-access-preview .anything-preview-message {
+	position: absolute;
+	top: 50%;
+	left: 0;
+	right: 0;
+	padding: var(--vscode-spacing-size160);
+	text-align: center;
+	color: var(--vscode-descriptionForeground);
+}

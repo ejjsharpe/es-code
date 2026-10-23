@@ -61,6 +61,8 @@ import { ICustomEditorLabelService } from '../../../services/editor/common/custo
 import { IOpenerService } from '../../../../platform/opener/common/opener.js';
 import { INotificationService } from '../../../../platform/notification/common/notification.js';
 import { IEditorGroupsService } from '../../../services/editor/common/editorGroupsService.js';
+import { SearchQuickAccessWidget } from './searchQuickAccessWidget.js';
+import { getSearchQuickAccessOptions, ISearchQuickAccessOptions } from './searchQuickAccessOptions.js';
 
 export interface IAnythingQuickPickItem extends IPickerQuickAccessItem, IQuickPickItemWithResource {
 	readonly editor?: EditorInput | IResourceEditorInput;
@@ -114,6 +116,7 @@ export class AnythingQuickAccessProvider extends PickerQuickAccessProvider<IAnyt
 	private static SYMBOL_PICKS_MERGE_DELAY = 200; // allow some time to merge fast and slow picks to reduce flickering
 
 	private readonly pickState: IAnythingPickState;
+	private searchOptions: ISearchQuickAccessOptions | undefined;
 
 	private _linkSourceGroup: number | undefined;
 
@@ -241,6 +244,18 @@ export class AnythingQuickAccessProvider extends PickerQuickAccessProvider<IAnyt
 		// Update the pick state for this run
 		this.pickState.set(picker, runOptions?.fileSearchDelegate === undefined);
 		this._linkSourceGroup = this._supportsLinks(runOptions) ? this._editorGroupsService.activeGroup.id : undefined;
+
+		if (!picker.quickNavigate && !runOptions?.filesOnly && !runOptions?.handleAccept && !runOptions?.fileSearchDelegate) {
+			this.searchOptions = getSearchQuickAccessOptions(runOptions, this.searchOptions);
+			const widget = disposables.add(this.instantiationService.createInstance(SearchQuickAccessWidget, picker, 'files', { ...runOptions, searchOptions: this.searchOptions }, { refresh: () => this.refresh(picker) }));
+			const updatePreview = () => {
+				const item = picker.activeItems[0];
+				void widget.preview.setInput(item?.resource, isEditorSymbolQuickPickItem(item) ? item.range.selection : extractRangeFromFilter(picker.value, [GotoSymbolQuickAccessProvider.PREFIX])?.range);
+			};
+			disposables.add(picker.onDidChangeActive(updatePreview));
+			disposables.add(picker.onDidChangeValue(updatePreview));
+			updatePreview();
+		}
 
 		// Add editor decorations for active editor symbol picks
 		const editorDecorationsDisposable = disposables.add(new MutableDisposable());

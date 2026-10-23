@@ -4,14 +4,19 @@
  *--------------------------------------------------------------------------------------------*/
 
 import assert from 'assert';
+import { DeferredPromise } from '../../../../../base/common/async.js';
 import { CancellationToken } from '../../../../../base/common/cancellation.js';
-import { DisposableStore } from '../../../../../base/common/lifecycle.js';
+import { DisposableStore, IReference, toDisposable } from '../../../../../base/common/lifecycle.js';
 import { Schemas } from '../../../../../base/common/network.js';
 import { URI } from '../../../../../base/common/uri.js';
 import { mock } from '../../../../../base/test/common/mock.js';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../../base/test/common/utils.js';
 import { ICodeEditorService } from '../../../../../editor/browser/services/codeEditorService.js';
 import { OpenerService } from '../../../../../editor/browser/services/openerService.js';
+import { CodeEditorWidget } from '../../../../../editor/browser/widget/codeEditor/codeEditorWidget.js';
+import { IResolvedTextEditorModel, ITextModelService } from '../../../../../editor/common/services/resolverService.js';
+import { TestCodeEditor } from '../../../../../editor/test/browser/testCodeEditor.js';
+import { createTextModel } from '../../../../../editor/test/common/testTextModel.js';
 import { IOutlineModelService } from '../../../../../editor/contrib/documentSymbols/browser/outlineModel.js';
 import { NullCommandService } from '../../../../../platform/commands/test/common/nullCommandService.js';
 import { IConfigurationService } from '../../../../../platform/configuration/common/configuration.js';
@@ -28,7 +33,167 @@ import { ISearchService } from '../../../../services/search/common/search.js';
 import { workbenchInstantiationService } from '../../../../test/browser/workbenchTestServices.js';
 import { IQuickChatService } from '../../../chat/browser/chat.js';
 import { AnythingQuickAccessProvider, IAnythingQuickPickItem } from '../../browser/anythingQuickAccess.js';
+import { AnythingQuickAccessPreview } from '../../browser/anythingQuickAccessPreview.js';
+import { SearchQuickAccessWidget } from '../../browser/searchQuickAccessWidget.js';
+import { getSearchQuickAccessOptions } from '../../browser/searchQuickAccessOptions.js';
+import { IQuickAccessOptions } from '../../../../../platform/quickinput/common/quickAccess.js';
 import { IAnythingQuickAccessProviderRunOptions } from '../../common/search.js';
+
+suite('Search Quick Access - modes', () => {
+	const store = ensureNoDisposablesAreLeakedInTestSuite();
+
+	test('content filters refresh the query and stay hidden in file-name mode', () => {
+		const instantiationService = workbenchInstantiationService(undefined, store);
+		const picker = store.add(instantiationService.get(IQuickInputService).createQuickPick({ useSeparators: true }));
+		picker.value = 'alpha';
+		const options = getSearchQuickAccessOptions();
+		options.regex = true;
+		options.filtersExpanded = true;
+		let refreshes = 0;
+		const content = store.add(instantiationService.createInstance(SearchQuickAccessWidget, picker, 'contents', { searchOptions: options }, { refresh: () => refreshes++ }));
+		assert.ok(picker.inputDetails instanceof HTMLElement);
+		const include = picker.inputDetails.querySelector<HTMLInputElement>('input[aria-label="Files to Include"]')!;
+		include.value = '*.ts';
+		include.dispatchEvent(new Event('input', { bubbles: true }));
+		const exclude = picker.inputDetails.querySelector<HTMLInputElement>('input[aria-label="Files to Exclude"]')!;
+		exclude.value = '*.test.ts';
+		exclude.dispatchEvent(new Event('input', { bubbles: true }));
+		const contentButtons = picker.buttons.map(button => ({ label: button.tooltip, checked: button.toggle?.checked }));
+		content.dispose();
+		store.add(instantiationService.createInstance(SearchQuickAccessWidget, picker, 'files', { searchOptions: options }, { refresh: () => refreshes++ }));
+		assert.ok(picker.header instanceof HTMLElement);
+		assert.deepStrictEqual({ query: picker.value, refreshes, include: options.includePattern, exclude: options.excludePattern, contentButtons, fileButtons: picker.buttons.length, filtersVisible: !!picker.inputDetails }, {
+			query: 'alpha', refreshes: 2, include: '*.ts', exclude: '*.test.ts',
+			contentButtons: [{ label: 'Match Case', checked: false }, { label: 'Match Whole Word', checked: false }, { label: 'Use Regular Expression', checked: true }],
+			fileButtons: 0, filtersVisible: false
+		});
+	});
+
+	for (const mode of ['files', 'contents'] as const) {
+		test(`Tab switches from ${mode} only inside the active picker`, () => {
+			const instantiationService = workbenchInstantiationService(undefined, store);
+			const picker = store.add(instantiationService.get(IQuickInputService).createQuickPick({ useSeparators: true }));
+			picker.value = 'search query';
+			const shown: { value: string | undefined; options: IQuickAccessOptions | undefined }[] = [];
+			instantiationService.stub(IQuickInputService, {
+				currentQuickInput: picker,
+				quickAccess: {
+					show: (value, options) => { shown.push({ value, options }); },
+					pick: async () => undefined
+				}
+			});
+			const widget = store.add(instantiationService.createInstance(SearchQuickAccessWidget, picker, mode, { from: 'searchModeSwitch' }, { refresh: () => { } }));
+			assert.ok(picker.header instanceof HTMLElement);
+			const fixture = document.createElement('div');
+			const header = fixture.appendChild(document.createElement('div'));
+			header.appendChild(picker.header);
+			const input = fixture.appendChild(document.createElement('input'));
+			document.body.appendChild(fixture);
+			store.add(toDisposable(() => fixture.remove()));
+			const dispatchTab = (target: HTMLElement, options: KeyboardEventInit = {}) => {
+				const event = new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true, ...options });
+				target.dispatchEvent(event);
+				return event.defaultPrevented;
+			};
+			const prevented = [
+				dispatchTab(input, { shiftKey: true }),
+				dispatchTab(input, { ctrlKey: true }),
+				dispatchTab(input, { altKey: true }),
+				dispatchTab(input, { metaKey: true }),
+				dispatchTab(document.body),
+				dispatchTab(input, { repeat: true }),
+				dispatchTab(input)
+			];
+			widget.dispose();
+			prevented.push(dispatchTab(input));
+			assert.deepStrictEqual({ prevented, shown }, {
+				prevented: [false, false, false, false, false, true, true, false],
+				shown: [{ value: 'search query', options: { providerPrefix: mode === 'files' ? '%' : '', allowPrefixSwitching: true, preserveValue: true, providerOptions: { from: 'searchModeSwitch', searchOptions: widget.options } } }]
+			});
+		});
+	}
+
+	for (const [mode, value, from, expectedQuery, expectedPrefix] of [
+		['files', '%word', undefined, '%word', '%'],
+		['contents', 'word', 'searchModeSwitch', 'word', ''],
+		['contents', '%word', undefined, 'word', '']
+	] as const) {
+		test(`preserves the query when switching from ${mode}, ${value}, ${from}`, () => {
+			const instantiationService = workbenchInstantiationService(undefined, store);
+			const picker = store.add(instantiationService.get(IQuickInputService).createQuickPick({ useSeparators: true }));
+			picker.value = value;
+			const shown: { value: string | undefined; options: IQuickAccessOptions | undefined }[] = [];
+			instantiationService.stub(IQuickInputService, {
+				quickAccess: {
+					show: (value, options) => { shown.push({ value, options }); },
+					pick: async () => undefined
+				}
+			});
+			const widget = store.add(instantiationService.createInstance(SearchQuickAccessWidget, picker, mode, { from }, { refresh: () => { } }));
+			assert.ok(picker.header instanceof HTMLElement);
+			picker.header.querySelector<HTMLButtonElement>('button[aria-pressed="true"]')!.click();
+			picker.header.querySelector<HTMLButtonElement>('button[aria-pressed="false"]')!.click();
+			assert.deepStrictEqual(shown, [{
+				value: expectedQuery,
+				options: { providerPrefix: expectedPrefix, allowPrefixSwitching: true, preserveValue: true, providerOptions: { from: 'searchModeSwitch', searchOptions: widget.options } }
+			}]);
+		});
+	}
+});
+
+suite('AnythingQuickAccess - preview', () => {
+	const store = ensureNoDisposablesAreLeakedInTestSuite();
+
+	test('late preview loads cannot replace the selected file and release their references', async () => {
+		const instantiationService = workbenchInstantiationService(undefined, store);
+		const editor = store.add(instantiationService.createInstance(TestCodeEditor, document.createElement('div'), {}, { contributions: [] }));
+		instantiationService.stubInstance(CodeEditorWidget, editor);
+		const pending = new Map<string, DeferredPromise<IReference<IResolvedTextEditorModel>>>();
+		const released: string[] = [];
+		const resources = [URI.file('/first.ts'), URI.file('/second.ts')];
+		const references = resources.map(resource => {
+			pending.set(resource.toString(), new DeferredPromise());
+			const model = store.add(createTextModel('const value = 1;', 'typescript', undefined, resource));
+			return {
+				object: new class extends mock<IResolvedTextEditorModel>() {
+					override readonly textEditorModel = model;
+				},
+				dispose: () => released.push(resource.path)
+			};
+		});
+		instantiationService.stub(ITextModelService, { createModelReference: resource => pending.get(resource.toString())!.p });
+		const preview = store.add(instantiationService.createInstance(AnythingQuickAccessPreview));
+		const first = preview.setInput(resources[0]);
+		const second = preview.setInput(resources[1]);
+		await pending.get(resources[1].toString())!.complete(references[1]);
+		await second;
+		await pending.get(resources[0].toString())!.complete(references[0]);
+		await first;
+		const displayedResource = editor.getModel()?.uri.toString();
+		preview.dispose();
+
+		assert.deepStrictEqual({ displayedResource, released }, {
+			displayedResource: resources[1].toString(),
+			released: ['/first.ts', '/second.ts']
+		});
+	});
+
+	test('closing the preview releases a model that is still loading', async () => {
+		const instantiationService = workbenchInstantiationService(undefined, store);
+		const pending = new DeferredPromise<IReference<IResolvedTextEditorModel>>();
+		instantiationService.stub(ITextModelService, { createModelReference: () => pending.p });
+		const preview = store.add(instantiationService.createInstance(AnythingQuickAccessPreview));
+		const loading = preview.setInput(URI.file('/first.ts'));
+		preview.dispose();
+		let released = false;
+		await pending.complete({
+			object: new class extends mock<IResolvedTextEditorModel>() { },
+			dispose: () => { released = true; }
+		});
+		await loading;
+		assert.strictEqual(released, true);
+	});
+});
 
 suite('AnythingQuickAccess - links', () => {
 	const store = ensureNoDisposablesAreLeakedInTestSuite();

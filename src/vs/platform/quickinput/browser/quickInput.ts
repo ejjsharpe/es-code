@@ -103,6 +103,9 @@ export interface QuickInputUI {
 	description1: HTMLElement;
 	description2: HTMLElement;
 	widget: HTMLElement;
+	preview: HTMLElement;
+	header: HTMLElement;
+	inputDetails: HTMLElement;
 	rightActionBar: ToolBar;
 	inlineActionBar: ToolBar;
 	checkAll: TriStateCheckbox;
@@ -128,6 +131,10 @@ export interface QuickInputUI {
 	keyMods: Writeable<IKeyMods>;
 	show(controller: QuickInput): void;
 	setVisibilities(visibilities: Visibilities): void;
+	setPreview(element: HTMLElement | undefined): void;
+	setHeader(element: HTMLElement | undefined): void;
+	setInputDetails(element: HTMLElement | undefined): void;
+	setCenteredLayout(centered: boolean): void;
 	setEnabled(enabled: boolean): void;
 	setContextKey(contextKey?: string): void;
 	linkOpenerDelegate(content: string): void;
@@ -526,6 +533,10 @@ export class QuickPick<T extends IQuickPickItem, O extends { useSeparators: bool
 	private static readonly DEFAULT_ARIA_LABEL = localize('quickInputBox.ariaLabel', "Type to narrow down results.");
 
 	private _value = '';
+	private _preview: HTMLElement | undefined;
+	private _header: HTMLElement | undefined;
+	private _inputDetails: HTMLElement | undefined;
+	private _useCenteredLayout = false;
 	private _ariaLabel: string | undefined;
 	private _placeholder: string | undefined;
 	private readonly onDidChangeValueEmitter = this._register(new Emitter<string>());
@@ -572,6 +583,42 @@ export class QuickPick<T extends IQuickPickItem, O extends { useSeparators: bool
 	constructor(ui: QuickInputUI) {
 		super(ui);
 		this.noValidationMessage = undefined;
+	}
+
+	get preview(): HTMLElement | undefined {
+		return this._preview;
+	}
+
+	set preview(element: HTMLElement | undefined) {
+		this._preview = element;
+		this.update();
+	}
+
+	get header(): HTMLElement | undefined {
+		return this._header;
+	}
+
+	set header(element: HTMLElement | undefined) {
+		this._header = element;
+		this.update();
+	}
+
+	get inputDetails(): HTMLElement | undefined {
+		return this._inputDetails;
+	}
+
+	set inputDetails(element: HTMLElement | undefined) {
+		this._inputDetails = element;
+		this.update();
+	}
+
+	get useCenteredLayout(): boolean {
+		return this._useCenteredLayout;
+	}
+
+	set useCenteredLayout(centered: boolean) {
+		this._useCenteredLayout = centered;
+		this.update();
 	}
 
 	get quickNavigate() {
@@ -1032,6 +1079,10 @@ export class QuickPick<T extends IQuickPickItem, O extends { useSeparators: bool
 		}
 		// store the scrollTop before it is reset
 		const scrollTopBefore = this.keepScrollPosition ? this.scrollTop : 0;
+		this.ui.setPreview(this.preview);
+		this.ui.setHeader(this.header);
+		this.ui.setInputDetails(this.inputDetails);
+		this.ui.setCenteredLayout(this.useCenteredLayout);
 		const hasDescription = !!this.description;
 		const visibilities: Visibilities = {
 			title: !!this.title || !!this.step || !!this.titleButtons.length,

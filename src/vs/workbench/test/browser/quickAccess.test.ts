@@ -312,6 +312,46 @@ suite('QuickAccess', () => {
 		restore();
 	});
 
+	test('bound search modes allow explicit prefixes and keep every provider centered', () => {
+		const registry = Registry.as<IQuickAccessRegistry>(Extensions.Quickaccess);
+		const restore = (registry as QuickAccessRegistry).clear();
+		const localDisposables = new DisposableStore();
+		const shown: { provider: string; value: string; centered: boolean }[] = [];
+		const record = (provider: string, picker: IQuickPick<IQuickPickItem, { useSeparators: true }>) => {
+			shown.push({ provider, value: picker.value, centered: !!picker.useCenteredLayout });
+			return toDisposable(() => { });
+		};
+		class ContentProvider implements IQuickAccessProvider {
+			provide(picker: IQuickPick<IQuickPickItem, { useSeparators: true }>): IDisposable { return record('contents', picker); }
+		}
+		class CommandProvider implements IQuickAccessProvider {
+			provide(picker: IQuickPick<IQuickPickItem, { useSeparators: true }>): IDisposable { return record('commands', picker); }
+		}
+		class HelpProvider implements IQuickAccessProvider {
+			provide(picker: IQuickPick<IQuickPickItem, { useSeparators: true }>): IDisposable { return record('help', picker); }
+		}
+		try {
+			localDisposables.add(registry.registerQuickAccessProvider({ ctor: ContentProvider, prefix: '%', helpEntries: [] }));
+			localDisposables.add(registry.registerQuickAccessProvider({ ctor: CommandProvider, prefix: '>', helpEntries: [] }));
+			localDisposables.add(registry.registerQuickAccessProvider({ ctor: HelpProvider, prefix: '?', helpEntries: [] }));
+			accessor.quickInputService.quickAccess.show('alpha', { providerPrefix: '%', allowPrefixSwitching: true, preserveValue: true });
+			for (const value of ['>command', '?', 'alpha']) {
+				const picker = accessor.quickInputService.currentQuickInput as IQuickPick<IQuickPickItem, { useSeparators: true }>;
+				picker.value = value;
+			}
+			assert.deepStrictEqual(shown, [
+				{ provider: 'contents', value: 'alpha', centered: true },
+				{ provider: 'commands', value: '>command', centered: true },
+				{ provider: 'help', value: '?', centered: true },
+				{ provider: 'contents', value: 'alpha', centered: true }
+			]);
+		} finally {
+			accessor.quickInputService.currentQuickInput?.hide();
+			localDisposables.dispose();
+			restore();
+		}
+	});
+
 	let fastProviderCalled = false;
 	let slowProviderCalled = false;
 	let fastAndSlowProviderCalled = false;

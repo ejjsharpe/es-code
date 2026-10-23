@@ -126,6 +126,9 @@ export interface IViewContainerDescriptor {
 	 */
 	readonly hideIfEmpty?: boolean;
 
+	/** Whether this container starts unpinned when no saved visibility preference exists. */
+	readonly hideByDefault?: boolean;
+
 	/**
 	 * Id of the extension that contributed the view container
 	 */

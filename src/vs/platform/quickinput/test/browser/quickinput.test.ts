@@ -128,6 +128,39 @@ suite('QuickInput', () => { // https://github.com/microsoft/vscode/issues/147543
 		sinon.restore();
 	});
 
+	test('preview picker stays centered on resize and resets for other inputs', () => {
+		const picker = store.add(controller.createQuickPick());
+		const preview = document.createElement('div');
+		const header = document.createElement('div');
+		picker.preview = preview;
+		picker.header = header;
+		controller.layout({ width: 1280, height: 900 }, 30);
+		picker.show();
+		const widget = fixture.querySelector<HTMLElement>('.quick-input-widget')!;
+		const states: { expanded: boolean; width: string; height: string; top: string; left: string; preview: boolean; header: boolean }[] = [];
+		const record = () => states.push({
+			expanded: widget.classList.contains('has-preview'),
+			width: widget.style.width,
+			height: widget.style.height,
+			top: widget.style.top,
+			left: widget.style.left,
+			preview: widget.contains(preview),
+			header: widget.contains(header)
+		});
+		record();
+		controller.layout({ width: 800, height: 600 }, 30);
+		record();
+		const input = store.add(controller.createInputBox());
+		input.show();
+		record();
+
+		assert.deepStrictEqual(states, [
+			{ expanded: true, width: '1100px', height: '600px', top: '150px', left: '90px', preview: true, header: true },
+			{ expanded: true, width: '720px', height: '420px', top: '90px', left: '40px', preview: true, header: true },
+			{ expanded: false, width: '496px', height: '', top: '30px', left: '152px', preview: false, header: false }
+		]);
+	});
+
 	test('close motion requires modern UI with motion enabled', () => {
 		const clock = sinon.useFakeTimers();
 		const quickpick = store.add(controller.createQuickPick());

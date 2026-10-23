@@ -524,6 +524,22 @@ export enum QuickPickFocus {
 export interface IQuickPick<T extends IQuickPickItem, O extends { useSeparators: boolean } = { useSeparators: false }> extends IQuickInput {
 
 	/**
+	 * An optional HTML element shown beside the results in a centered, expanded picker.
+	 */
+	preview?: unknown /* HTMLElement */;
+
+	/**
+	 * An optional HTML element shown above the quick pick input.
+	 */
+	header?: unknown /* HTMLElement */;
+
+	/** Additional controls rendered below the input. */
+	inputDetails?: unknown /* HTMLElement */;
+
+	/** Keeps the picker centered when it has no preview. */
+	useCenteredLayout?: boolean;
+
+	/**
 	 * The type of the quick input.
 	 */
 	readonly type: QuickInputType.QuickPick;
